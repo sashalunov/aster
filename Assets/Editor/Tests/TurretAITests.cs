@@ -152,4 +152,34 @@ public class TurretAITests
 
         Object.DestroyImmediate(playerObj);
     }
+
+    [Test]
+    public void Player_TakeDamage_LethalDamage_SetsIsDeadAndInvokesOnDeathOnce()
+    {
+        GameObject playerObj = new GameObject("TestPlayer");
+        player p = playerObj.AddComponent<player>();
+        p.shield_value = 5f;
+        p.shield_max_value = 10f;
+        p.health_value = 5f;
+        p.health_max_value = 10f;
+
+        int onDeathCount = 0;
+        p.OnDeath += () => onDeathCount++;
+
+        p.TakeDamage(10f);
+
+        Assert.IsTrue(p.isDead, "Player should be flagged as isDead after lethal damage");
+        Assert.IsFalse(p._can_play, "_can_play should be false after death");
+        Assert.AreEqual(0f, p.shield_value, "Shield value should be clamped to 0 on death");
+        Assert.AreEqual(0f, p.health_value, "Health value should be clamped to 0 on death");
+        Assert.AreEqual(1, onDeathCount, "OnDeath should be invoked exactly once");
+
+        // Subsequent damage should be ignored
+        p.TakeDamage(10f);
+        Assert.AreEqual(1, onDeathCount, "OnDeath should not be re-invoked on subsequent hits");
+        Assert.AreEqual(0f, p.shield_value, "Shield should not decrease below 0");
+        Assert.AreEqual(0f, p.health_value, "Health should not decrease below 0");
+
+        Object.DestroyImmediate(playerObj);
+    }
 }

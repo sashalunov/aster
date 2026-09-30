@@ -23,6 +23,12 @@ public class PlayerHUD : MonoBehaviour
     public TMP_Text shieldText;
     public Image shieldProgress;
 
+    [Header("Health UI")]
+    public TMP_Text healthText;
+    public Image healthProgress;
+
+    private bool _isSubscribed = false;
+
     private void Awake()
     {
         ResolveReferences();
@@ -31,6 +37,7 @@ public class PlayerHUD : MonoBehaviour
     private void Start()
     {
         ResolveReferences();
+        Subscribe();
         RefreshAllDisplays();
     }
 
@@ -46,6 +53,19 @@ public class PlayerHUD : MonoBehaviour
         Unsubscribe();
     }
 
+    private void Update()
+    {
+        if (!_isSubscribed)
+        {
+            ResolveReferences();
+            if (_player != null)
+            {
+                Subscribe();
+                RefreshAllDisplays();
+            }
+        }
+    }
+
     public void ResolveReferences()
     {
         if (_player == null)
@@ -58,8 +78,10 @@ public class PlayerHUD : MonoBehaviour
         }
     }
 
-    private void Subscribe()
+    public void Subscribe()
     {
+        if (_isSubscribed) return;
+
         if (_progression != null)
         {
             _progression.OnXPChanged += UpdateXPDisplay;
@@ -69,11 +91,15 @@ public class PlayerHUD : MonoBehaviour
         {
             _player.OnWeaponStatsChanged += UpdateWeaponDisplay;
             _player.OnShieldChanged += UpdateShieldDisplay;
+            _player.OnHealthChanged += UpdateHealthDisplay;
+            _isSubscribed = true;
         }
     }
 
-    private void Unsubscribe()
+    public void Unsubscribe()
     {
+        if (!_isSubscribed) return;
+
         if (_progression != null)
         {
             _progression.OnXPChanged -= UpdateXPDisplay;
@@ -83,7 +109,9 @@ public class PlayerHUD : MonoBehaviour
         {
             _player.OnWeaponStatsChanged -= UpdateWeaponDisplay;
             _player.OnShieldChanged -= UpdateShieldDisplay;
+            _player.OnHealthChanged -= UpdateHealthDisplay;
         }
+        _isSubscribed = false;
     }
 
     public void RefreshAllDisplays()
@@ -97,6 +125,7 @@ public class PlayerHUD : MonoBehaviour
         {
             UpdateWeaponDisplay(_player._fire_force, _player._fire_rate, _player._bullet_dmg);
             UpdateShieldDisplay(_player.shield_value, _player.shield_max_value);
+            UpdateHealthDisplay(_player.health_value, _player.health_max_value);
         }
     }
 
@@ -123,16 +152,34 @@ public class PlayerHUD : MonoBehaviour
     {
         if (shieldText != null)
         {
-            shieldText.SetText(Mathf.Max(0, (int)currentShield).ToString());
-            if (shieldText.transform.parent != null)
-            {
-                Animator anim = shieldText.transform.parent.GetComponent<Animator>();
-                if (anim != null) anim.SetInteger("state", currentShield < 4 ? 1 : 0);
-            }
+            shieldText.SetText("SHIELD: " + Mathf.Max(0, (int)currentShield) + " / " + (int)maxShield);
         }
         if (shieldProgress != null && maxShield > 0)
         {
             shieldProgress.fillAmount = Mathf.Clamp01(currentShield / maxShield);
+        }
+    }
+
+    public void UpdateHealthDisplay(float currentHealth, float maxHealth)
+    {
+        if (healthText != null)
+        {
+            healthText.SetText("HULL: " + Mathf.Max(0, (int)currentHealth) + " / " + (int)maxHealth);
+        }
+        if (healthProgress != null && maxHealth > 0)
+        {
+            float fill = Mathf.Clamp01(currentHealth / maxHealth);
+            healthProgress.fillAmount = fill;
+
+            // Dynamically tint color based on health level: green -> yellow -> red
+            if (fill > 0.5f)
+            {
+                healthProgress.color = Color.Lerp(new Color(1f, 0.8f, 0.2f), new Color(0.2f, 0.9f, 0.3f), (fill - 0.5f) * 2f);
+            }
+            else
+            {
+                healthProgress.color = Color.Lerp(new Color(0.9f, 0.2f, 0.2f), new Color(1f, 0.8f, 0.2f), fill * 2f);
+            }
         }
     }
 }

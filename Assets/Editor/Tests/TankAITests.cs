@@ -158,4 +158,59 @@ public class TankAITests
         TankAI.UnregisterTank(ai);
         Object.DestroyImmediate(tank);
     }
+
+    [Test]
+    public void TankAI_SpawnZoneAnchoring_PreservesPatrolCenterEvenAfterMoving()
+    {
+        Vector3 initialSpawn = new Vector3(10f, 10f, 1.5f);
+        GameObject tank = new GameObject("AnchorTestTank");
+        tank.transform.position = initialSpawn;
+        TankAI ai = tank.AddComponent<TankAI>();
+        ai.Initialize(initialSpawn);
+        ai.roamAroundSpawn = true;
+        ai.roamRadius = 6f;
+
+        // Move the tank physically to the edge of its roam radius
+        tank.transform.position = initialSpawn + new Vector3(5f, 0f, 0f);
+
+        for (int i = 0; i < 20; i++)
+        {
+            Vector3 dest = ai.GetRandomDestination();
+            float distFromSpawn = Vector2.Distance(new Vector2(initialSpawn.x, initialSpawn.y),
+                                                   new Vector2(dest.x, dest.y));
+
+            Assert.LessOrEqual(distFromSpawn, ai.roamRadius + 0.1f, 
+                "Even after the tank has moved, all destinations must remain strictly within roam radius of initial spawn!");
+        }
+
+        TankAI.UnregisterTank(ai);
+        Object.DestroyImmediate(tank);
+    }
+
+    [Test]
+    public void TankAI_ApplySteering_SynchronizesRigidbodyRotation()
+    {
+        GameObject tank = new GameObject("SteerSyncTank");
+        tank.transform.position = Vector3.zero;
+        tank.transform.rotation = Quaternion.identity;
+        TankAI ai = tank.AddComponent<TankAI>();
+        ai.AutoConfigureReferences();
+
+        // Steer East (+X direction)
+        Vector3 steerEast = new Vector3(1f, 0f, 0f);
+        var mSteer = typeof(TankAI).GetMethod("ApplySteering", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        
+        // Execute steering for several iterations
+        for (int i = 0; i < 30; i++)
+        {
+            mSteer.Invoke(ai, new object[] { steerEast });
+        }
+
+        Assert.IsNotNull(ai.rb, "Rigidbody should exist");
+        Assert.AreEqual(ai.transform.rotation.eulerAngles.z, ai.rb.rotation.eulerAngles.z, 0.1f, 
+            "Rigidbody rotation must match transform rotation to prevent PhysX overwriting");
+
+        TankAI.UnregisterTank(ai);
+        Object.DestroyImmediate(tank);
+    }
 }

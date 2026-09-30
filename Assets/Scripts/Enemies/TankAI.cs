@@ -106,8 +106,12 @@ public class TankAI : MonoBehaviour
     // Static registry of all active TankAI instances for mutual avoidance
     private static readonly List<TankAI> allTanks = new List<TankAI>();
 
+    // Spawn anchor configuration
+    [Tooltip("Initial spawn position of the tank. Automatically recorded on Awake or can be set in Inspector.")]
+    [SerializeField] private Vector3 spawnPosition;
+    [SerializeField] private bool hasRecordedSpawn = false;
+
     // Runtime state
-    private Vector3 spawnPosition;
     private Vector3 currentDestination;
     private float stateTimer = 0f;
     private float currentSpeed = 0f;
@@ -131,6 +135,7 @@ public class TankAI : MonoBehaviour
 
     public TankState CurrentState => currentState;
     public Vector3 CurrentDestination => currentDestination;
+    public Vector3 SpawnPosition => spawnPosition;
     public static IReadOnlyList<TankAI> AllTanks => allTanks;
 
     private void OnValidate()
@@ -145,11 +150,20 @@ public class TankAI : MonoBehaviour
 
     private void Awake()
     {
-        Initialize();
+        if (!hasRecordedSpawn || spawnPosition == Vector3.zero)
+        {
+            spawnPosition = transform.position;
+            hasRecordedSpawn = true;
+        }
+        groundZ = spawnPosition.z;
+        Initialize(spawnPosition);
     }
 
     private void Reset()
     {
+        spawnPosition = transform.position;
+        groundZ = spawnPosition.z;
+        hasRecordedSpawn = true;
         AutoConfigureReferences();
     }
 
@@ -168,7 +182,16 @@ public class TankAI : MonoBehaviour
     /// </summary>
     public void Initialize(Vector3? customSpawn = null)
     {
-        spawnPosition = customSpawn ?? transform.position;
+        if (customSpawn.HasValue)
+        {
+            spawnPosition = customSpawn.Value;
+            hasRecordedSpawn = true;
+        }
+        else if (!hasRecordedSpawn || spawnPosition == Vector3.zero)
+        {
+            spawnPosition = transform.position;
+            hasRecordedSpawn = true;
+        }
         groundZ = spawnPosition.z;
         AutoConfigureReferences();
         RegisterTank(this);
@@ -192,10 +215,11 @@ public class TankAI : MonoBehaviour
 
     private void Start()
     {
-        if (spawnPosition == Vector3.zero && transform.position != Vector3.zero)
+        if (!hasRecordedSpawn || spawnPosition == Vector3.zero)
         {
             spawnPosition = transform.position;
             groundZ = spawnPosition.z;
+            hasRecordedSpawn = true;
         }
 
         // Cache initial forward on the XY plane (local Y axis is tank forward)
@@ -424,7 +448,7 @@ public class TankAI : MonoBehaviour
             }
         }
 
-        // Boundary repulsion (prevent driving outside arena)
+        // Boundary repulsion (prevent driving outside spawn patrol radius)
         Vector3 boundaryAvoidance = ComputeBoundaryAvoidanceVector();
 
         // Blend all steer vectors
@@ -448,15 +472,19 @@ public class TankAI : MonoBehaviour
         }
         else
         {
-            // Slow down slightly on sharp turns to maintain control (tank forward is transform.up)
+            // If facing away from target heading, prioritize turning in place before rushing forward
             float angleToDesired = Vector3.Angle(transform.up, currentMoveDirection);
-            if (angleToDesired > 75f)
+            if (angleToDesired > 80f)
             {
-                targetSpeed *= 0.5f;
+                targetSpeed = 0f; // Turn on the spot!
             }
-            else if (angleToDesired > 40f)
+            else if (angleToDesired > 35f)
             {
-                targetSpeed *= 0.8f;
+                targetSpeed *= 0.35f; // Creep while turning
+            }
+            else if (angleToDesired > 15f)
+            {
+                targetSpeed *= 0.75f;
             }
         }
 
@@ -555,6 +583,7 @@ public class TankAI : MonoBehaviour
 
     /// <summary>
     /// Steers the tank on the XY plane by rotating around the Z axis so transform.up aligns with steerDirection.
+    /// Synchronizes rotation with Rigidbody so PhysX does not overwrite the rotation back to (0,0,0).
     /// </summary>
     private void ApplySteering(Vector3 steerDirection)
     {
@@ -562,7 +591,13 @@ public class TankAI : MonoBehaviour
         if (steerDirection.sqrMagnitude < 0.0001f) return;
 
         Quaternion targetRotation = CalculateChassisRotation(steerDirection);
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        Quaternion newRot = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+
+        if (rb != null && rb.isKinematic)
+        {
+            rb.MoveRotation(newRot);
+        }
+        transform.rotation = newRot;
     }
 
     /// <summary>
@@ -730,13 +765,14 @@ public class TankAI : MonoBehaviour
 
         if (roamAroundSpawn)
         {
-            Vector3 fromSpawn = pos - spawnPosition;
+            Vector3 anchor = (hasRecordedSpawn && spawnPosition != Vector3.zero) ? spawnPosition : transform.position;
+            Vector3 fromSpawn = pos - anchor;
             fromSpawn.z = 0f;
             float dist = fromSpawn.magnitude;
-            if (dist > roamRadius * 0.8f)
+            if (dist > roamRadius * 0.75f)
             {
-                float excess = dist - (roamRadius * 0.8f);
-                avoidance = (-fromSpawn.normalized) * (excess / (roamRadius * 0.2f)) * 2f;
+                float excess = dist - (roamRadius * 0.75f);
+                avoidance = (-fromSpawn.normalized) * (excess / (roamRadius * 0.25f)) * 3f;
             }
         }
         else
@@ -790,15 +826,17 @@ public class TankAI : MonoBehaviour
 
     /// <summary>
     /// Picks a random destination on the XY plane within roaming bounds.
-    /// Guarantees the chosen destination is a minimum distance away from the current position.
+    /// Anchors tightly to the recorded spawnPosition so the tank patrols its spawn zone.
     /// </summary>
     public Vector3 GetRandomDestination()
     {
-        Vector2 current2D = new Vector2(transform.position.x, transform.position.y);
-        Vector2 spawn2D = (spawnPosition != Vector3.zero) ? new Vector2(spawnPosition.x, spawnPosition.y) : current2D;
+        Vector2 spawn2D = (hasRecordedSpawn && spawnPosition != Vector3.zero)
+            ? new Vector2(spawnPosition.x, spawnPosition.y)
+            : new Vector2(transform.position.x, transform.position.y);
 
-        Vector2 candidate = current2D;
-        float minMoveDistance = Mathf.Max(arrivalDistance * 2.5f, 2.5f);
+        Vector2 current2D = new Vector2(transform.position.x, transform.position.y);
+        Vector2 candidate = spawn2D;
+        float minMoveDistance = Mathf.Max(arrivalDistance * 2.0f, 2.0f);
 
         for (int attempts = 0; attempts < 15; attempts++)
         {
@@ -839,7 +877,7 @@ public class TankAI : MonoBehaviour
         // Draw roam radius or arena bounds
         if (roamAroundSpawn)
         {
-            Vector3 center = Application.isPlaying ? spawnPosition : transform.position;
+            Vector3 center = (hasRecordedSpawn && spawnPosition != Vector3.zero) ? spawnPosition : transform.position;
             Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.25f);
             Gizmos.DrawWireSphere(center, roamRadius);
         }

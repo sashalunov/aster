@@ -4,9 +4,17 @@ using UnityEngine;
 
 public static class game_prefabs
 {
-   // public static UnityEngine.Object block_hit = Resources.Load("show_blockhit");
-  //  public static UnityEngine.Object block_destroy = Resources.Load("blockdestroy");
-    public static UnityEngine.Object ultra_death = Resources.Load("UltraDeath");
+    private static UnityEngine.Object _ultra_death;
 
-
+    public static UnityEngine.Object ultra_death
+    {
+        get
+        {
+            if (_ultra_death == null)
+            {
+                _ultra_death = Resources.Load("UltraDeath");
+            }
+            return _ultra_death;
+        }
+    }
 }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -27,12 +27,56 @@ public class player : MonoBehaviour
 
     public event System.Action<float, float, float> OnWeaponStatsChanged;
     public event System.Action<float, float> OnShieldChanged;
+    public event System.Action<float, float> OnHealthChanged;
     public event System.Action OnDeath;
+
+    public bool isDead = false;
+    public bool IsDead => isDead;
+
+    public float health_value = 10.0f;
+    public float health_max_value = 10.0f;
+
+    public float shield_value = 10.0f;
+    public float shield_max_value = 10.0f;
+
+    public void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+        _can_play = false;
+        health_value = 0f;
+        shield_value = 0f;
+        UpdateShieldHUD();
+        UpdateHealthHUD();
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            col.enabled = false;
+        }
+
+        if (_ship_hull != null)
+        {
+            _ship_hull.gameObject.SetActive(false);
+        }
+
+        if (game_prefabs.ultra_death != null)
+        {
+            Instantiate(game_prefabs.ultra_death, transform.position, Quaternion.identity);
+        }
+
+        OnDeath?.Invoke();
+    }
 
     float speed = 6.0f;
     public ulong _wpn_value = 0;
-    public float shield_value = 10.0f;
-    public float shield_max_value = 10.0f;
 
     public PlayerProgression Progression { get; private set; }
 
@@ -117,6 +161,7 @@ public class player : MonoBehaviour
         }
 
         UpdateShieldHUD();
+        UpdateHealthHUD();
         UpdateWeaponHUD();
     }
 
@@ -339,6 +384,9 @@ public class player : MonoBehaviour
 
     void OnCollisionEnter(Collision col)
     {
+        if (isDead) return;
+        if (col == null || col.collider == null) return;
+
         if (col.collider.tag == "upgrade")
         {
             GameObject showup;
@@ -424,7 +472,27 @@ public class player : MonoBehaviour
                 }
             }
 
-            shield_value -= dmg;
+            float blockDmg = dmg;
+            if (shield_value > 0f)
+            {
+                if (blockDmg <= shield_value)
+                {
+                    shield_value -= blockDmg;
+                    blockDmg = 0f;
+                }
+                else
+                {
+                    blockDmg -= shield_value;
+                    shield_value = 0f;
+                }
+                UpdateShieldHUD();
+            }
+            if (blockDmg > 0f)
+            {
+                health_value -= blockDmg;
+                if (health_value < 0f) health_value = 0f;
+                UpdateHealthHUD();
+            }
 
             // Resolve target Rigidbody (on block, asteroid parent, or add if static)
             Rigidbody otherRb = col.rigidbody;
@@ -504,7 +572,7 @@ public class player : MonoBehaviour
                 block0 b0 = child.GetComponent<block0>();
                 if (b0 != null)
                 {
-                    reward += child.GetComponent<block0>()._hits;
+                    reward += b0._hits;
                     var bDestroy = Resources.Load("blockdestroy");
                     if (bDestroy != null) Instantiate(bDestroy, child.position, Quaternion.identity);
                 }
@@ -514,39 +582,60 @@ public class player : MonoBehaviour
             //col.collider.transform.GetComponent<AsteroidDestructible>()._lvl.ChangeAstCount(-1);
             //col.collider.transform.GetComponent<AsteroidDestructible>()._lvl.AddAsteroidKill(1);
 
-            var fh = reward + col.collider.transform.GetComponent<AsteroidBase>()._core_hits;
+            AsteroidBase astBase = col.collider.transform.GetComponent<AsteroidBase>();
+            int coreHits = astBase != null ? astBase._core_hits : 0;
+            var fh = reward + coreHits;
             Destroy(col.collider.gameObject);
-            shield_value -= reward + col.collider.transform.GetComponent<AsteroidBase>()._core_hits;
-
-            GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
-            showup.transform.parent = transform;
-            showup.GetComponentInChildren<TextMeshPro>().SetText("-" + fh.ToString() + " SHIELD! ");
-            showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
-
-
-        }
-        UpdateShieldHUD();
-        UpdateWeaponHUD();
-
-        if (shield_value < 0)
-        {
-            _can_play = false;
-            GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
-            GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
-
-            if (game_prefabs.ultra_death != null)
+            
+            float coreDmg = fh;
+            if (shield_value > 0f)
             {
-                Instantiate(game_prefabs.ultra_death, transform.position, Quaternion.identity);
+                if (coreDmg <= shield_value)
+                {
+                    shield_value -= coreDmg;
+                    coreDmg = 0f;
+                }
+                else
+                {
+                    coreDmg -= shield_value;
+                    shield_value = 0f;
+                }
+                UpdateShieldHUD();
+            }
+            if (coreDmg > 0f)
+            {
+                health_value -= coreDmg;
+                if (health_value < 0f) health_value = 0f;
+                UpdateHealthHUD();
             }
 
-            OnDeath?.Invoke();
-
+            if (shield_fx != null)
+            {
+                GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
+                showup.transform.parent = transform;
+                TextMeshPro tmp = showup.GetComponentInChildren<TextMeshPro>();
+                if (tmp != null)
+                {
+                    tmp.SetText("-" + fh.ToString() + " SHIELD! ");
+                }
+                showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
+            }
         }
 
+        UpdateShieldHUD();
+        UpdateHealthHUD();
+        UpdateWeaponHUD();
+
+        if (health_value <= 0)
+        {
+            Die();
+        }
     }
 
     public void TakeDamage(float dmg)
     {
+        if (isDead) return;
+
         if (shield_fx != null)
         {
             GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
@@ -558,25 +647,33 @@ public class player : MonoBehaviour
             }
         }
 
-        shield_value -= dmg;
-        UpdateShieldHUD();
-
-        if (shield_value < 0)
+        // Shield absorbs damage first
+        if (shield_value > 0f)
         {
-            _can_play = false;
-            Rigidbody rb = GetComponent<Rigidbody>();
-            if (rb != null)
+            if (dmg <= shield_value)
             {
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
+                shield_value -= dmg;
+                dmg = 0f;
             }
-
-            if (game_prefabs.ultra_death != null)
+            else
             {
-                Instantiate(game_prefabs.ultra_death, transform.position, Quaternion.identity);
+                dmg -= shield_value;
+                shield_value = 0f;
             }
+            UpdateShieldHUD();
+        }
 
-            OnDeath?.Invoke();
+        // Remaining damage damages hull health
+        if (dmg > 0f)
+        {
+            health_value -= dmg;
+            if (health_value < 0f) health_value = 0f;
+            UpdateHealthHUD();
+        }
+
+        if (health_value <= 0)
+        {
+            Die();
         }
     }
 
@@ -605,6 +702,11 @@ public class player : MonoBehaviour
     public void UpdateShieldHUD()
     {
         OnShieldChanged?.Invoke(shield_value, shield_max_value);
+    }
+
+    public void UpdateHealthHUD()
+    {
+        OnHealthChanged?.Invoke(health_value, health_max_value);
     }
 
     public void AddGun()
