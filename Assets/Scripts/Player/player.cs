@@ -545,6 +545,41 @@ public class player : MonoBehaviour
 
     }
 
+    public void TakeDamage(float dmg)
+    {
+        if (shield_fx != null)
+        {
+            GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
+            showup.transform.parent = transform;
+            TextMeshPro tmp = showup.GetComponentInChildren<TextMeshPro>();
+            if (tmp != null)
+            {
+                tmp.SetText("-" + dmg.ToString() + " SHIELD! ");
+            }
+        }
+
+        shield_value -= dmg;
+        UpdateShieldHUD();
+
+        if (shield_value < 0)
+        {
+            _can_play = false;
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            if (game_prefabs.ultra_death != null)
+            {
+                Instantiate(game_prefabs.ultra_death, transform.position, Quaternion.identity);
+            }
+
+            OnDeath?.Invoke();
+        }
+    }
+
     void gun0_fire(Transform torigin)
     {
 

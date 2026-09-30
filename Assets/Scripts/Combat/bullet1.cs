@@ -16,7 +16,7 @@ public class bullet1 : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-
+        Destroy(gameObject, 5f);
     }
 
     // Update is called once per frame
@@ -32,6 +32,14 @@ public class bullet1 : MonoBehaviour
 
         if (col != null && !col.isTrigger && col.tag != "upgrade")
         {
+            player hitPlayer = col.GetComponent<player>() ?? col.GetComponentInParent<player>();
+            if (hitPlayer != null && hitPlayer != _player)
+            {
+                hitPlayer.TakeDamage(_hit_damage);
+                Destroy(gameObject);
+                return;
+            }
+
             if (col.tag == "block")
             {
                 //rint("BOX HIT");
