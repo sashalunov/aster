@@ -21,6 +21,9 @@ public class TurretAI : MonoBehaviour
     [Tooltip("The rotating part of the turret (turret0)")]
     public Transform turretPart;
 
+    [Tooltip("Restrict aiming and bullet movement to the 2D XY plane. When false, turret aims and shoots freely in full 3D space.")]
+    public bool restrictToXYPlane = false;
+
     [Tooltip("Speed in degrees per second at which the turret rotates towards target")]
     public float rotationSpeed = 150f;
 
@@ -58,8 +61,8 @@ public class TurretAI : MonoBehaviour
     [Tooltip("Lifetime of bullets in seconds before auto-destroy")]
     public float bulletLifetime = 5f;
 
-    [Tooltip("Align spawned bullet's Z position with target to guarantee hit detection in 2D plane")]
-    public bool alignBulletZWithTarget = true;
+    [Tooltip("Align spawned bullet's Z position with target to guarantee hit detection in 2D plane (only applied if restrictToXYPlane is true)")]
+    public bool alignBulletZWithTarget = false;
 
     [Header("Effects & Audio")]
     public Animator animator;
@@ -162,7 +165,10 @@ public class TurretAI : MonoBehaviour
         {
             Vector3 myPos = turretPart != null ? turretPart.position : transform.position;
             targetDirection = target.position - myPos;
-            targetDirection.z = 0f;
+            if (restrictToXYPlane)
+            {
+                targetDirection.z = 0f;
+            }
             float distance = targetDirection.magnitude;
 
             if (distance <= detectionRange)
@@ -191,9 +197,7 @@ public class TurretAI : MonoBehaviour
 
         if (inRange && turretPart != null && targetDirection.sqrMagnitude > 0.0001f)
         {
-            // Aim at target in 2D XY plane (up direction points towards target)
-            float targetAngle = Mathf.Atan2(targetDirection.y, targetDirection.x) * Mathf.Rad2Deg - 90f;
-            Quaternion targetRotation = Quaternion.Euler(0f, 0f, targetAngle);
+            Quaternion targetRotation = CalculateAimRotation(targetDirection, restrictToXYPlane);
 
             if (smoothAim)
             {
@@ -204,7 +208,7 @@ public class TurretAI : MonoBehaviour
                 turretPart.rotation = targetRotation;
             }
 
-            float angleDiff = Quaternion.Angle(turretPart.rotation, targetRotation);
+            float angleDiff = Vector3.Angle(turretPart.up, targetDirection.normalized);
             isAimed = angleDiff <= aimTolerance;
         }
         else if (returnToDefaultWhenIdle && turretPart != null)
@@ -225,10 +229,31 @@ public class TurretAI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Calculates the target rotation for the turret so its up vector aims along the target direction.
+    /// In 3D (restrictTo2D = false), aims freely in full 3D space.
+    /// In 2D (restrictTo2D = true), restricts aim angle to the XY plane.
+    /// </summary>
+    public static Quaternion CalculateAimRotation(Vector3 direction, bool restrictTo2D = false)
+    {
+        if (direction.sqrMagnitude < 0.0001f)
+        {
+            return Quaternion.identity;
+        }
+
+        if (restrictTo2D)
+        {
+            float targetAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            return Quaternion.Euler(0f, 0f, targetAngle);
+        }
+
+        return Quaternion.FromToRotation(Vector3.up, direction.normalized);
+    }
+
     public void Shoot()
     {
         Vector3 spawnPos = muzzlePoint != null ? muzzlePoint.position : (turretPart != null ? turretPart.position : transform.position);
-        if (alignBulletZWithTarget && target != null)
+        if (restrictToXYPlane && alignBulletZWithTarget && target != null)
         {
             spawnPos.z = target.position.z;
         }
@@ -250,7 +275,14 @@ public class TurretAI : MonoBehaviour
         if (muzzleFlashPrefab != null && muzzlePoint != null)
         {
             GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation, muzzlePoint);
-            Destroy(flash, 0.5f);
+            if (Application.isPlaying)
+            {
+                Destroy(flash, 0.5f);
+            }
+            else
+            {
+                DestroyImmediate(flash);
+            }
         }
 
         // Spawn bullet
@@ -283,12 +315,18 @@ public class TurretAI : MonoBehaviour
             Rigidbody rb = bulletObj.GetComponent<Rigidbody>();
             if (rb != null)
             {
+                if (!restrictToXYPlane)
+                {
+                    // Unfreeze Z position constraint so bullet can move freely along Z in 3D
+                    rb.constraints &= ~RigidbodyConstraints.FreezePositionZ;
+                }
+
                 rb.linearVelocity = Vector3.zero;
                 rb.AddForce(bulletObj.transform.up * fireForce, ForceMode.Impulse);
             }
 
             // Auto destroy after lifetime
-            if (bulletLifetime > 0f)
+            if (bulletLifetime > 0f && Application.isPlaying)
             {
                 Destroy(bulletObj, bulletLifetime);
             }
@@ -339,7 +377,10 @@ public class TurretAI : MonoBehaviour
         if (target != null)
         {
             Vector3 toTarget = target.position - center;
-            toTarget.z = 0f;
+            if (restrictToXYPlane)
+            {
+                toTarget.z = 0f;
+            }
             if (toTarget.magnitude <= detectionRange)
             {
                 Gizmos.color = Color.green;

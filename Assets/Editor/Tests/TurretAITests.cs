@@ -74,6 +74,71 @@ public class TurretAITests
     }
 
     [Test]
+    public void TurretAI_CalculateAimRotation_3D_PointsTowardsTargetInAnyDirection()
+    {
+        Vector3[] testDirections = new Vector3[]
+        {
+            new Vector3(0f, 0f, 10f),
+            new Vector3(0f, 0f, -10f),
+            new Vector3(5f, 10f, 15f),
+            new Vector3(-8f, -4f, 12f),
+            new Vector3(12f, -6f, -9f),
+            new Vector3(0f, 15f, 0f),
+            new Vector3(0f, -15f, 0f)
+        };
+
+        foreach (var dir in testDirections)
+        {
+            Quaternion rot3D = TurretAI.CalculateAimRotation(dir, false);
+            Vector3 aimDir = rot3D * Vector3.up;
+            float angleDiff = Vector3.Angle(dir.normalized, aimDir);
+
+            Assert.Less(angleDiff, 0.01f, $"3D aim direction should align with target direction {dir}");
+        }
+    }
+
+    [Test]
+    public void TurretAI_Shoot_UnfreezesBulletZAndFiresIn3D()
+    {
+        GameObject turretObj = new GameObject("TestTurret");
+        TurretAI ai = turretObj.AddComponent<TurretAI>();
+        ai.restrictToXYPlane = false;
+        ai.alignBulletZWithTarget = false;
+        ai.fireForce = 10f;
+
+        GameObject muzzle = new GameObject("Muzzle");
+        muzzle.transform.SetParent(turretObj.transform);
+        muzzle.transform.position = new Vector3(1f, 2f, 3f);
+        ai.muzzlePoint = muzzle.transform;
+
+        // Aim muzzle / turret along +Z axis
+        turretObj.transform.rotation = Quaternion.FromToRotation(Vector3.up, Vector3.forward);
+
+        // Load bullet1 prefab
+        ai.bulletPrefab = Resources.Load<GameObject>("bullet1");
+        Assert.IsNotNull(ai.bulletPrefab, "bullet1 prefab should be loadable from Resources");
+
+        // Fire bullet
+        ai.Shoot();
+
+        bullet1 spawnedBullet = Object.FindAnyObjectByType<bullet1>();
+        Assert.IsNotNull(spawnedBullet, "Bullet should be spawned by Shoot()");
+
+        Rigidbody rb = spawnedBullet.GetComponent<Rigidbody>();
+        Assert.IsNotNull(rb, "Spawned bullet should have a Rigidbody");
+
+        // Rigidbody should have FreezePositionZ cleared so it can move in 3D
+        bool isZFrozen = (rb.constraints & RigidbodyConstraints.FreezePositionZ) != 0;
+        Assert.IsFalse(isZFrozen, "FreezePositionZ constraint should be removed so bullet can move along Z axis");
+
+        // Spawn position should be at muzzle's 3D position
+        Assert.AreEqual(muzzle.transform.position.z, spawnedBullet.transform.position.z, 0.01f, "Bullet Z position should be at muzzle's Z position");
+
+        Object.DestroyImmediate(spawnedBullet.gameObject);
+        Object.DestroyImmediate(turretObj);
+    }
+
+    [Test]
     public void Player_TakeDamage_ReducesShield()
     {
         GameObject playerObj = new GameObject("TestPlayer");
