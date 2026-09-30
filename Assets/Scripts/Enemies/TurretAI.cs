@@ -70,6 +70,7 @@ public class TurretAI : MonoBehaviour
     public AudioClip fireSound;
     public string fireAnimationName = "urret_fire";
 
+    
     private Quaternion defaultLocalRotation;
     private float fireTimer = 0f;
     private Collider[] myColliders;
