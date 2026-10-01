@@ -33,11 +33,8 @@ public class AsteroidBase : MonoBehaviour
     public bool _ready = false;
     private System.Random srnd = new System.Random();
     public GameObject _block;
-
     public int _num_boxes_generated = 0;
-    public Collider _spherec;
     // Start is called before the first frame update
-
     void Start()
     {
         SetHits(_core_hits);
@@ -53,12 +50,8 @@ public class AsteroidBase : MonoBehaviour
 
     }
 
-    void reset_asteroid()
-    {
-    }
-
     [ContextMenu("Clear Asteroid")]
-    private void Clear()
+    public virtual void Clear()
     {
         List<GameObject> gos = new List<GameObject>();
 
@@ -68,9 +61,6 @@ public class AsteroidBase : MonoBehaviour
             if (b0 != null)
             {
                 DestroyImmediate(child.gameObject);
-
-               // Destroy(child.gameObject);
-                //return add_raycast_neighbors(child.gameObject,block_hits);
             }
         }
 
@@ -79,37 +69,27 @@ public class AsteroidBase : MonoBehaviour
     [ContextMenu("Regenerate Asteroid")]
     private void Regenerate()
     {
-   
         int rndmass = Random.Range(2, 6);
-    
         _num_boxes_generated = 0;
-
         //generate_asteroid(1, 2, 2, 0, 1, 1);
         var gg = generate_shell(_core_shell, _shell_hits);
-
-
         foreach (GameObject g in gg)
         {
             for (int j = 0; j < _blocks; j++)
             {
-
                 add_raycast_neighbors(g, _block_hits);
-                
             }
         }
 
         if( gg.Count < 1 )
         {
-
             for (int i = 0; i < _blocks; i++)
             {
                 add_raycast_neighbors(gameObject, _block_hits);
-
             }
-
         }
     }
-    public int generate_asteroid(int coremass = 1, int massmin = 1, int massmax = 16, int shell = 0, int shlvl = 1, int blocklvl = 1)
+    public virtual int generate_asteroid(int coremass = 1, int massmin = 1, int massmax = 16, int shell = 0, int shlvl = 1, int blocklvl = 1)
     {
         int i = 0;
         _block_hits = blocklvl;
@@ -118,14 +98,6 @@ public class AsteroidBase : MonoBehaviour
         // random number of boxes
         _blocks = Random.Range(massmin, massmax);
         //generate_shell(shell, shlvl);
-
-        //for (i = 0; i < _num_boxes_generated; i++)
-        //{
-        //    add_raycast_neighbors(gameObject, blocklvl);
-
-        //}
-        //_ready = true;
-
         _num_boxes_generated = 0;
         var gg = generate_shell(_core_shell, _shell_hits);
         foreach (GameObject g in gg)
@@ -142,21 +114,13 @@ public class AsteroidBase : MonoBehaviour
                 add_raycast_neighbors(gameObject, _block_hits);
             }
         }
-
-
         return UpdateMass();
-
     }
 
-
-    public void check_for_unconected()
+    public virtual void check_for_unconected()
     {
         tres.Clear();
         Transform[] m = scan_connected(transform);
-
-        //foreach(Transform t in m)print(t);
-
-
         foreach (Transform child in transform)
         {
             block0 b0 = child.GetComponent<block0>();
@@ -176,7 +140,7 @@ public class AsteroidBase : MonoBehaviour
         }
         UpdateMass();
     }
-    public List<GameObject> generate_shell(int thickness = 1, int hit = 3)
+    public virtual List<GameObject> generate_shell(int thickness = 1, int hit = 3)
     {
         int i = 0;
         GameObject newbox;
@@ -184,8 +148,6 @@ public class AsteroidBase : MonoBehaviour
 
         if (thickness == -1)
         {
-
-
         }
         else if (thickness == 0)
         {
@@ -240,7 +202,7 @@ public class AsteroidBase : MonoBehaviour
         UpdateMass();
         return shell_go;
     }
-    public int core_receive_hit(Transform source, bullet1 b1)
+    public virtual int core_receive_hit(Transform source, bullet1 b1)
     {
         int b1_dmg = (b1 != null) ? b1._hit_damage : 1;
         var newhits = _core_hits - b1_dmg;
@@ -272,21 +234,17 @@ public class AsteroidBase : MonoBehaviour
         if (newhits < 1)
         {
             core_destruct(b1);
-            //return newhitdamage;
-
         }
 
         _core_hits = newhits;
-       // b1._hit_damage = newhitdamage;
 
         UpdateMats();
         UpdateText();
 
         return newhitdamage;
-
     }
 
-    public int core_destruct(bullet1 b1)
+    public virtual int core_destruct(bullet1 b1)
     {
         int reward = 0;
         foreach(Transform child in transform)
@@ -398,49 +356,32 @@ public class AsteroidBase : MonoBehaviour
 
         }
 
-        //int[] RandomNeighbors = neighbor_indexes.OrderBy(x => srnd.Next()).ToArray();
-        //foreach (int idx in RandomNeighbors)
-        //{
-        //    Vector3 n = neighbors[idx];
-        //    Vector3 tp = initial_go.transform.TransformPoint(n);
-        //    Ray r = new Ray(tp + new Vector3(0,0,-10), Vector3.forward);
-
-        //    if (Physics.Raycast(r, out hit))
-        //    {
-        //        print(tp);
-        //        if (hit.collider.transform.IsChildOf(transform))
-        //        {
-
-        //            return add_raycast_neighbors(hit.collider.gameObject, block_hits);
-        //        }
-        //    }
-        //    else
-        //    {
-        //       var b = Instantiate(_block, tp, transform.rotation) as GameObject;
-        //        b.GetComponent<block0>().SetHits(block_hits);
-        //        return b;
-        //    }
-        //}
-
         return null;
-
     }
 
 
     void UpdateText()
     {
-        _tmp_core_hits.SetText(_core_hits.ToString());
+        if (_tmp_core_hits != null)
+        {
+            _tmp_core_hits.SetText(_core_hits.ToString());
+        }
     }
 
     void UpdateMats()
     {
-        if (_core_hits < 1) return;
+        if (_core_hits < 1 || _grade_mats == null || _grade_mats.Length == 0) return;
+        MeshRenderer mr = GetComponent<MeshRenderer>();
+        if (mr == null) return;
 
-        GetComponent<MeshRenderer>().material = _grade_mats[_core_hits - 1];
-
+        int index = Mathf.Clamp(_core_hits - 1, 0, _grade_mats.Length - 1);
+        if (_grade_mats[index] != null)
+        {
+            mr.material = _grade_mats[index];
+        }
     }
 
-    public int UpdateMass()
+    public virtual int UpdateMass()
     {
         int childmass = 0;
         foreach (Transform child in transform)
@@ -455,7 +396,7 @@ public class AsteroidBase : MonoBehaviour
         return childmass + _core_hits;
     }
 
-    public void SetHits(int newhits)
+    public virtual void SetHits(int newhits)
     {
         _core_hits = newhits;
         UpdateText();
@@ -507,6 +448,4 @@ public class AsteroidBase : MonoBehaviour
         Transform[] r = tres.ToArray();
         return r;
     }
-
-
 }

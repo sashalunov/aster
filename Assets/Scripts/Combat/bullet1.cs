@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Xml.Xsl;
 
-
 public class bullet1 : MonoBehaviour
 {
     private GameObject cloned;
@@ -24,7 +23,6 @@ public class bullet1 : MonoBehaviour
     {
 
     }
-
 
     void OnTriggerEnter(Collider col)
     {
@@ -56,8 +54,6 @@ public class bullet1 : MonoBehaviour
                 if (parentTrans != null)
                 {
                     AsteroidBase astBase = parentTrans.GetComponent<AsteroidBase>();
-                    //AsteroidDestructible astDest = parentTrans.GetComponent<AsteroidDestructible>();
-                    //AsteroidDestructibleOpenSpace astDestOS = parentTrans.GetComponent<AsteroidDestructibleOpenSpace>();
 
                     if (astBase != null)
                     {
@@ -80,8 +76,6 @@ public class bullet1 : MonoBehaviour
             {
                 //print("CORE HIT");
                 AsteroidBase astBase = col.transform.GetComponent<AsteroidBase>() ?? col.transform.GetComponentInParent<AsteroidBase>();
-                //AsteroidDestructible astDest = col.transform.GetComponent<AsteroidDestructible>() ?? col.transform.GetComponentInParent<AsteroidDestructible>();
-                //A/steroidDestructibleOpenSpace astDestOS = col.transform.GetComponent<AsteroidDestructibleOpenSpace>() ?? col.transform.GetComponentInParent<AsteroidDestructibleOpenSpace>();
 
                 if (astBase != null)
                 {

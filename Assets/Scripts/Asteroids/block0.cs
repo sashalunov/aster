@@ -4,7 +4,6 @@ using System.Drawing;
 using TMPro;
 using UnityEngine;
 
-
 public class block0 : MonoBehaviour
 {
     public Material[] _grade_mats;
@@ -39,36 +38,12 @@ public class block0 : MonoBehaviour
     void Update()
     {
     }
-    void FixedUpdate() { 
-        //if (_lvl != null && _detached)
-        //{
-        //    if (transform.position.y < _lvl._bot_collider.position.y - 200f
-        //        || transform.position.x < _lvl._l_collider.position.x -5f 
-        //        || transform.position.x > _lvl._r_collider.position.x +5 
-        //        || transform.position.y > _lvl._top_collider.position.y + 300f)
-        //    {
-        //        reset_block();
-
-        //    }
-        //}
+    void FixedUpdate() 
+    { 
     }
-    void reset_block()
-    {
-        //Transform _spawn_point = _lvl.GetFreeSpawner();
-        //if(_spawn_point != null) 
-        //{ 
-        //    var pt = new Vector3(_spawn_point.position.x + Random.Range(-_lvl._width_size / 5f, _lvl._width_size / 5f),
-        //                 _spawn_point.position.y + Random.Range(-_lvl._width_size / 5f, _lvl._width_size / 5f), _spawn_point.position.z);
-        //    transform.position = pt;
-        //    GetComponent<Rigidbody>().velocity = new Vector3(0, -1, 0) * _lvl._spawn_force;
-        //}
-    }
-
     private void OnDestroy()
     {
-        
     }
-
     public int block_receive_hit(Transform source, bullet1 b1)
     {
         var newhits = _hits - b1._hit_damage;
@@ -137,7 +112,6 @@ public class block0 : MonoBehaviour
         UpdateText();
 
         return newhitdamage;
-
     }
 
     void UpdateText()
@@ -191,19 +165,13 @@ public class block0 : MonoBehaviour
         rb.useGravity = true;
         _detached = true;
 
-
         //Destroy(gameObject);
         //Instantiate(Resources.Load("blockdestroy"), transform.position, Quaternion.identity);
-
-
     }
 
     void OnCollisionEnter(Collision collisionInfo)
     {
         //Destroy(gameObject);
        // Instantiate(Resources.Load("blockdestroy"), transform.position, Quaternion.identity);
-
     }
-
-
 }
