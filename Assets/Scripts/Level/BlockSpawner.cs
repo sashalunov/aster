@@ -201,12 +201,25 @@ public class BlockSpawner : MonoBehaviour
             b0.SetHits(UnityEngine.Random.Range(minHits, maxHits + 1));
         }
 
-        // Apply slight random 2D drift
+        // Ensure Rigidbody exists immediately (block0.prefab has no Rigidbody by default)
         Rigidbody rb = newBlock.GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = newBlock.AddComponent<Rigidbody>();
+            rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
+            rb.useGravity = false;
+            rb.linearDamping = 0.5f;
+            rb.angularDamping = 0.5f;
+            rb.mass = b0 != null && b0._hits > 0 ? b0._hits : 1f;
+        }
+
+        // Apply slight random 2D drift
         if (rb != null && initialDrift > 0f)
         {
             Vector2 randomDir = UnityEngine.Random.insideUnitCircle.normalized;
-            rb.linearVelocity = new Vector3(randomDir.x, randomDir.y, 0f) * UnityEngine.Random.Range(0.2f, initialDrift);
+            if (randomDir.sqrMagnitude < 0.001f) randomDir = Vector2.up;
+            float speed = UnityEngine.Random.Range(initialDrift * 0.5f, initialDrift);
+            rb.linearVelocity = new Vector3(randomDir.x, randomDir.y, 0f) * speed;
         }
 
         activeBlocks.Add(newBlock);

@@ -153,4 +153,16 @@ public class BlockSpawnerTests
 
         Object.DestroyImmediate(wmObj);
     }
+
+    [Test]
+    public void BlockSpawner_SpawnSingleBlock_AppliesInitialDriftVelocity()
+    {
+        spawner.initialDrift = 4.0f;
+        GameObject block = spawner.SpawnSingleBlock();
+
+        Assert.IsNotNull(block);
+        Rigidbody rb = block.GetComponent<Rigidbody>();
+        Assert.IsNotNull(rb, "Spawned block must have Rigidbody immediately");
+        Assert.Greater(rb.linearVelocity.magnitude, 0.5f, "Spawned block should have drift velocity applied");
+    }
 }
