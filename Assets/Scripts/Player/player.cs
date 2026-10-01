@@ -112,7 +112,7 @@ public class player : MonoBehaviour
     private bool _tap_hold = false;
     private bool _tap_enabled = true;
     private float _tap_time_accum = 0;
-    public float _tap_rate = 0.1f;
+    public float _tap_rate = 0.5f;
 
 
     public float _laser_cooldawn_accum = 0;
@@ -163,7 +163,7 @@ public class player : MonoBehaviour
 
         if (_guns.Count == 0)
         {
-            //AddGun();
+            AddGun();
         }
 
         UpdateShieldHUD();
@@ -224,29 +224,28 @@ public class player : MonoBehaviour
             fire_time_accum += Time.deltaTime;
             _laser_cooldawn_accum += Time.deltaTime;
 
-            if (Input.GetMouseButton(0)  && _tap_hold == false)
+            if (Input.GetMouseButton(0)  )
             {
-                 _tap_hold = true;
-                if (_tap_time_accum >= _tap_rate && _tap_enabled)
+                
+                if (_tap_time_accum >= _tap_rate && _tap_enabled && _tap_hold == false)
                 {
                     _tap_time_accum = 0;
                     _tap_enabled = false;
+                     _tap_hold = true;
                     PlaceTapMarker(gh.Length > 0 ? gh[0].point : mousepos);
                 }
-                // if (fire_time_accum >= _fire_rate)
-                // {
-                //     fire_time_accum = 0;
-                //     foreach (var g in _guns)
-                //     {
-                //         if (g != null)
-                //         {
-                //             g.fire();
-                //         }
-                //     }
-                    
-
-                //     GetComponentInChildren<AudioSource>().Play();
-                // }
+                if (fire_time_accum >= _fire_rate)
+                {
+                    fire_time_accum = 0;
+                    foreach (var g in _guns)
+                    {
+                        if (g != null)
+                        {
+                            g.fire();
+                        }
+                    }
+                    GetComponentInChildren<AudioSource>().Play();
+                }
             }
             if(Input.GetMouseButtonUp(0))
             {

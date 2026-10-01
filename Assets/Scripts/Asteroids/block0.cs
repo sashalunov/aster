@@ -142,21 +142,25 @@ public class block0 : MonoBehaviour
 
     void UpdateText()
     {
-        //print(_hits);
-        _tmp_lvl.SetText(_hits.ToString());
+        if (_tmp_lvl != null)
+        {
+            _tmp_lvl.SetText(_hits.ToString());
+        }
     }
 
     void UpdateMats()
     {
-        if (_hits < 1) return;
+        if (_hits < 1 || _grade_mats == null || _grade_mats.Length == 0) return;
+        MeshRenderer mr = GetComponent<MeshRenderer>();
+        if (mr == null) return;
+
         if (_hits > _grade_mats.Length)
         {
-            GetComponent<MeshRenderer>().material = _grade_mats[_grade_mats.Length - 1];
+            mr.material = _grade_mats[_grade_mats.Length - 1];
         }
         else
         {
-            GetComponent<MeshRenderer>().material = _grade_mats[_hits - 1];
-
+            mr.material = _grade_mats[_hits - 1];
         }
     }
 

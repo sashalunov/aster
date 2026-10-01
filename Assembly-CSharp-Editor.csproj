@@ -56,8 +56,10 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenAnimationInspector.cs" />
     <Compile Include="Assets/Editor/Tests/TurretAITests.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenPreviewManager.cs" />
+    <Compile Include="Assets/Editor/Tests/WaveManagerTests.cs" />
     <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerHUDTests.cs" />
+    <Compile Include="Assets/Editor/Tests/BlockSpawnerTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll" />
