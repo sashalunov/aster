@@ -109,6 +109,12 @@ public class player : MonoBehaviour
     public float _laser_time_accum = 0;
     bool _laser_enabled = false;
 
+    private bool _tap_hold = false;
+    private bool _tap_enabled = true;
+    private float _tap_time_accum = 0;
+    public float _tap_rate = 0.1f;
+
+
     public float _laser_cooldawn_accum = 0;
     public float _laser_max_dist = 5f;
 
@@ -165,6 +171,11 @@ public class player : MonoBehaviour
         UpdateWeaponHUD();
     }
 
+    void PlaceTapMarker(Vector3 pos)
+    {
+        GameObject tap = Instantiate(Resources.Load("tap_marker"), pos, Quaternion.identity) as GameObject;
+        Destroy(tap, 3.5f);
+    }
 
     // Update is called once per frame
     void Update()
@@ -178,6 +189,9 @@ public class player : MonoBehaviour
         playerpos.y = 0;
 
         mousepos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
+        Ray mousegndray = new Ray(mousepos,Vector3.forward);
+        RaycastHit[] gh = Physics.RaycastAll(mousegndray, 512f, LayerMask.GetMask("Terrain"));
+        //groundmousepos = new Vector3(mousepos.x, 0, mousepos.z);
         //Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         Ray ray = new Ray(transform.position, (transform.position - mousepos));
 
@@ -204,91 +218,44 @@ public class player : MonoBehaviour
 
         if (_can_play)
         {
-                           _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
+            _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
 
+            _tap_time_accum += Time.deltaTime;
             fire_time_accum += Time.deltaTime;
             _laser_cooldawn_accum += Time.deltaTime;
 
-            if (Input.GetMouseButton(0))
+            if (Input.GetMouseButton(0)  && _tap_hold == false)
             {
-                if (fire_time_accum >= _fire_rate)
+                 _tap_hold = true;
+                if (_tap_time_accum >= _tap_rate && _tap_enabled)
                 {
-                    fire_time_accum = 0;
-                    foreach (var g in _guns)
-                    {
-                        if (g != null)
-                        {
-                            g.fire();
-                        }
-                    }
+                    _tap_time_accum = 0;
+                    _tap_enabled = false;
+                    PlaceTapMarker(gh.Length > 0 ? gh[0].point : mousepos);
+                }
+                // if (fire_time_accum >= _fire_rate)
+                // {
+                //     fire_time_accum = 0;
+                //     foreach (var g in _guns)
+                //     {
+                //         if (g != null)
+                //         {
+                //             g.fire();
+                //         }
+                //     }
                     
 
-                    GetComponentInChildren<AudioSource>().Play();
-                }
-
-                //if (_laser_cooldawn_accum >= _laser_rate && _laser0)
-                //{
-                //             _laser_cooldawn_accum = 0;
-                //	_laser_enabled = true;
-                //             _laser0_trail.gameObject.SetActive(true);
-                //             _laser0_trail.GetComponent<Animation>().Play();
-                //         }
+                //     GetComponentInChildren<AudioSource>().Play();
+                // }
             }
-
-            if (_laser_enabled)
+            if(Input.GetMouseButtonUp(0))
             {
-                _laser_time_accum += Time.deltaTime;
-                Vector3[] poss = { Vector3.up * _laser_max_dist, Vector3.zero };
-                Ray r = new Ray(transform.position, dir * _laser_max_dist);
-                var rc = Physics.Raycast(r, out hit, _laser_max_dist);
-                //if (rc) poss[0] = Vector3.up * hit.distance;
-
-                if (_laser_time_accum >= _laser_time)
-                {
-                    RaycastHit[] h = Physics.RaycastAll(r, _laser_max_dist);
-
-                    foreach (RaycastHit rhit in h)
-                    {
-
-                        //if (rc == true)
-                        //{
-                        if (rhit.collider.tag == "block" /*|| hit.collider.tag == "core"*/)
-                        {
-                            //print(hit.collider);
-                            Rigidbody rr = rhit.collider.transform.parent.gameObject.GetComponent<Rigidbody>();
-                            //asteroidController ac = cloneparent.GetComponent<asteroidController>();
-                            if (rr != null)
-                            {
-                                rr.AddForceAtPosition((transform.forward * 45), rhit.point, ForceMode.Impulse);
-
-                                Instantiate(Resources.Load("additive_bonus"), rhit.point, Quaternion.identity);
-                               
-                                Destroy(rhit.collider.gameObject);
-
-                            }
-                        }
-                        if (rhit.collider.tag == "core")
-                        {
-                         
-
-                            Destroy(rhit.collider.gameObject);
-
-                        }
-
-                    }
-
-                    _laser_time_accum = 0;
-                    _laser_cooldawn_accum = 0;
-                    _laser_enabled = false;
-                    _laser0_trail.gameObject.SetActive(false);
-                }
-                _laser0_trail.GetComponent<LineRenderer>().SetPositions(poss);
+                _tap_hold = false;
+                _tap_enabled = true;
             }
-
 
             if (Input.GetMouseButton(1))
             {
-
                 GetComponent<Rigidbody>().AddForce(dir * _thrust_force * Time.deltaTime, ForceMode.Impulse);
                 //transform.rotation = Quaternion.Euler(new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f));
                 ps_thruster.Play();
@@ -299,26 +266,23 @@ public class player : MonoBehaviour
             }
 
             if (Input.GetKey("space"))
-            {
-               
+            {   
             }
 
             if (Input.GetKey("left"))
             {
                 //transform.position = transform.position - new Vector3(speed * Time.deltaTime,0,0);
-                GetComponent<Rigidbody>().AddForce(new Vector3(-1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
+                //GetComponent<Rigidbody>().AddForce(new Vector3(-1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
 
 
             }
             if (Input.GetKey("right"))
             {
                 //transform.position = transform.position + new Vector3(speed * Time.deltaTime, 0, 0);
-                GetComponent<Rigidbody>().AddForce(new Vector3(1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
+                //GetComponent<Rigidbody>().AddForce(new Vector3(1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
             }
 
-            float dist = (transform.position.x - mousepos.x);
-
-
+            //float dist = (transform.position.x - mousepos.x);
         }
         
         
