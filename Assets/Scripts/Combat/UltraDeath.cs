@@ -51,15 +51,23 @@ public class UltraDeath : MonoBehaviour
         }
         else if (col.tag == "core")
         {
-            foreach (Transform child in col.transform)
+            AsteroidBase ast = col.GetComponent<AsteroidBase>() ?? col.GetComponentInParent<AsteroidBase>();
+            if (ast != null)
             {
-                block0 b0 = child.GetComponent<block0>();
-                if (b0 != null)
-                {
-                    b0.EndLife(col.transform.parent);
-                }
+                ast.core_destruct(null);
             }
-            Destroy(col.gameObject);
+            else
+            {
+                foreach (Transform child in col.transform)
+                {
+                    block0 b0 = child.GetComponent<block0>();
+                    if (b0 != null)
+                    {
+                        b0.EndLife(null);
+                    }
+                }
+                Destroy(col.gameObject);
+            }
         }
     }
 }

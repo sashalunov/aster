@@ -7,6 +7,7 @@ using TMPro;
 using System.Xml.Xsl;
 
 [ExecuteInEditMode]
+[RequireComponent(typeof(Rigidbody))]
 public class AsteroidBase : MonoBehaviour
 {
     [ContextMenuItem("Randomize Name", "Randomize")]
@@ -17,8 +18,22 @@ public class AsteroidBase : MonoBehaviour
 
     public int _core_hits = 3;
     public int _core_shell = 0;
-    public int _blocks = 1;
-    //public int _block_max = 3;
+
+    [Header("Block Capacity Limits")]
+    [Tooltip("Maximum limit of how many blocks can be attached to this asteroid.")]
+    [Range(1, 64)]
+    public int _max_blocks = 24;
+
+    /// <summary>
+    /// Current number of attached perimeter blocks.
+    /// </summary>
+    public virtual int CurrentBlockCount => gen_num_children();
+
+    /// <summary>
+    /// True if the asteroid has reached its maximum block attachment limit.
+    /// </summary>
+    public virtual bool IsAtCapacity => CurrentBlockCount >= _max_blocks;
+
     public Material[] _grade_mats;
     public TMP_Text _tmp_core_hits;
 
@@ -34,11 +49,32 @@ public class AsteroidBase : MonoBehaviour
     private System.Random srnd = new System.Random();
     public GameObject _block;
     public int _num_boxes_generated = 0;
+
+    protected virtual void Awake()
+    {
+        EnsureRigidbody();
+    }
+
+    public virtual Rigidbody EnsureRigidbody()
+    {
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+        }
+        rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
+        rb.useGravity = false;
+        rb.linearDamping = 0.5f;
+        rb.angularDamping = 0.5f;
+        return rb;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
+        EnsureRigidbody();
         SetHits(_core_hits);
-     }
+    }
 
     void Update()
     {
@@ -69,21 +105,17 @@ public class AsteroidBase : MonoBehaviour
     [ContextMenu("Regenerate Asteroid")]
     private void Regenerate()
     {
-        int rndmass = Random.Range(2, 6);
         _num_boxes_generated = 0;
-        //generate_asteroid(1, 2, 2, 0, 1, 1);
         var gg = generate_shell(_core_shell, _shell_hits);
         foreach (GameObject g in gg)
         {
-            for (int j = 0; j < _blocks; j++)
-            {
-                add_raycast_neighbors(g, _block_hits);
-            }
+            if (IsAtCapacity) break;
+            add_raycast_neighbors(g, _block_hits);
         }
 
         if( gg.Count < 1 )
         {
-            for (int i = 0; i < _blocks; i++)
+            while (!IsAtCapacity)
             {
                 add_raycast_neighbors(gameObject, _block_hits);
             }
@@ -91,25 +123,25 @@ public class AsteroidBase : MonoBehaviour
     }
     public virtual int generate_asteroid(int coremass = 1, int massmin = 1, int massmax = 16, int shell = 0, int shlvl = 1, int blocklvl = 1)
     {
-        int i = 0;
         _block_hits = blocklvl;
         _shell_hits = shlvl;
         _core_shell = shell;
-        // random number of boxes
-        _blocks = Random.Range(massmin, massmax);
-        //generate_shell(shell, shlvl);
+        if (massmax > _max_blocks)
+        {
+            _max_blocks = massmax;
+        }
+        int targetBlocks = (massmax > 0) ? Random.Range(massmin, Mathf.Min(massmax, _max_blocks) + 1) : 0;
+
         _num_boxes_generated = 0;
         var gg = generate_shell(_core_shell, _shell_hits);
         foreach (GameObject g in gg)
         {
-            for (int j = 0; j < _blocks; j++)
-            {
-                add_raycast_neighbors(g, _block_hits);
-            }
+            if (CurrentBlockCount >= targetBlocks || IsAtCapacity) break;
+            add_raycast_neighbors(g, _block_hits);
         }
         if (gg.Count < 1)
         {
-            for (i = 0; i < _blocks; i++)
+            while (CurrentBlockCount < targetBlocks && !IsAtCapacity)
             {
                 add_raycast_neighbors(gameObject, _block_hits);
             }
@@ -119,6 +151,11 @@ public class AsteroidBase : MonoBehaviour
 
     public virtual void check_for_unconected()
     {
+        check_for_unconected(Vector3.zero);
+    }
+
+    public virtual void check_for_unconected(Vector3 impactImpulse)
+    {
         tres.Clear();
         Transform[] m = scan_connected(transform);
         foreach (Transform child in transform)
@@ -127,7 +164,6 @@ public class AsteroidBase : MonoBehaviour
 
             if (b0 != null)
             {
-
                 if (tres.Contains(child))
                 {
 
@@ -135,6 +171,11 @@ public class AsteroidBase : MonoBehaviour
                 else
                 {
                     b0.EndLife(transform.parent);
+                    Rigidbody rb = b0.GetComponent<Rigidbody>();
+                    if (rb != null && impactImpulse.sqrMagnitude > 0.001f)
+                    {
+                        rb.AddForce(impactImpulse, ForceMode.Impulse);
+                    }
                 }
             }
         }
@@ -229,7 +270,7 @@ public class AsteroidBase : MonoBehaviour
             UpdateMass();
             var bonus = Instantiate(Resources.Load("show_corehit"), transform.position, Quaternion.identity) as GameObject;
             bonus.GetComponentInChildren<TextMeshPro>().SetText("+" + damage.ToString());
-            bonus.transform.localScale = new Vector3(1.3f, 1.3f, 1.15f);
+            //bonus.transform.localScale = new Vector3(1.3f, 1.3f, 1.15f);
         }
         if (newhits < 1)
         {
@@ -247,20 +288,46 @@ public class AsteroidBase : MonoBehaviour
     public virtual int core_destruct(bullet1 b1)
     {
         int reward = 0;
-        foreach(Transform child in transform)
+        List<Transform> childrenToDetach = new List<Transform>();
+        foreach (Transform child in transform)
         {
             block0 b0 = child.GetComponent<block0>();
-            if (b0 != null)
+            if (b0 != null && !b0.isCore)
             {
-                reward += child.GetComponent<block0>()._hits;
-                var destroyFx = Resources.Load("blockdestroy");
-                if (destroyFx != null)
+                childrenToDetach.Add(child);
+            }
+        }
+
+        foreach (Transform child in childrenToDetach)
+        {
+            if (child == null) continue;
+            block0 b0 = child.GetComponent<block0>();
+            if (b0 != null && !b0._dead)
+            {
+                reward += b0._hits;
+                b0.EndLife(transform.parent != null ? transform.parent : null);
+                b0.gameObject.tag = "block";
+
+                Collider c = child.GetComponent<Collider>();
+                if (c != null)
                 {
-                    Instantiate(destroyFx, child.position, Quaternion.identity);
+                    c.enabled = true;
+                    c.isTrigger = false;
+                }
+
+                Rigidbody rb = child.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.isKinematic = false;
+                    Vector3 ejectDir = (child.position - transform.position).normalized;
+                    if (ejectDir.sqrMagnitude < 0.001f) ejectDir = UnityEngine.Random.insideUnitSphere;
+                    ejectDir.z = 0f;
+                    ejectDir.Normalize();
+                    rb.linearVelocity = ejectDir * UnityEngine.Random.Range(2.5f, 6.0f);
                 }
             }
-            Destroy(child.gameObject);
         }
+
         if (b1 != null && b1._player != null)
         {
             b1._player.AddXP((reward + _core_hits), transform);
@@ -272,7 +339,14 @@ public class AsteroidBase : MonoBehaviour
 
 
         // GetComponent<AudioSource>().PlayOneShot(GetComponent<AudioSource>().clip);
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            DestroyImmediate(gameObject);
+        else
+            Destroy(gameObject);
+#else
         Destroy(gameObject);
+#endif
 
         var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
         if (shieldFx != null)

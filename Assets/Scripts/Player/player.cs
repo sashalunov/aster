@@ -457,11 +457,21 @@ public class player : MonoBehaviour
                 UpdateHealthHUD();
             }
 
-            // Resolve target Rigidbody (on block, asteroid parent, or add if static)
-            Rigidbody otherRb = col.rigidbody;
-            if (otherRb == null)
+            // Resolve target Rigidbody: if block is attached to an asteroid, apply impulse to whole asteroid
+            AsteroidBase parentAsteroid = col.collider.GetComponentInParent<AsteroidBase>();
+            Rigidbody otherRb = null;
+
+            if (parentAsteroid != null)
             {
-                otherRb = col.collider.GetComponent<Rigidbody>();
+                otherRb = parentAsteroid.GetComponent<Rigidbody>();
+                if (otherRb == null)
+                {
+                    otherRb = parentAsteroid.EnsureRigidbody();
+                }
+            }
+            else
+            {
+                otherRb = col.rigidbody != null ? col.rigidbody : col.collider.GetComponent<Rigidbody>();
                 if (otherRb == null)
                 {
                     otherRb = col.collider.gameObject.AddComponent<Rigidbody>();
@@ -500,6 +510,7 @@ public class player : MonoBehaviour
 
             float relativeSpeed = col.relativeVelocity.magnitude;
             float bounceImpulse = Mathf.Max(relativeSpeed * 0.25f, 1f);
+            Vector3 contactPoint = col.contactCount > 0 ? col.GetContact(0).point : col.collider.bounds.center;
 
             // Bounce player ship away
             Rigidbody playerRb = GetComponent<Rigidbody>();
@@ -510,10 +521,10 @@ public class player : MonoBehaviour
                 {
                     playerRb.linearVelocity -= Vector3.Project(playerVel, pushBlockDir);
                 }
-                playerRb.AddForceAtPosition(pushPlayerDir * bounceImpulse, col.contacts[0].point, ForceMode.Impulse);
+                playerRb.AddForceAtPosition(pushPlayerDir * bounceImpulse, contactPoint, ForceMode.Impulse);
             }
 
-            // Bounce block or asteroid away
+            // Bounce block or whole asteroid away
             if (otherRb != null)
             {
                 Vector3 otherVel = otherRb.linearVelocity;
@@ -522,66 +533,77 @@ public class player : MonoBehaviour
                     otherRb.linearVelocity -= Vector3.Project(otherVel, pushPlayerDir);
                 }
                 float massFactor = Mathf.Clamp(otherRb.mass, 1f, 3f);
-                otherRb.AddForceAtPosition(pushBlockDir * (bounceImpulse * massFactor), col.contacts[0].point, ForceMode.Impulse);
+                otherRb.AddForceAtPosition(pushBlockDir * (bounceImpulse * massFactor), contactPoint, ForceMode.Impulse);
+            }
+
+            // Calculate player impact impulse vector imparted to detached blocks
+            Vector3 impactImpulse = pushBlockDir * Mathf.Max(relativeSpeed * 1.5f, 2.0f);
+
+            // Damage struck block from player kinetic impact
+            int impactDamage = Mathf.Max(1, Mathf.RoundToInt(relativeSpeed * 0.5f));
+            if (b0 != null && !b0._dead)
+            {
+                b0.block_receive_hit(transform, null, impactDamage);
+            }
+
+            // Check for unconnected blocks on the asteroid cluster and detach them with impact force
+            if (parentAsteroid != null)
+            {
+                parentAsteroid.check_for_unconected(impactImpulse);
             }
         }
-        if (col.collider.tag == "core")
+        if (col.collider.CompareTag("core"))
         {
-            //newhitdamage = col.transform.GetComponent<AsteroidDestructible>().core_receive_hit(transform, this);
-            int reward = 0;
+            block0 coreB0 = col.collider.GetComponent<block0>();
+            AsteroidBase astBase = col.collider.GetComponentInParent<AsteroidBase>();
 
-            foreach (Transform child in col.collider.transform)
-            {
-                block0 b0 = child.GetComponent<block0>();
-                if (b0 != null)
-                {
-                    reward += b0._hits;
-                    var bDestroy = Resources.Load("blockdestroy");
-                    if (bDestroy != null) Instantiate(bDestroy, child.position, Quaternion.identity);
-                }
-                Destroy(child.gameObject);
-                //Destroy(child.gameObject);
-            }
-            //col.collider.transform.GetComponent<AsteroidDestructible>()._lvl.ChangeAstCount(-1);
-            //col.collider.transform.GetComponent<AsteroidDestructible>()._lvl.AddAsteroidKill(1);
+            // Calculate impact energy based on relative speed
+            float relativeSpeed = col.relativeVelocity.magnitude;
+            float playerDamage = Mathf.Max(1f, Mathf.Round(relativeSpeed * 0.5f));
 
-            AsteroidBase astBase = col.collider.transform.GetComponent<AsteroidBase>();
-            int coreHits = astBase != null ? astBase._core_hits : 0;
-            var fh = reward + coreHits;
-            Destroy(col.collider.gameObject);
-            
-            float coreDmg = fh;
-            if (shield_value > 0f)
+            // 1. Damage player ship cleanly via TakeDamage
+            TakeDamage(playerDamage);
+
+            // 2. Damage core block0 cleanly
+            if (coreB0 != null)
             {
-                if (coreDmg <= shield_value)
-                {
-                    shield_value -= coreDmg;
-                    coreDmg = 0f;
-                }
-                else
-                {
-                    coreDmg -= shield_value;
-                    shield_value = 0f;
-                }
-                UpdateShieldHUD();
+                coreB0.block_receive_hit(transform, null, (int)playerDamage);
             }
-            if (coreDmg > 0f)
+            else if (astBase != null)
             {
-                health_value -= coreDmg;
-                if (health_value < 0f) health_value = 0f;
-                UpdateHealthHUD();
+                astBase.core_receive_hit(transform, null);
             }
 
-            if (shield_fx != null)
+            // 3. Bounce player ship away from the core
+            Vector3 pushDir = Vector3.zero;
+            if (col.contactCount > 0)
             {
-                GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
-                showup.transform.parent = transform;
-                TextMeshPro tmp = showup.GetComponentInChildren<TextMeshPro>();
-                if (tmp != null)
+                pushDir = col.GetContact(0).normal;
+            }
+            if (pushDir.sqrMagnitude < 0.001f)
+            {
+                pushDir = (transform.position - col.collider.bounds.center).normalized;
+            }
+            pushDir.z = 0;
+            if (pushDir.sqrMagnitude < 0.001f) pushDir = transform.up;
+
+            Rigidbody playerRb = GetComponent<Rigidbody>();
+            if (playerRb != null)
+            {
+                playerRb.AddForce(pushDir * Mathf.Max(relativeSpeed * 1.5f, 4f), ForceMode.Impulse);
+            }
+
+            // 4. Bounce the whole asteroid away too and check for unconnected blocks
+            if (astBase != null)
+            {
+                Rigidbody astRb = astBase.GetComponent<Rigidbody>();
+                if (astRb != null)
                 {
-                    tmp.SetText("-" + fh.ToString() + " SHIELD! ");
+                    astRb.AddForce(-pushDir * Mathf.Max(relativeSpeed * 1.5f, 4f), ForceMode.Impulse);
                 }
-                showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
+
+                Vector3 impactImpulse = -pushDir * Mathf.Max(relativeSpeed * 1.5f, 2.0f);
+                astBase.check_for_unconected(impactImpulse);
             }
         }
 

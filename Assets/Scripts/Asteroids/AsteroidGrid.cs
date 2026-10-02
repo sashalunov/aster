@@ -19,6 +19,10 @@ public class AsteroidGrid : AsteroidBase
         ClassicShell            // In-memory version of legacy concentric shell generation
     }
 
+    [Header("Core Reference")]
+    [Tooltip("The central block0 acting as the asteroid core.")]
+    public block0 coreBlock;
+
     [Header("Procedural Math & Fractal Settings")]
     [Tooltip("Algorithm used to procedurally sculpt the asteroid block cluster.")]
     public GenerationAlgorithm algorithm = GenerationAlgorithm.HarmonicRose;
@@ -50,8 +54,24 @@ public class AsteroidGrid : AsteroidBase
     [Tooltip("Distance threshold at which a pulled block snaps into the vacant grid socket.")]
     public float attachDistance = 1.4f;
 
-    [Tooltip("Maximum total blocks this asteroid can grow to via accretion (0 = unlimited).")]
-    public int maxAccretionBlocks = 36;
+    /// <summary>
+    /// Legacy alias for _max_blocks capacity limit.
+    /// </summary>
+    public int maxAccretionBlocks
+    {
+        get => _max_blocks;
+        set => _max_blocks = value;
+    }
+
+    /// <summary>
+    /// Current count of blocks in the grid.
+    /// </summary>
+    public override int CurrentBlockCount => gridBlocks.Count;
+
+    /// <summary>
+    /// True if the asteroid has reached its maximum block attachment limit.
+    /// </summary>
+    public override bool IsAtCapacity => _max_blocks > 0 && gridBlocks.Count >= _max_blocks;
 
     /// <summary>
     /// Property controlling whether the asteroid magnetically attracts standalone blocks and grows.
@@ -70,6 +90,14 @@ public class AsteroidGrid : AsteroidBase
     // In-memory 2D Grid representations
     private readonly Dictionary<Vector2Int, GameObject> gridBlocks = new Dictionary<Vector2Int, GameObject>();
     private readonly Dictionary<GameObject, Vector2Int> blockToCoord = new Dictionary<GameObject, Vector2Int>();
+
+    // Slot reservations for in-flight accretion (prevents multiple blocks targeting the same socket)
+    private readonly Dictionary<Vector2Int, GameObject> reservedSlots = new Dictionary<Vector2Int, GameObject>();
+    private readonly Dictionary<GameObject, Vector2Int> blockReservations = new Dictionary<GameObject, Vector2Int>();
+    private readonly HashSet<GameObject> processedAccretionInFrame = new HashSet<GameObject>();
+
+    // Destruction state flag to prevent re-entrant calls
+    private bool isDestructing = false;
 
     // Reusable BFS structures to prevent GC allocations
     private readonly Queue<Vector2Int> bfsQueue = new Queue<Vector2Int>(64);
@@ -99,15 +127,17 @@ public class AsteroidGrid : AsteroidBase
 
     // Public Grid Accessors
     public int ActiveBlockCount => gridBlocks.Count;
-    public bool HasBlockAt(Vector2Int coord) => coord == Vector2Int.zero || gridBlocks.ContainsKey(coord);
+    public bool HasBlockAt(Vector2Int coord) => gridBlocks.ContainsKey(coord);
 
     protected virtual void Awake()
     {
+        EnsureRigidbody();
         EnsureCachedResources();
         if (_block == null)
         {
             _block = Resources.Load<GameObject>("block0");
         }
+        RegisterExistingChildrenIntoGrid();
     }
 
     private void EnsureCachedResources()
@@ -122,19 +152,83 @@ public class AsteroidGrid : AsteroidBase
         resourcesCached = true;
     }
 
+    void OnEnable()
+    {
+        BindCoreBlockEvents();
+    }
+
+    void OnDisable()
+    {
+        UnbindCoreBlockEvents();
+    }
+
+    private void BindCoreBlockEvents()
+    {
+        if (coreBlock != null)
+        {
+            coreBlock.OnCoreDestroyed -= HandleCoreBlockDestroyed;
+            coreBlock.OnCoreDestroyed += HandleCoreBlockDestroyed;
+            coreBlock.OnCoreHit -= HandleCoreBlockHit;
+            coreBlock.OnCoreHit += HandleCoreBlockHit;
+        }
+    }
+
+    private void UnbindCoreBlockEvents()
+    {
+        if (coreBlock != null)
+        {
+            coreBlock.OnCoreDestroyed -= HandleCoreBlockDestroyed;
+            coreBlock.OnCoreHit -= HandleCoreBlockHit;
+        }
+    }
+
     void Start()
     {
         SetHits(_core_hits);
 
-        // If no blocks generated yet, build from initial configuration
+        // If no blocks registered yet, build from initial configuration
         if (gridBlocks.Count == 0 && transform.childCount > 0)
         {
             RegisterExistingChildrenIntoGrid();
         }
+        BindCoreBlockEvents();
+    }
+
+    /// <summary>
+    /// Checks if the core has been destroyed, marked dead, or depleted of hits.
+    /// </summary>
+    public bool IsCoreDead()
+    {
+        if (coreBlock != null)
+        {
+            return coreBlock._dead || coreBlock._hits <= 0;
+        }
+
+        // If we previously had blocks registered in the grid, check if core at (0,0) was killed
+        if (gridBlocks.TryGetValue(Vector2Int.zero, out GameObject coreGo))
+        {
+            if (coreGo == null || !coreGo) return true;
+            block0 b0 = coreGo.GetComponent<block0>();
+            if (b0 == null || b0._dead || b0._hits <= 0) return true;
+        }
+
+        // If blocks are attached to the grid but core hits depleted
+        if (gridBlocks.Count > 0 && _core_hits <= 0)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     void Update()
     {
+        if (!isDestructing && IsCoreDead())
+        {
+            core_destruct(null);
+            return;
+        }
+
         if (enableSimulationLOD && Application.isPlaying && Time.frameCount % 30 == 0)
         {
             UpdateSimulationLOD();
@@ -143,9 +237,28 @@ public class AsteroidGrid : AsteroidBase
 
     void FixedUpdate()
     {
-        if (magneticAccretion && Application.isPlaying)
+        if (!isDestructing && IsCoreDead())
+        {
+            core_destruct(null);
+            return;
+        }
+
+        if (magneticAccretion && !isDestructing && Application.isPlaying)
         {
             ProcessMagneticAccretion(Time.fixedDeltaTime);
+        }
+    }
+
+    protected virtual void OnDestroy()
+    {
+        if (!isDestructing)
+        {
+            isDestructing = true;
+            magneticAccretion = false;
+            allowReattachmentOnCollision = false;
+            reservedSlots.Clear();
+            blockReservations.Clear();
+            DetachAllChildrenOnDestruction();
         }
     }
 
@@ -165,12 +278,29 @@ public class AsteroidGrid : AsteroidBase
         _core_hits = coremass;
         _block_hits = blocklvl;
         _shell_hits = shlvl;
-        targetBlockCount = UnityEngine.Random.Range(massmin, massmax + 1);
+        if (massmax > _max_blocks)
+        {
+            _max_blocks = massmax;
+        }
+        targetBlockCount = (massmax > 0) ? Mathf.Clamp(UnityEngine.Random.Range(massmin, massmax + 1), 0, _max_blocks) : 0;
 
         EnsureCachedResources();
         if (_block == null)
         {
             _block = Resources.Load<GameObject>("block0");
+        }
+
+        // Spawn authoritative central core block0 at (0, 0)
+        GameObject coreObj = SpawnBlockAtCoord(Vector2Int.zero, _core_hits);
+        if (coreObj != null)
+        {
+            coreBlock = coreObj.GetComponent<block0>();
+            if (coreBlock != null)
+            {
+                coreBlock.isCore = true;
+                coreBlock.gameObject.tag = "core";
+                BindCoreBlockEvents();
+            }
         }
 
         List<Vector2Int> coordinatesToSpawn = new List<Vector2Int>();
@@ -195,14 +325,200 @@ public class AsteroidGrid : AsteroidBase
                 break;
         }
 
-        // Spawn blocks at generated in-memory coordinates
+        // Spawn perimeter blocks at generated in-memory coordinates
         foreach (Vector2Int coord in coordinatesToSpawn)
         {
-            SpawnBlockAtCoord(coord, blocklvl);
+            if (coord != Vector2Int.zero)
+            {
+                SpawnBlockAtCoord(coord, blocklvl);
+            }
         }
 
         SetHits(_core_hits);
         return UpdateMass();
+    }
+
+    private void HandleCoreBlockDestroyed(block0 core, Transform source, bullet1 b1)
+    {
+        core_destruct(b1);
+    }
+
+    private void HandleCoreBlockHit(block0 core, Transform source, bullet1 b1)
+    {
+        _core_hits = core._hits;
+        UpdateMass();
+    }
+
+    public override int core_receive_hit(Transform source, bullet1 b1)
+    {
+        if (coreBlock != null && !coreBlock._dead)
+        {
+            int remaining = coreBlock.block_receive_hit(source, b1);
+            if (coreBlock == null || coreBlock._dead)
+            {
+                core_destruct(b1);
+            }
+            return remaining;
+        }
+        return base.core_receive_hit(source, b1);
+    }
+
+    public override int core_destruct(bullet1 b1)
+    {
+        if (isDestructing) return 0;
+        isDestructing = true;
+
+        // 1. Immediately disable accretion and reservations on the killed core
+        magneticAccretion = false;
+        allowReattachmentOnCollision = false;
+
+        // Immediately cancel any in-flight pull velocities on blocks being attracted
+        foreach (var pair in blockReservations)
+        {
+            if (pair.Key != null)
+            {
+                Rigidbody inFlightRb = pair.Key.GetComponent<Rigidbody>();
+                if (inFlightRb != null)
+                {
+                    inFlightRb.linearVelocity = Vector3.zero;
+                    inFlightRb.angularVelocity = Vector3.zero;
+                }
+            }
+        }
+        reservedSlots.Clear();
+        blockReservations.Clear();
+
+        UnbindCoreBlockEvents();
+
+        // 2. Detach all children blocks as independent debris
+        int reward = DetachAllChildrenOnDestruction();
+
+        int totalXp = reward + _core_hits;
+        if (b1 != null && b1._player != null)
+        {
+            b1._player.AddXP(totalXp, transform);
+        }
+        else
+        {
+            player p = FindAnyObjectByType<player>();
+            if (p != null) p.AddXP(totalXp, transform);
+        }
+
+        var bonusFx = Resources.Load("show_corehit");
+        if (bonusFx != null)
+        {
+            GameObject bonus = Instantiate(bonusFx, transform.position, Quaternion.identity) as GameObject;
+            if (bonus != null)
+            {
+                TextMeshPro tmp = bonus.GetComponentInChildren<TextMeshPro>();
+                if (tmp != null) tmp.SetText("+" + totalXp.ToString());
+                bonus.transform.localScale = new Vector3(1.5f, 1.5f, 1.1f);
+            }
+        }
+
+        var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
+        if (shieldFx != null)
+        {
+            GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
+            powerup pu = shbonus != null ? shbonus.GetComponent<powerup>() : null;
+            if (pu != null) pu._type = powerup.PowerupType.shield;
+        }
+
+        if (WaveManager.Instance != null)
+        {
+            WaveManager.Instance.UnregisterThreat(gameObject);
+        }
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying)
+            DestroyImmediate(gameObject);
+        else
+            Destroy(gameObject);
+#else
+        Destroy(gameObject);
+#endif
+        return totalXp;
+    }
+
+    private int DetachAllChildrenOnDestruction()
+    {
+        int reward = 0;
+        List<GameObject> childrenToDetach = new List<GameObject>();
+        foreach (var pair in gridBlocks)
+        {
+            if (pair.Value != null && pair.Key != Vector2Int.zero)
+            {
+                if (!childrenToDetach.Contains(pair.Value))
+                {
+                    childrenToDetach.Add(pair.Value);
+                }
+            }
+        }
+
+        // Also check any transform children with block0 not indexed in grid
+        foreach (Transform child in transform)
+        {
+            if (child != null)
+            {
+                if (coreBlock != null && child.gameObject == coreBlock.gameObject) continue;
+                if (child.name == "core_block") continue;
+
+                block0 b0 = child.GetComponent<block0>();
+                if (b0 != null && !b0.isCore && !childrenToDetach.Contains(child.gameObject))
+                {
+                    childrenToDetach.Add(child.gameObject);
+                }
+            }
+        }
+
+        gridBlocks.Clear();
+        blockToCoord.Clear();
+
+        Transform newParent = transform.parent;
+        foreach (GameObject blockObj in childrenToDetach)
+        {
+            if (blockObj == null) continue;
+            block0 b0 = blockObj.GetComponent<block0>();
+            if (b0 != null && !b0._dead)
+            {
+                reward += b0._hits;
+
+                // Deparent from dying asteroid
+                blockObj.transform.parent = newParent;
+
+                b0.EndLife(newParent);
+                b0.gameObject.tag = "block";
+
+                Collider c = blockObj.GetComponent<Collider>();
+                if (c != null)
+                {
+                    c.enabled = true;
+                    c.isTrigger = false;
+                }
+
+                Rigidbody rb = blockObj.GetComponent<Rigidbody>();
+                if (rb == null)
+                {
+                    rb = blockObj.AddComponent<Rigidbody>();
+                }
+                rb.isKinematic = false;
+                rb.useGravity = false;
+                rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
+                rb.linearDamping = 0.5f;
+                rb.angularDamping = 0.5f;
+                rb.mass = b0._hits > 0 ? b0._hits : 1f;
+
+                Vector3 ejectDir = (blockObj.transform.position - transform.position).normalized;
+                if (ejectDir.sqrMagnitude < 0.001f) ejectDir = UnityEngine.Random.insideUnitSphere;
+                ejectDir.z = 0f;
+                ejectDir.Normalize();
+                rb.linearVelocity = ejectDir * UnityEngine.Random.Range(2.5f, 6.0f);
+
+                OnBlockDetached?.Invoke(blockObj, Vector2Int.zero);
+            }
+        }
+
+        return reward;
     }
 
     /// <summary>
@@ -412,6 +728,14 @@ public class AsteroidGrid : AsteroidBase
     /// </summary>
     public override void check_for_unconected()
     {
+        check_for_unconected(Vector3.zero);
+    }
+
+    /// <summary>
+    /// Runs in-memory BFS connectivity check and detaches any orphan blocks, imparting impact impulse.
+    /// </summary>
+    public virtual void check_for_unconected(Vector3 impactImpulse)
+    {
         PruneNullGridEntries();
 
         bfsQueue.Clear();
@@ -447,10 +771,10 @@ public class AsteroidGrid : AsteroidBase
             }
         }
 
-        // Detach orphans
+        // Detach orphans and impart player impact force
         foreach (Vector2Int orphanCoord in disconnectedCoords)
         {
-            DetachBlock(orphanCoord);
+            DetachBlock(orphanCoord, impactImpulse);
         }
 
         UpdateMass();
@@ -460,6 +784,14 @@ public class AsteroidGrid : AsteroidBase
     /// Detaches a block at coordinate, converting it into independent floating debris.
     /// </summary>
     public virtual GameObject DetachBlock(Vector2Int coord)
+    {
+        return DetachBlock(coord, Vector3.zero);
+    }
+
+    /// <summary>
+    /// Detaches a block at coordinate, converting it into independent floating debris with impact impulse.
+    /// </summary>
+    public virtual GameObject DetachBlock(Vector2Int coord, Vector3 impactImpulse)
     {
         if (!gridBlocks.TryGetValue(coord, out GameObject blockObj) || blockObj == null)
         {
@@ -493,7 +825,17 @@ public class AsteroidGrid : AsteroidBase
             // Give outward ejection impulse relative to asteroid core
             Vector3 ejectDir = (blockObj.transform.position - transform.position).normalized;
             if (ejectDir.sqrMagnitude < 0.001f) ejectDir = Vector3.up;
-            rb.linearVelocity = ejectDir * UnityEngine.Random.Range(1.0f, 2.5f);
+
+            float baseSpeed = UnityEngine.Random.Range(1.0f, 2.5f);
+            Vector3 velocity = ejectDir * baseSpeed;
+
+            // Add player impact force proportional to impactImpulse
+            if (impactImpulse.sqrMagnitude > 0.001f)
+            {
+                velocity += impactImpulse / rb.mass;
+            }
+
+            rb.linearVelocity = velocity;
         }
 
         OnBlockDetached?.Invoke(blockObj, coord);
@@ -502,14 +844,152 @@ public class AsteroidGrid : AsteroidBase
 
     #endregion
 
-    #region Re-attachment & Accretion
+    #region Re-attachment, Accretion & Slot Reservations
+
+    /// <summary>
+    /// Checks whether a given grid slot is within bounds, adjacent, and unreserved.
+    /// </summary>
+    public bool IsSlotAvailable(Vector2Int coord, GameObject requestingBlock = null)
+    {
+        if (coord == Vector2Int.zero) return false;
+        if (Mathf.Abs(coord.x) > gridRadius || Mathf.Abs(coord.y) > gridRadius) return false;
+        if (gridBlocks.ContainsKey(coord)) return false;
+
+        if (reservedSlots.TryGetValue(coord, out GameObject owner))
+        {
+            return owner == null || owner == requestingBlock;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to reserve a vacant slot for an approaching block to prevent other blocks from competing for it.
+    /// </summary>
+    public bool TryReserveSlot(Vector2Int coord, GameObject block)
+    {
+        if (block == null || coord == Vector2Int.zero) return false;
+        if (gridBlocks.ContainsKey(coord)) return false;
+
+        if (reservedSlots.TryGetValue(coord, out GameObject currentOwner) && currentOwner != null)
+        {
+            if (currentOwner != block) return false;
+        }
+
+        // Release prior reservation if moving to a new socket
+        if (blockReservations.TryGetValue(block, out Vector2Int oldCoord) && oldCoord != coord)
+        {
+            reservedSlots.Remove(oldCoord);
+        }
+
+        reservedSlots[coord] = block;
+        blockReservations[block] = coord;
+        return true;
+    }
+
+    /// <summary>
+    /// Releases a previously held slot reservation.
+    /// </summary>
+    public void ReleaseReservation(GameObject block)
+    {
+        if (block == null) return;
+        if (blockReservations.TryGetValue(block, out Vector2Int coord))
+        {
+            blockReservations.Remove(block);
+            reservedSlots.Remove(coord);
+        }
+    }
+
+    /// <summary>
+    /// Cleans up reservations for blocks that have attached, died, or moved away.
+    /// </summary>
+    public void PruneDeadReservations()
+    {
+        List<GameObject> toRemove = null;
+        foreach (var pair in blockReservations)
+        {
+            if (pair.Key == null || pair.Key.transform.parent == transform)
+            {
+                if (toRemove == null) toRemove = new List<GameObject>();
+                toRemove.Add(pair.Key);
+            }
+            else
+            {
+                float distSq = (pair.Key.transform.position - transform.position).sqrMagnitude;
+                if (distSq > (accretionRadius + 3f) * (accretionRadius + 3f))
+                {
+                    if (toRemove == null) toRemove = new List<GameObject>();
+                    toRemove.Add(pair.Key);
+                }
+            }
+        }
+
+        if (toRemove != null)
+        {
+            foreach (var b in toRemove)
+            {
+                ReleaseReservation(b);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the closest available, adjacent grid socket within bounds for a requesting block.
+    /// </summary>
+    public Vector2Int FindBestAttachmentSlot(Vector2Int desiredCoord, GameObject requestingBlock = null)
+    {
+        // 1. If requesting block already holds a valid reserved slot adjacent to the cluster, maintain it
+        if (requestingBlock != null && blockReservations.TryGetValue(requestingBlock, out Vector2Int currentReserved))
+        {
+            if (IsSlotAvailable(currentReserved, requestingBlock) && IsAdjacentToCluster(currentReserved))
+            {
+                return currentReserved;
+            }
+        }
+
+        // 2. If the desired coordinate itself is valid, available, and adjacent:
+        if (IsSlotAvailable(desiredCoord, requestingBlock) && IsAdjacentToCluster(desiredCoord))
+        {
+            return desiredCoord;
+        }
+
+        // 3. Search closest available candidate adjacent to any currently attached block
+        float bestDist = float.MaxValue;
+        Vector2Int bestSlot = Vector2Int.zero;
+        bool found = false;
+
+        List<Vector2Int> anchorPoints = new List<Vector2Int>(gridBlocks.Keys);
+        if (!anchorPoints.Contains(Vector2Int.zero))
+        {
+            anchorPoints.Add(Vector2Int.zero);
+        }
+
+        foreach (Vector2Int anchor in anchorPoints)
+        {
+            foreach (Vector2Int offset in NeighborOffsets8)
+            {
+                Vector2Int candidate = anchor + offset;
+                if (!IsSlotAvailable(candidate, requestingBlock)) continue;
+
+                float dist = (candidate - desiredCoord).sqrMagnitude;
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestSlot = candidate;
+                    found = true;
+                }
+            }
+        }
+
+        return found ? bestSlot : Vector2Int.zero;
+    }
 
     /// <summary>
     /// Attempts to re-attach a floating block into the asteroid's grid structure.
+    /// Enforces multi-block safety so blocks never overwrite or stack on top of each other.
     /// </summary>
     public virtual bool TryReattachBlock(GameObject blockObj)
     {
-        if (blockObj == null) return false;
+        if (blockObj == null || IsAtCapacity) return false;
 
         block0 b0 = blockObj.GetComponent<block0>();
         if (b0 == null || b0._dead) return false;
@@ -518,21 +998,32 @@ public class AsteroidGrid : AsteroidBase
         Vector3 localPos = transform.InverseTransformPoint(blockObj.transform.position);
         Vector2Int idealCoord = new Vector2Int(Mathf.RoundToInt(localPos.x), Mathf.RoundToInt(localPos.y));
 
-        Vector2Int targetCoord = FindBestAttachmentSlot(idealCoord);
-        if (targetCoord == Vector2Int.zero && HasBlockAt(Vector2Int.zero))
+        Vector2Int targetCoord = FindBestAttachmentSlot(idealCoord, blockObj);
+        if (targetCoord == Vector2Int.zero)
         {
-            return false; // No valid adjacent slot found
+            return false; // No valid adjacent slot available within gridRadius
         }
 
-        // Re-parent to asteroid
-        blockObj.transform.parent = transform;
-        blockObj.transform.localPosition = new Vector3(targetCoord.x, targetCoord.y, 0f);
-        blockObj.transform.localRotation = Quaternion.identity;
+        // Multi-block safety check: if another block claimed targetCoord in the same frame, re-route
+        if (gridBlocks.ContainsKey(targetCoord))
+        {
+            targetCoord = FindBestAttachmentSlot(targetCoord, blockObj);
+            if (targetCoord == Vector2Int.zero || gridBlocks.ContainsKey(targetCoord))
+            {
+                return false;
+            }
+        }
 
-        // Disable loose Rigidbody so physical simulation is driven by parent asteroid
+        // Release reservation now that it's attaching
+        ReleaseReservation(blockObj);
+
+        // Immediate Rigidbody neutralization to prevent nested rigidbody physics fight in PhysX
         Rigidbody rb = blockObj.GetComponent<Rigidbody>();
         if (rb != null)
         {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.isKinematic = true;
 #if UNITY_EDITOR
             if (!Application.isPlaying)
                 DestroyImmediate(rb);
@@ -542,6 +1033,11 @@ public class AsteroidGrid : AsteroidBase
             Destroy(rb);
 #endif
         }
+
+        // Re-parent to asteroid
+        blockObj.transform.parent = transform;
+        blockObj.transform.localPosition = new Vector3(targetCoord.x, targetCoord.y, 0f);
+        blockObj.transform.localRotation = Quaternion.identity;
 
         b0._detached = false;
 
@@ -562,46 +1058,24 @@ public class AsteroidGrid : AsteroidBase
         return true;
     }
 
-    private Vector2Int FindBestAttachmentSlot(Vector2Int desiredCoord)
-    {
-        // If ideal coordinate is valid, empty, and adjacent to cluster:
-        if (desiredCoord != Vector2Int.zero && !gridBlocks.ContainsKey(desiredCoord) && IsAdjacentToCluster(desiredCoord))
-        {
-            return desiredCoord;
-        }
-
-        // Otherwise find closest open neighbor to desired coordinate
-        float bestDist = float.MaxValue;
-        Vector2Int bestSlot = Vector2Int.zero;
-        bool found = false;
-
-        // Search adjacent slots to existing blocks
-        List<Vector2Int> anchorPoints = new List<Vector2Int>(gridBlocks.Keys) { Vector2Int.zero };
-
-        foreach (Vector2Int anchor in anchorPoints)
-        {
-            foreach (Vector2Int offset in NeighborOffsets8)
-            {
-                Vector2Int candidate = anchor + offset;
-                if (candidate == Vector2Int.zero || gridBlocks.ContainsKey(candidate)) continue;
-
-                float dist = (candidate - desiredCoord).sqrMagnitude;
-                if (dist < bestDist)
-                {
-                    bestDist = dist;
-                    bestSlot = candidate;
-                    found = true;
-                }
-            }
-        }
-
-        return found ? bestSlot : Vector2Int.zero;
-    }
-
     public virtual void ProcessMagneticAccretion(float deltaTime = 0.02f)
     {
-        if (!magneticAccretion || deltaTime <= 0f) return;
-        if (maxAccretionBlocks > 0 && ActiveBlockCount >= maxAccretionBlocks) return;
+        if (!magneticAccretion || isDestructing || deltaTime <= 0f) return;
+        if (IsCoreDead())
+        {
+            magneticAccretion = false;
+            return;
+        }
+
+        if (IsAtCapacity)
+        {
+            reservedSlots.Clear();
+            blockReservations.Clear();
+            return;
+        }
+
+        PruneDeadReservations();
+        processedAccretionInFrame.Clear();
 
         Collider[] colliders = Physics.OverlapSphere(transform.position, accretionRadius);
         if (colliders == null || colliders.Length == 0) return;
@@ -611,6 +1085,10 @@ public class AsteroidGrid : AsteroidBase
             Collider col = colliders[i];
             if (col == null || col.transform == transform || col.transform.IsChildOf(transform)) continue;
 
+            GameObject targetGo = col.gameObject;
+            // Prevent multiple colliders on the same GameObject from running in the same frame
+            if (!processedAccretionInFrame.Add(targetGo)) continue;
+
             block0 b0 = col.GetComponent<block0>();
             if (b0 == null || b0._dead) continue;
 
@@ -618,12 +1096,15 @@ public class AsteroidGrid : AsteroidBase
             bool isStandalone = b0._detached || col.transform.parent == null || col.transform.GetComponentInParent<AsteroidBase>() == null;
             if (!isStandalone) continue;
 
-            // Calculate ideal slot and target world position
+            // Calculate ideal slot and reserve it for this block
             Vector3 localPos = transform.InverseTransformPoint(col.transform.position);
             Vector2Int idealCoord = new Vector2Int(Mathf.RoundToInt(localPos.x), Mathf.RoundToInt(localPos.y));
-            Vector2Int targetCoord = FindBestAttachmentSlot(idealCoord);
+            Vector2Int targetCoord = FindBestAttachmentSlot(idealCoord, targetGo);
 
-            if (targetCoord == Vector2Int.zero && HasBlockAt(Vector2Int.zero)) continue;
+            if (targetCoord == Vector2Int.zero) continue;
+
+            // Reserve the slot so other approaching blocks don't collide or fight for the same socket
+            TryReserveSlot(targetCoord, targetGo);
 
             Vector3 targetWorldPos = transform.TransformPoint(new Vector3(targetCoord.x, targetCoord.y, 0f));
             float dist = Vector3.Distance(col.transform.position, targetWorldPos);
@@ -631,12 +1112,12 @@ public class AsteroidGrid : AsteroidBase
             // Snap & Accrete if close enough
             if (dist <= attachDistance)
             {
-                TryReattachBlock(col.gameObject);
-                if (maxAccretionBlocks > 0 && ActiveBlockCount >= maxAccretionBlocks) break;
+                TryReattachBlock(targetGo);
+                if (IsAtCapacity) break;
             }
             else
             {
-                // Pull toward the specific empty socket
+                // Pull toward the specifically reserved empty socket
                 Rigidbody rb = col.attachedRigidbody ?? col.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
@@ -670,6 +1151,14 @@ public class AsteroidGrid : AsteroidBase
         {
             Gizmos.color = new Color(0.2f, 1f, 0.4f, 0.35f);
             Gizmos.DrawWireSphere(transform.position, accretionRadius);
+
+            // Draw reserved sockets in yellow/orange
+            Gizmos.color = new Color(1f, 0.8f, 0.2f, 0.6f);
+            foreach (var pair in reservedSlots)
+            {
+                Vector3 worldPos = transform.TransformPoint(new Vector3(pair.Key.x, pair.Key.y, 0f));
+                Gizmos.DrawWireCube(worldPos, Vector3.one * 0.85f);
+            }
         }
     }
 
@@ -679,7 +1168,7 @@ public class AsteroidGrid : AsteroidBase
 
     public virtual GameObject SpawnBlockAtCoord(Vector2Int coord, int hits)
     {
-        if (coord == Vector2Int.zero || gridBlocks.ContainsKey(coord)) return null;
+        if (gridBlocks.ContainsKey(coord)) return null;
 
         if (_block == null)
         {
@@ -692,13 +1181,32 @@ public class AsteroidGrid : AsteroidBase
 
         GameObject newBox = Instantiate(_block, worldPos, transform.rotation, transform);
         newBox.transform.localPosition = localPos;
-        newBox.transform.name = $"b_{coord.x}_{coord.y}";
+        newBox.transform.name = coord == Vector2Int.zero ? "core_block" : $"b_{coord.x}_{coord.y}";
+
+        // Attached child blocks must not hold their own Rigidbody so the asteroid compound body moves together
+        Rigidbody childRb = newBox.GetComponent<Rigidbody>();
+        if (childRb != null)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                DestroyImmediate(childRb);
+            else
+                Destroy(childRb);
+#else
+            Destroy(childRb);
+#endif
+        }
 
         block0 b0 = newBox.GetComponent<block0>();
         if (b0 != null)
         {
             b0._detached = false;
             b0.SetHits(hits);
+            if (coord == Vector2Int.zero)
+            {
+                b0.isCore = true;
+                newBox.tag = "core";
+            }
         }
 
         gridBlocks[coord] = newBox;
@@ -710,6 +1218,9 @@ public class AsteroidGrid : AsteroidBase
 
     public override void Clear()
     {
+        UnbindCoreBlockEvents();
+        coreBlock = null;
+
         foreach (var pair in gridBlocks)
         {
             if (pair.Value != null)
@@ -761,13 +1272,68 @@ public class AsteroidGrid : AsteroidBase
         gridBlocks.Clear();
         blockToCoord.Clear();
 
+        // 1. Locate and register the core block
+        if (coreBlock == null)
+        {
+            Transform coreT = transform.Find("core_block");
+            if (coreT != null)
+            {
+                coreBlock = coreT.GetComponent<block0>();
+            }
+        }
+
+        if (coreBlock == null)
+        {
+            foreach (Transform child in transform)
+            {
+                if (child.name == "core_block" || child.CompareTag("core"))
+                {
+                    coreBlock = child.GetComponent<block0>();
+                    if (coreBlock != null) break;
+                }
+            }
+        }
+
+        if (coreBlock == null)
+        {
+            foreach (Transform child in transform)
+            {
+                block0 b0 = child.GetComponent<block0>();
+                if (b0 != null && b0.isCore)
+                {
+                    coreBlock = b0;
+                    break;
+                }
+            }
+        }
+
+        if (coreBlock != null)
+        {
+            coreBlock.isCore = true;
+            coreBlock.gameObject.tag = "core";
+            BindCoreBlockEvents();
+
+            gridBlocks[Vector2Int.zero] = coreBlock.gameObject;
+            blockToCoord[coreBlock.gameObject] = Vector2Int.zero;
+        }
+
+        // 2. Register all other attached children
         foreach (Transform child in transform)
         {
+            if (coreBlock != null && child.gameObject == coreBlock.gameObject) continue;
+            if (child.name == "core_block") continue;
+
             block0 b0 = child.GetComponent<block0>();
             if (b0 != null && !b0._dead)
             {
+                b0.isCore = false;
                 Vector3 local = child.localPosition;
                 Vector2Int coord = new Vector2Int(Mathf.RoundToInt(local.x), Mathf.RoundToInt(local.y));
+                if (coord == Vector2Int.zero)
+                {
+                    coord = FindBestAttachmentSlot(Vector2Int.zero, child.gameObject);
+                }
+
                 if (coord != Vector2Int.zero && !gridBlocks.ContainsKey(coord))
                 {
                     gridBlocks[coord] = child.gameObject;
@@ -786,6 +1352,15 @@ public class AsteroidGrid : AsteroidBase
             {
                 if (dead == null) dead = new List<Vector2Int>();
                 dead.Add(pair.Key);
+            }
+            else
+            {
+                block0 b0 = pair.Value.GetComponent<block0>();
+                if (b0 == null || b0._dead)
+                {
+                    if (dead == null) dead = new List<Vector2Int>();
+                    dead.Add(pair.Key);
+                }
             }
         }
 

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System.Xml.Xsl;
 
@@ -73,22 +73,28 @@ public class bullet1 : MonoBehaviour
 
             }
              if (col.tag == "core")
-            {
+             {
                 //print("CORE HIT");
-                AsteroidBase astBase = col.transform.GetComponent<AsteroidBase>() ?? col.transform.GetComponentInParent<AsteroidBase>();
-
-                if (astBase != null)
+                block0 b0 = col.transform.GetComponent<block0>();
+                if (b0 != null)
                 {
-                    newhitdamage = astBase.core_receive_hit(transform, this);
+                    newhitdamage = b0.block_receive_hit(transform, this);
                 }
-                
+                else
+                {
+                    AsteroidBase astBase = col.transform.GetComponent<AsteroidBase>() ?? col.transform.GetComponentInParent<AsteroidBase>();
+                    if (astBase != null)
+                    {
+                        newhitdamage = astBase.core_receive_hit(transform, this);
+                    }
+                }
 
                 Rigidbody rb = col.transform.GetComponent<Rigidbody>() ?? col.transform.GetComponentInParent<Rigidbody>();
                 if (rb != null)
                 {
                     rb.AddForceAtPosition((transform.up * _hit_damage), transform.position, ForceMode.Impulse);
                 }
-            }
+             }
 
             if (newhitdamage < 1)
             {

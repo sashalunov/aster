@@ -1,26 +1,59 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
 using TMPro;
 using UnityEngine;
 
+/// <summary>
+/// Physical block component used for perimeter armor and central anchor cores in asteroid clusters.
+/// Supports HP tracking, multi-grade material visual state, bonus drops, and core lifecycle events.
+/// </summary>
 public class block0 : MonoBehaviour
 {
+    [Header("Core Status")]
+    [Tooltip("If true, this block acts as the central anchor core of an asteroid cluster.")]
+    public bool isCore = false;
+
+    [Header("Visuals & UI")]
     public Material[] _grade_mats;
     public TMP_Text _tmp_lvl;
+
+    [Header("Block State")]
     public int _level = 0;
     public int _hits = 1;
     public bool _dead = false;
     public bool _detached = false;
     public bool _bonus = false;
-    // Start is called before the first frame update
+
+    // Events
+    public event Action<block0, Transform, bullet1> OnCoreHit;
+    public event Action<block0, Transform, bullet1> OnCoreDestroyed;
+
     void Start()
     {
         UpdateText();
         UpdateMats();
 
-        if (GetComponentInParent<Rigidbody>() == null)
+        AsteroidBase parentAsteroid = GetComponentInParent<AsteroidBase>();
+        if (parentAsteroid != null)
         {
+            // Part of an asteroid compound body: strip any local Rigidbody so PhysX compound hierarchy works correctly
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(rb);
+                else
+                    Destroy(rb);
+#else
+                Destroy(rb);
+#endif
+            }
+        }
+        else
+        {
+            // Standalone floating debris: ensure it has its own Rigidbody
             Rigidbody rb = GetComponent<Rigidbody>();
             if (rb == null)
             {
@@ -32,81 +65,122 @@ public class block0 : MonoBehaviour
             rb.angularDamping = 0.5f;
             rb.mass = _hits > 0 ? _hits : 1;
         }
+
+        if (isCore || gameObject.name == "core_block" || CompareTag("core"))
+        {
+            isCore = true;
+            gameObject.tag = "core";
+        }
     }
 
-    // Update is called once per frame
-    void Update()
+    /// <summary>
+    /// Receives projectile or impact hit, applies damage, triggers popup FX and XP, and handles destruction.
+    /// </summary>
+    public int block_receive_hit(Transform source, bullet1 b1, int customDamage = -1)
     {
-    }
-    void FixedUpdate() 
-    { 
-    }
-    private void OnDestroy()
-    {
-    }
-    public int block_receive_hit(Transform source, bullet1 b1)
-    {
-        var newhits = _hits - b1._hit_damage;
-        var newhitdamage = b1._hit_damage - _hits;
+        if (_dead) return 0;
+
+        int incomingDamage = customDamage >= 0 ? customDamage : (b1 != null ? b1._hit_damage : 1);
+        var newhits = _hits - incomingDamage;
+        var newhitdamage = incomingDamage - _hits;
         if (newhitdamage < 0) newhitdamage = 0;
-        GameObject rndbonus;
-        var damage = 0;
 
-        if (b1._hit_damage >= _hits)
-        {
-            damage = _hits;
-        }
-        else
-        {
-            damage = b1._hit_damage;
-        }
+        var damage = incomingDamage >= _hits ? _hits : incomingDamage;
 
+        // Damage FX & XP Awarding
         if (damage > 0)
         {
-            var hitFx = Resources.Load("show_blockhit");
+            string popupResource = isCore ? "show_corehit" : "show_blockhit";
+            var hitFx = Resources.Load(popupResource) ?? Resources.Load("show_blockhit");
             if (hitFx != null)
             {
-                var bonus = Instantiate(hitFx, transform.position, Quaternion.identity) as GameObject; 
-                if (bonus != null)
+                var popup = Instantiate(hitFx, transform.position, Quaternion.identity) as GameObject; 
+                if (popup != null)
                 {
-                    var tmp = bonus.GetComponentInChildren<TextMeshPro>();
+                    var tmp = popup.GetComponentInChildren<TextMeshPro>();
                     if (tmp != null) tmp.SetText("+" + damage.ToString());
-                    bonus.transform.localScale = new Vector3(1.3f, 1.3f, 1.15f);
+                   // popup.transform.localScale = isCore ? new Vector3(1.5f, 1.5f, 1.2f) : new Vector3(1.3f, 1.3f, 1.15f);
                 }
             }
+
             if (b1 != null && b1._player != null)
             {
                 b1._player.AddXP(damage, transform);
             }
+            else if (source != null)
+            {
+                player p = source.GetComponent<player>() ?? source.GetComponentInParent<player>();
+                if (p != null)
+                {
+                    p.AddXP(damage, transform);
+                }
+            }
         }
+
+        // Destruction Check
         if (newhits < 1)
         {
-            Destroy(gameObject);
             _dead = true;
+            bool wasCore = isCore || gameObject.name == "core_block" || CompareTag("core");
+            Vector3 deathPos = transform.position;
+            AsteroidBase parentAst = GetComponentInParent<AsteroidBase>();
+
+            if (wasCore)
+            {
+                OnCoreDestroyed?.Invoke(this, source, b1);
+            }
+
             var destroyFx = Resources.Load("blockdestroy");
             if (destroyFx != null)
             {
-                Instantiate(destroyFx, transform.position, Quaternion.identity);
+                Instantiate(destroyFx, deathPos, Quaternion.identity);
             }
 
-            if (_bonus == true)
+            // Bonus and Core Drops
+            if (_bonus || wasCore)
             {
-                var pwrupFx = Resources.Load("powerup");
+                string dropResource = wasCore ? "powerup_shield" : "powerup";
+                var pwrupFx = Resources.Load(dropResource) ?? Resources.Load("powerup");
                 if (pwrupFx != null)
                 {
-                    rndbonus = Instantiate(pwrupFx, transform.position, Quaternion.identity) as GameObject;
+                    GameObject rndbonus = Instantiate(pwrupFx, deathPos, Quaternion.identity) as GameObject;
                     if (rndbonus != null)
                     {
                         powerup pup = rndbonus.GetComponent<powerup>();
-                        if (pup != null) pup._type = (powerup.PowerupType)Random.Range(0, 3);
+                        if (pup != null)
+                        {
+                            pup._type = wasCore ? powerup.PowerupType.shield : (powerup.PowerupType)UnityEngine.Random.Range(0, 3);
+                        }
                     }
                 }
+            }
+
+            if (wasCore && parentAst != null)
+            {
+                parentAst.core_destruct(b1);
+            }
+
+            if (this != null && gameObject != null)
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(gameObject);
+                else
+                    Destroy(gameObject);
+#else
+                Destroy(gameObject);
+#endif
             }
 
             return newhitdamage;
         }
 
         _hits = newhits;
+
+        if (isCore)
+        {
+            OnCoreHit?.Invoke(this, source, b1);
+        }
 
         UpdateMats();
         UpdateText();
@@ -143,8 +217,8 @@ public class block0 : MonoBehaviour
         _hits = newhits;
         UpdateText();
         UpdateMats();
-
     }
+
     public void AddBonus()
     {
         _bonus = true;
@@ -159,19 +233,30 @@ public class block0 : MonoBehaviour
     public void EndLife(Transform newparent)
     {
         transform.parent = newparent;
-        Rigidbody rb = gameObject.AddComponent<Rigidbody>();
+        Rigidbody rb = gameObject.GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+        }
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezePositionZ;
-        rb.mass = _hits;
-        rb.useGravity = true;
+        rb.mass = _hits > 0 ? _hits : 1f;
+        rb.useGravity = false;
+        rb.linearDamping = 0.5f;
+        rb.angularDamping = 0.5f;
         _detached = true;
-
-        //Destroy(gameObject);
-        //Instantiate(Resources.Load("blockdestroy"), transform.position, Quaternion.identity);
     }
 
-    void OnCollisionEnter(Collision collisionInfo)
+    void OnDestroy()
     {
-        //Destroy(gameObject);
-       // Instantiate(Resources.Load("blockdestroy"), transform.position, Quaternion.identity);
+        if ((isCore || gameObject.name == "core_block" || CompareTag("core")) && !_dead)
+        {
+            _dead = true;
+            OnCoreDestroyed?.Invoke(this, null, null);
+            AsteroidBase parentAst = GetComponentInParent<AsteroidBase>();
+            if (parentAst != null)
+            {
+                parentAst.core_destruct(null);
+            }
+        }
     }
 }
