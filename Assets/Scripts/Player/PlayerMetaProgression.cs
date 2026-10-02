@@ -149,7 +149,7 @@ public static class PlayerMetaProgression
         p._thrust_force = 5.3f + (thrustLvl * 0.8f);
 
         p._bullet_dmg = 1.0f + (weaponLvl * 0.5f);
-        p._fire_force = 1.0f + (weaponLvl * 0.5f);
+        p._bullet_force = 1.0f + (weaponLvl * 0.5f);
 
         p.UpdateHealthHUD();
         p.UpdateShieldHUD();

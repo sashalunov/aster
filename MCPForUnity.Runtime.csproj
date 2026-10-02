@@ -686,6 +686,10 @@
       <HintPath>Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.Collections.LowLevel.ILSupport">
+      <HintPath>Library/PackageCache/com.unity.collections@431b1d558060/Unity.Collections.LowLevel.ILSupport/Unity.Collections.LowLevel.ILSupport.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="DemiLib">
       <HintPath>Assets/ThirdParty/Demigiant/DemiLib/Core/DemiLib.dll</HintPath>
       <Private>False</Private>
@@ -716,10 +720,6 @@
     </Reference>
     <Reference Include="Mono.Cecil">
       <HintPath>Library/PackageCache/com.unity.nuget.mono-cecil@ecb9724e46ff/Mono.Cecil.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Collections.LowLevel.ILSupport">
-      <HintPath>Library/PackageCache/com.unity.collections@431b1d558060/Unity.Collections.LowLevel.ILSupport/Unity.Collections.LowLevel.ILSupport.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="netstandard">

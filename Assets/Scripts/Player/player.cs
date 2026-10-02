@@ -114,7 +114,7 @@ public class player : MonoBehaviour
     private float zoom_lerpTime = 2;
 
     public float _bullet_dmg = 1.0f;
-    public float _fire_force = 1.0f;
+    public float _bullet_force = 1.0f;
     public float _thrust_force = 5.3f;
     public float _fire_hz = 1;
     public float _fire_rate = 1;
@@ -387,7 +387,7 @@ public class player : MonoBehaviour
                     break;
 
                 case powerup.PowerupType.gun0_power:
-                    _fire_force += 1f;
+                    _bullet_force += 1f;
 
                     showup = Instantiate(Resources.Load("show_upgrade"), transform.position, Quaternion.identity) as GameObject;
                     showup.GetComponentInChildren<TextMeshPro>().SetText("POWER UP! ");
@@ -690,7 +690,7 @@ public class player : MonoBehaviour
         Physics.IgnoreCollision(clone.GetComponent<Collider>(), GetComponent<Collider>());
         // Add force to the cloned object in the object's forward direction
         clone.GetComponent<Rigidbody>().linearVelocity = GetComponent<Rigidbody>().linearVelocity;
-        clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_fire_force), ForceMode.Impulse);
+        clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_bullet_force), ForceMode.Impulse);
         //GetComponent<Rigidbody>().AddForce((clone.transform.forward * -bullet_force * 0.25f) , ForceMode.Impulse);
 
         //GetComponentInChildren<AudioSource>().PlayOneShot(_clip_gun0_fire);
@@ -698,7 +698,7 @@ public class player : MonoBehaviour
     }
     public void UpdateWeaponHUD()
     {
-        OnWeaponStatsChanged?.Invoke(_fire_force, _fire_rate, _bullet_dmg);
+        OnWeaponStatsChanged?.Invoke(_bullet_force, _fire_rate, _bullet_dmg);
     }
 
     public void UpdateShieldHUD()

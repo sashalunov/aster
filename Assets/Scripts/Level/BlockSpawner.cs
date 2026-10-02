@@ -12,6 +12,8 @@ public class BlockSpawner : MonoBehaviour
     [Header("Prefab & Hierarchy")]
     [Tooltip("The block0 prefab to spawn. If not assigned, loads from Resources/block0.")]
     public GameObject blockPrefab;
+    public GameObject asterPrefab;
+
 
     [Tooltip("Parent transform to hold spawned blocks. Defaults to this transform.")]
     public Transform spawnContainer;
@@ -72,7 +74,7 @@ public class BlockSpawner : MonoBehaviour
     // Runtime state
     private float spawnTimer = 0f;
     private readonly List<GameObject> activeBlocks = new List<GameObject>();
-
+    private readonly List<GameObject> activeAsteroids = new List<GameObject>();
     // Events
     public event Action<GameObject> OnBlockSpawned;
     public event Action<int> OnActiveCountChanged;
@@ -173,9 +175,7 @@ public class BlockSpawner : MonoBehaviour
         }
     }
 
-    /// <summary>
     /// Spawns one block within the defined radial bounds.
-    /// </summary>
     public virtual GameObject SpawnSingleBlock()
     {
         if (IsAtCapacity) return null;
@@ -233,6 +233,47 @@ public class BlockSpawner : MonoBehaviour
 
         OnBlockSpawned?.Invoke(newBlock);
         OnActiveCountChanged?.Invoke(activeBlocks.Count);
+
+        return newBlock;
+    }
+
+    /// Spawns one asteroidgrid within the defined radial bounds.
+
+    public virtual GameObject SpawnSingleAsteroid()
+    {
+        if (asterPrefab == null)
+        {
+            asterPrefab = Resources.Load<GameObject>("AsteroidGrid");
+            if (asterPrefab == null)
+            {
+                Debug.LogWarning("BlockSpawner: Cannot spawn asteroid, asterPrefab is null and Resources/AsteroidGrid could not be loaded.");
+                return null;
+            }
+        }
+        Vector3 spawnPosition = CalculateRandomSpawnPosition();
+        GameObject newBlock = Instantiate(asterPrefab, spawnPosition, Quaternion.identity, spawnContainer);
+
+         Rigidbody rb = newBlock.GetComponent<Rigidbody>();
+         // Apply slight random 2D drift
+        if (rb != null && initialDrift > 0f)
+        {
+            Vector2 randomDir = UnityEngine.Random.insideUnitCircle.normalized;
+            if (randomDir.sqrMagnitude < 0.001f) randomDir = Vector2.up;
+            float speed = UnityEngine.Random.Range(initialDrift * 0.5f, initialDrift);
+            rb.linearVelocity = new Vector3(randomDir.x, randomDir.y, 0f) * speed;
+        }
+
+         activeAsteroids.Add(newBlock);
+
+        // Register with WaveManager if synced
+        WaveManager wm = ActiveWaveManager;
+        if (syncWithWaveManager && wm != null)
+        {
+            wm.RegisterThreat(newBlock);
+        }
+
+       // OnBlockSpawned?.Invoke(newBlock);
+        //OnActiveCountChanged?.Invoke(activeBlocks.Count);
 
         return newBlock;
     }

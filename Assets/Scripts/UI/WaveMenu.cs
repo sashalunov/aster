@@ -79,7 +79,7 @@ public class WaveMenu : MonoBehaviour
 
         if (_player != null)
         {
-            if (_tmp_pwr != null) _tmp_pwr.SetText("power " + _player._fire_force);
+            if (_tmp_pwr != null) _tmp_pwr.SetText("power " + _player._bullet_force);
             if (_tmp_rate != null) _tmp_rate.SetText("rate " + _player._fire_hz);
             if (_tmp_dmg != null) _tmp_dmg.SetText("damage " + _player._bullet_dmg);
         }
@@ -130,15 +130,15 @@ public class WaveMenu : MonoBehaviour
         if (_player == null) return;
         if (p < 0)
         {
-            if ((_player._fire_force + p) < 1) return;
+            if ((_player._bullet_force + p) < 1) return;
         }
         else
         {
             if (_free_total_points < 1) return;
         }
         _free_total_points -= p;
-        _player._fire_force += p;
-        if (_tmp_pwr != null) _tmp_pwr.SetText("power " + _player._fire_force);
+        _player._bullet_force += p;
+        if (_tmp_pwr != null) _tmp_pwr.SetText("power " + _player._bullet_force);
         if (_share_points != null) _share_points.SetText("review your points: " + _free_total_points);
         _player.UpdateWeaponHUD();
     }

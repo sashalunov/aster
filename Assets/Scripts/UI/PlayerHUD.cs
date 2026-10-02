@@ -123,7 +123,7 @@ public class PlayerHUD : MonoBehaviour
         }
         if (_player != null)
         {
-            UpdateWeaponDisplay(_player._fire_force, _player._fire_rate, _player._bullet_dmg);
+            UpdateWeaponDisplay(_player._bullet_force, _player._fire_rate, _player._bullet_dmg);
             UpdateShieldDisplay(_player.shield_value, _player.shield_max_value);
             UpdateHealthDisplay(_player.health_value, _player.health_max_value);
         }

@@ -40,7 +40,7 @@ public class player_gun : MonoBehaviour
         clone.GetComponent<bullet1>()._hit_damage = (int)_player._bullet_dmg;
         Physics.IgnoreCollision(clone.GetComponent<Collider>(), _player.GetComponent<Collider>());
         clone.GetComponent<Rigidbody>().linearVelocity = _player.GetComponent<Rigidbody>().linearVelocity;
-        clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_player._fire_force), ForceMode.Impulse);
+        clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_player._bullet_force), ForceMode.Impulse);
 
     }
 }

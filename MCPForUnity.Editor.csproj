@@ -91,8 +91,8 @@
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/MCPServiceLocator.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Helpers/GameObjectLookup.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Http/FakeHttpTransport.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Security/SecureKeyStore/SecureKeyStoreConstants.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Security/SecureKeyStore/LinuxSecretToolKeyStore.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Security/SecureKeyStore/SecureKeyStoreConstants.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/ManageScene.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Clients/Configurators/CodexConfigurator.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Graphics/RenderPipelineOps.cs" />
@@ -129,9 +129,9 @@
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Vfx/ManageVFX.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/ManageMaterial.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Clients/Configurators/CopilotCliConfigurator.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Clients/Configurators/CherryStudioConfigurator.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Windows/EditorPrefs/EditorPrefsWindow.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Providers/IProviderAdapters.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Clients/Configurators/CherryStudioConfigurator.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/Server/IPidFileManager.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Windows/Components/Validation/McpValidationSection.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/EditorStateCache.cs" />
@@ -286,8 +286,8 @@
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/AssetGen/ImportModelFile.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/External/Tommy.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Dependencies/DependencyManager.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Resources/MenuItems/GetMenuItems.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Profiler/Operations/MemorySnapshotOps.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Resources/MenuItems/GetMenuItems.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Physics/ManagePhysics.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/ManageShader.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Clients/McpClientRegistry.cs" />
@@ -296,8 +296,8 @@
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/TestRunStatus.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Graphics/SkyboxOps.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Http/HttpRequestSpec.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Helpers/VectorParsing.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/ManageScript.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Helpers/VectorParsing.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Setup/RoslynInstaller.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Vfx/TrailWrite.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Helpers/GameObjectSerializer.cs" />
@@ -333,8 +333,8 @@
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Resources/Project/ProjectInfo.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/ProBuilder/ProBuilderMeshUtils.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/ManageAsset.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Providers/LocalImage.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/TestRunnerNoThrottle.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Providers/LocalImage.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Physics/CollisionMatrixOps.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/PackageDeploymentService.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Graphics/GraphicsHelpers.cs" />
