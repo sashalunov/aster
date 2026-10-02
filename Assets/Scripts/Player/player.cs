@@ -78,7 +78,23 @@ public class player : MonoBehaviour
     float speed = 6.0f;
     public ulong _wpn_value = 0;
 
-    public PlayerProgression Progression { get; private set; }
+    private PlayerProgression _progression;
+    public PlayerProgression Progression
+    {
+        get
+        {
+            if (_progression == null)
+            {
+                _progression = GetComponent<PlayerProgression>();
+                if (_progression == null)
+                {
+                    _progression = gameObject.AddComponent<PlayerProgression>();
+                }
+            }
+            return _progression;
+        }
+        private set => _progression = value;
+    }
 
     public ulong _xp_value => Progression != null ? Progression.CurrentXP : 0;
     public ulong _cred_value = 0;
@@ -161,6 +177,8 @@ public class player : MonoBehaviour
         pwrup_fx = Resources.Load("powerup");
         gun_muzzle_fx = Resources.Load("ps_muzzle");
 
+        PlayerMetaProgression.ApplyTo(this);
+
         if (_guns.Count == 0)
         {
             AddGun();
@@ -203,21 +221,20 @@ public class player : MonoBehaviour
         Vector3 a = transform.position;
         Vector3 b = mousepos;
 
-        _guns_container.transform.localEulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
-
-        foreach (var g in _guns)
-        {
-            if (g != null)
-            {
-                Vector3 na = g._point_turret.position;
-
-                g._point_turret.rotation = Quaternion.Euler(new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - na.y, b.x - na.x) - 90f));
-            }
-        }
-
-
         if (_can_play)
         {
+            _guns_container.transform.localEulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
+
+            foreach (var g in _guns)
+            {
+                if (g != null)
+                {
+                    Vector3 na = g._point_turret.position;
+
+                    g._point_turret.rotation = Quaternion.Euler(new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - na.y, b.x - na.x) - 90f));
+                }
+            }
+
             _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
 
             _tap_time_accum += Time.deltaTime;

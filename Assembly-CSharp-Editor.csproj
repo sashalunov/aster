@@ -58,7 +58,9 @@
     <Compile Include="Assets/Editor/Tests/AsteroidGridTests.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenPreviewManager.cs" />
     <Compile Include="Assets/Editor/Tests/WaveManagerTests.cs" />
+    <Compile Include="Assets/Editor/Tests/DeathMenuTests.cs" />
     <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
+    <Compile Include="Assets/Editor/Tests/MainMenuTests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerHUDTests.cs" />
     <Compile Include="Assets/Editor/Tests/BlockSpawnerTests.cs" />
   </ItemGroup>
