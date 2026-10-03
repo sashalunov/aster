@@ -77,6 +77,14 @@ public class PowerupManager : MonoBehaviour
     {
         if (_instance != null && _instance != this)
         {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                _instance = this;
+                PreloadPrefabs();
+                return;
+            }
+#endif
             Destroy(gameObject);
             return;
         }
@@ -233,13 +241,7 @@ public class PowerupManager : MonoBehaviour
     public bool ApplyExtraGun(player p)
     {
         if (p == null) return false;
-
-        if (p._guns != null && p._guns.Count < MAX_GUNS)
-        {
-            
-            return true;
-        }
-        return false;
+        return p.AddGun();
     }
 
     // =========================================================================

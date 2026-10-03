@@ -53,6 +53,7 @@
     <Analyzer Include="/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/BCLExtensions/TargetingPacks/netstandard2.1/analyzers/dotnet/roslyn4.0/cs/System.Text.Json.SourceGeneration.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets/Scripts/Combat/GunPlasma.cs" />
     <Compile Include="Assets/Scripts/Level/BlockSpawner.cs" />
     <Compile Include="Assets/Scripts/UI/MainMenu.cs" />
     <Compile Include="Assets/Scripts/Level/game_prefabs.cs" />
@@ -92,6 +93,7 @@
     <Compile Include="Assets/Scripts/Player/player.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUtils.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUI.cs" />
+    <Compile Include="Assets/Scripts/Combat/GunKinetic.cs" />
     <Compile Include="Assets/Scripts/Combat/bullet1.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
     <Compile Include="Assets/Scripts/UI/DeathMenu.cs" />

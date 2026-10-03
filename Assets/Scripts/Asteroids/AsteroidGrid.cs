@@ -1433,6 +1433,8 @@ public class AsteroidGrid : AsteroidBase
         {
             if (pair.Value != null)
             {
+                if (pair.Key == Vector2Int.zero) continue;
+
                 block0 b0 = pair.Value.GetComponent<block0>();
                 if (b0 != null)
                 {

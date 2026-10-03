@@ -56,18 +56,40 @@ public class Gun : MonoBehaviour
 
     public void AutoResolveComponents()
     {
+        if (turretPoint == null)
+        {
+            turretPoint = transform.Find("hull/turret0") ?? transform.Find("turret0") ?? transform.Find("turret") ?? transform.Find("point_turret");
+            if (turretPoint == null)
+            {
+                foreach (Transform child in GetComponentsInChildren<Transform>())
+                {
+                    if (child.name == "turret0" || child.name == "turret" || child.name == "point_turret")
+                    {
+                        turretPoint = child;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (muzzlePoint == null)
         {
             muzzlePoint = transform.Find("muzzle") ?? transform.Find("fire_point") ?? transform.Find("gun_muzzle_point");
             if (muzzlePoint == null && turretPoint != null)
             {
-                muzzlePoint = turretPoint.Find("muzzle") ?? turretPoint.Find("gun_muzzle_point");
+                muzzlePoint = turretPoint.Find("muzzle") ?? turretPoint.Find("gun_muzzle_point") ?? turretPoint.Find("gun0/ps_muzzle");
             }
-        }
-
-        if (turretPoint == null)
-        {
-            turretPoint = transform.Find("turret0") ?? transform.Find("turret") ?? transform.Find("point_turret");
+            if (muzzlePoint == null)
+            {
+                foreach (Transform child in GetComponentsInChildren<Transform>())
+                {
+                    if (child.name == "ps_muzzle" || child.name == "muzzle" || child.name == "gun_muzzle_point" || child.name == "fire_point")
+                    {
+                        muzzlePoint = child;
+                        break;
+                    }
+                }
+            }
         }
 
         if (animator == null)
@@ -218,6 +240,14 @@ public class Gun : MonoBehaviour
     {
         GameObject bulletObj = Instantiate(gunData.bulletPrefab, position, rotation);
         if (bulletObj == null) return;
+
+        // Initialize ProjectileBase (kinetic, plasma, or other modern projectiles)
+        ProjectileBase proj = bulletObj.GetComponent<ProjectileBase>();
+        if (proj != null)
+        {
+            proj.Initialize(Owner, Mathf.Max(1, Mathf.RoundToInt(gunData.bulletDamage)), gunData.bulletForce);
+            proj.Lifetime = gunData.bulletLifetime;
+        }
 
         // Set damage on legacy or generic projectile components if present
         bullet1 b1 = bulletObj.GetComponent<bullet1>();

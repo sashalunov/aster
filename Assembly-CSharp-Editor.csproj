@@ -62,11 +62,13 @@
     <Compile Include="Assets/Editor/Tests/DeathMenuTests.cs" />
     <Compile Include="Assets/Editor/Tests/GunSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/ProjectileSystemTests.cs" />
+    <Compile Include="Assets/Editor/Tests/PlayerWeaponTests.cs" />
     <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
     <Compile Include="Assets/Editor/Tests/PowerupSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/MainMenuTests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerHUDTests.cs" />
     <Compile Include="Assets/Editor/Tests/BlockSpawnerTests.cs" />
+    <Compile Include="Assets/Editor/Tests/GunMigrationTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll" />

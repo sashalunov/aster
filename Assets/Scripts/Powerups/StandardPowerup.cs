@@ -127,7 +127,7 @@ public class StandardPowerup : PowerupBase
                     targetPlayer.UpdateShieldHUD();
                     return true;
                 case StandardType.ExtraSocket:
-                    //targetPlayer.AddGun();
+                    targetPlayer.AddGun();
                     return true;
                 case StandardType.ScrapSalvage:
                     PlayerMetaProgression.AddScrap(Mathf.RoundToInt(potency * 25f));

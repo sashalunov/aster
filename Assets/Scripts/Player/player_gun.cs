@@ -3,63 +3,111 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
+/// <summary>
+/// Legacy player gun component. Retained for full backwards compatibility with existing scenes/prefabs.
+/// Now bridges cleanly to the modern Gun and GunSocket weapon system when present.
+/// </summary>
 public class player_gun : MonoBehaviour
 {
     public player _player;
     public bool locked = false;
     public Transform _point_base;
     public Transform _point_turret;
-
-    // Start is called before the first frame update
     public Transform _gun_muzzle_point;
-    void Start()
-    {
 
+    private Gun _modernGun;
+
+    void Awake()
+    {
+        AutoResolveComponents();
     }
 
-    // Update is called once per frame
-    void Update()
+    public void AutoResolveComponents()
     {
+        if (_player == null)
+        {
+            _player = GetComponentInParent<player>();
+        }
 
+        _modernGun = GetComponent<Gun>();
+
+        if (_point_turret == null)
+        {
+            _point_turret = transform.Find("hull/turret0") ?? transform.Find("turret0") ?? transform.Find("turret") ?? transform;
+        }
+
+        if (_gun_muzzle_point == null)
+        {
+            _gun_muzzle_point = transform.Find("hull/turret0/gun0/ps_muzzle") ?? transform.Find("ps_muzzle") ?? transform.Find("fire_point") ?? transform;
+        }
+
+        if (_point_base == null)
+        {
+            _point_base = transform.Find("hull") ?? transform;
+        }
+    }
+
+    void Start()
+    {
+        AutoResolveComponents();
     }
 
     public void fire()
     {
-       //var muzzle = Instantiate(_player.gun_muzzle_fx, _gun_muzzle_point.position, Quaternion.identity) as GameObject;
-        //muzzle.GetComponentInChildren<TextMeshPro>().SetText("+" + damage.ToString());
-        //muzzle.transform.parent = _gun_muzzle_point;
-        _point_turret.GetComponent<Animator>().Play("urret_fire");
+        if (_modernGun == null)
+        {
+            _modernGun = GetComponent<Gun>();
+        }
+
+        if (_modernGun != null)
+        {
+            _modernGun.TryFire();
+            return;
+        }
+
+        if (_point_turret != null)
+        {
+            Animator anim = _point_turret.GetComponent<Animator>();
+            if (anim != null) anim.Play("urret_fire");
+        }
 
         fire_bullet();
     }
 
     void fire_bullet()
     {
-        Transform clone = Instantiate(_player.bullet, _gun_muzzle_point.position, _point_turret.rotation) as Transform;
-        clone.GetComponent<bullet1>()._player = _player;
-        clone.GetComponent<bullet1>()._hit_damage = (int)_player._bullet_dmg;
-        Physics.IgnoreCollision(clone.GetComponent<Collider>(), _player.GetComponent<Collider>());
-        clone.GetComponent<Rigidbody>().linearVelocity = _player.GetComponent<Rigidbody>().linearVelocity;
-        clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_player._bullet_force), ForceMode.Impulse);
+        if (_player == null) _player = GetComponentInParent<player>();
+        if (_player == null || _player.bullet == null) return;
 
+        Vector3 spawnPos = _gun_muzzle_point != null ? _gun_muzzle_point.position : transform.position;
+        Quaternion spawnRot = _point_turret != null ? _point_turret.rotation : transform.rotation;
+
+        Transform clone = Instantiate(_player.bullet, spawnPos, spawnRot) as Transform;
+        if (clone == null) return;
+
+        bullet1 b1 = clone.GetComponent<bullet1>();
+        if (b1 != null)
+        {
+            b1._player = _player;
+            b1._hit_damage = (int)_player._bullet_dmg;
+        }
+
+        Collider myCol = _player.GetComponent<Collider>();
+        Collider bulletCol = clone.GetComponent<Collider>();
+        if (myCol != null && bulletCol != null)
+        {
+            Physics.IgnoreCollision(bulletCol, myCol);
+        }
+
+        Rigidbody playerRb = _player.GetComponent<Rigidbody>();
+        Rigidbody bulletRb = clone.GetComponent<Rigidbody>();
+        if (bulletRb != null)
+        {
+            if (playerRb != null)
+            {
+                bulletRb.linearVelocity = playerRb.linearVelocity;
+            }
+            bulletRb.AddForce(clone.transform.up * _player._bullet_force, ForceMode.Impulse);
+        }
     }
-
-
-    //  void gun0_fire(Transform torigin)
-    // {
-
-    //     Transform clone = Instantiate(bullet, torigin.position, urret.rotation) as Transform;
-    //     clone.GetComponent<bullet1>()._player = this;
-    //     //clone.GetComponent<bullet1>()._trail.startLifetime = 0.1f * (1 / _fire_rate);
-    //     clone.GetComponent<bullet1>()._hit_damage = (int)_bullet_dmg;
-
-    //     Physics.IgnoreCollision(clone.GetComponent<Collider>(), GetComponent<Collider>());
-    //     // Add force to the cloned object in the object's forward direction
-    //     clone.GetComponent<Rigidbody>().linearVelocity = GetComponent<Rigidbody>().linearVelocity;
-    //     clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_bullet_force), ForceMode.Impulse);
-    //     //GetComponent<Rigidbody>().AddForce((clone.transform.forward * -bullet_force * 0.25f) , ForceMode.Impulse);
-
-    //     //GetComponentInChildren<AudioSource>().PlayOneShot(_clip_gun0_fire);
-
-    // }
 }
