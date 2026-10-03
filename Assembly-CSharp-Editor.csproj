@@ -60,6 +60,8 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenPreviewManager.cs" />
     <Compile Include="Assets/Editor/Tests/WaveManagerTests.cs" />
     <Compile Include="Assets/Editor/Tests/DeathMenuTests.cs" />
+    <Compile Include="Assets/Editor/Tests/GunSystemTests.cs" />
+    <Compile Include="Assets/Editor/Tests/ProjectileSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
     <Compile Include="Assets/Editor/Tests/PowerupSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/MainMenuTests.cs" />
