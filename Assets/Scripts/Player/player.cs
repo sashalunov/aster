@@ -533,7 +533,7 @@ public class player : MonoBehaviour
             // Check for unconnected blocks on the asteroid cluster and detach them with impact force
             if (parentAsteroid != null)
             {
-                parentAsteroid.check_for_unconected(impactImpulse);
+                parentAsteroid.check_for_unconnected(impactImpulse);
             }
         }
         if (col.collider.CompareTag("core"))
@@ -587,7 +587,7 @@ public class player : MonoBehaviour
                 }
 
                 Vector3 impactImpulse = -pushDir * Mathf.Max(relativeSpeed * 1.5f, 2.0f);
-                astBase.check_for_unconected(impactImpulse);
+                astBase.check_for_unconnected(impactImpulse);
             }
         }
 

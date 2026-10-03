@@ -230,7 +230,7 @@ public abstract class ProjectileBase : MonoBehaviour
         AsteroidBase astBase = col.GetComponentInParent<AsteroidBase>();
         if (astBase != null)
         {
-            astBase.check_for_unconected();
+            astBase.check_for_unconnected();
         }
     }
 

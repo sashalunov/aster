@@ -61,7 +61,7 @@ public class WaveClearedPopup : MonoBehaviour
                 canvasGroup.alpha = 0f;
                 canvasGroup.DOFade(1f, 0.25f);
             }
-            panel.transform.DOPunchScale(Vector3.one * 0.1f, 0.3f);
+            //panel.transform.DOPunchScale(Vector3.one * 0.1f, 0.3f);
         }
    
         private void HandleStateChanged(WaveManager.WaveState prevState, WaveManager.WaveState newState)

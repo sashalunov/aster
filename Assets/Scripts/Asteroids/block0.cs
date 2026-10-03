@@ -28,6 +28,8 @@ public class block0 : MonoBehaviour
     // Events
     public event Action<block0, Transform, bullet1> OnCoreHit;
     public event Action<block0, Transform, bullet1> OnCoreDestroyed;
+    public event Action<block0, Transform, bullet1> OnBlockHit;
+    public event Action<block0, Transform, bullet1> OnBlockDestroyed;
 
     void Start()
     {
@@ -135,6 +137,33 @@ public class block0 : MonoBehaviour
             {
                 OnCoreDestroyed?.Invoke(this, source, b1);
             }
+            else
+            {
+                bool hasSubscribers = OnBlockDestroyed != null;
+                OnBlockDestroyed?.Invoke(this, source, b1);
+                if (!hasSubscribers && parentAst != null)
+                {
+                    Vector3 impactImpulse = Vector3.zero;
+                    if (b1 != null)
+                    {
+                        Vector3 bulletDir = b1.transform.up;
+                        Rigidbody b1Rb = b1.GetComponent<Rigidbody>();
+                        if (b1Rb != null && b1Rb.linearVelocity.sqrMagnitude > 0.001f)
+                        {
+                            bulletDir = b1Rb.linearVelocity.normalized;
+                        }
+                        bulletDir.z = 0f;
+                        impactImpulse = bulletDir * Mathf.Max(b1.Damage, 1f);
+                    }
+                    else if (source != null)
+                    {
+                        Vector3 pushDir = (deathPos - source.position).normalized;
+                        pushDir.z = 0f;
+                        impactImpulse = pushDir * 2.0f;
+                    }
+                    parentAst.check_for_unconnected(impactImpulse);
+                }
+            }
 
             var destroyFx = Resources.Load("blockdestroy");
             if (destroyFx != null)
@@ -186,6 +215,10 @@ public class block0 : MonoBehaviour
         if (isCore)
         {
             OnCoreHit?.Invoke(this, source, b1);
+        }
+        else
+        {
+            OnBlockHit?.Invoke(this, source, b1);
         }
 
         UpdateMats();
@@ -254,7 +287,8 @@ public class block0 : MonoBehaviour
 
     void OnDestroy()
     {
-        if ((isCore || gameObject.name == "core_block" || CompareTag("core")) && !_dead)
+        bool wasCore = isCore || gameObject.name == "core_block" || CompareTag("core");
+        if (wasCore && !_dead)
         {
             _dead = true;
             OnCoreDestroyed?.Invoke(this, null, null);
@@ -262,6 +296,20 @@ public class block0 : MonoBehaviour
             if (parentAst != null)
             {
                 parentAst.core_destruct(null);
+            }
+        }
+        else if (!wasCore && !_dead && Application.isPlaying)
+        {
+            _dead = true;
+            bool hasSubscribers = OnBlockDestroyed != null;
+            OnBlockDestroyed?.Invoke(this, null, null);
+            if (!hasSubscribers)
+            {
+                AsteroidBase parentAst = GetComponentInParent<AsteroidBase>();
+                if (parentAst != null)
+                {
+                    parentAst.check_for_unconnected();
+                }
             }
         }
     }

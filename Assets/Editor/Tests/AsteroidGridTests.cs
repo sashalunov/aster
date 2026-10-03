@@ -104,7 +104,7 @@ public class AsteroidGridTests
         Object.DestroyImmediate(bridgeBlock);
 
         // Run BFS connectivity check (zero raycasts)
-        asteroidGrid.check_for_unconected();
+        asteroidGrid.check_for_unconnected();
 
         // Outer block (2,0) is now an orphan and must be detached
         Assert.IsTrue(detachedEventFired);
@@ -115,6 +115,114 @@ public class AsteroidGridTests
         {
             Object.DestroyImmediate(outerBlock);
         }
+    }
+
+    [Test]
+    public void AsteroidGrid_BlockDeath_EventDriven_AutomaticallyDetachesOrphanBlocks()
+    {
+        // Core at (0, 0), bridge at (1, 0), outer at (2, 0)
+        GameObject bridgeBlock = asteroidGrid.SpawnBlockAtCoord(new Vector2Int(1, 0), 1);
+        GameObject outerBlock = asteroidGrid.SpawnBlockAtCoord(new Vector2Int(2, 0), 1);
+
+        block0 bridgeB0 = bridgeBlock.GetComponent<block0>();
+        block0 outerB0 = outerBlock.GetComponent<block0>();
+
+        Assert.AreEqual(2, asteroidGrid.ActiveBlockCount);
+        Assert.IsTrue(asteroidGrid.HasBlockAt(new Vector2Int(1, 0)));
+        Assert.IsTrue(asteroidGrid.HasBlockAt(new Vector2Int(2, 0)));
+
+        bool detachedEventFired = false;
+        GameObject detachedObj = null;
+        asteroidGrid.OnBlockDetached += (b, coord) =>
+        {
+            detachedEventFired = true;
+            detachedObj = b;
+        };
+
+        // Deal lethal hit to bridgeBlock via block_receive_hit. DO NOT call check_for_unconnected manually!
+        bridgeB0.block_receive_hit(null, null, 10);
+
+        // Event-driven check should automatically detach the orphaned outerBlock
+        Assert.IsTrue(detachedEventFired, "OnBlockDetached event should fire automatically upon bridge destruction");
+        Assert.AreEqual(outerBlock, detachedObj, "Detached object should be the outer block");
+        Assert.AreEqual(0, asteroidGrid.ActiveBlockCount, "Active block count should be 0");
+        Assert.IsFalse(asteroidGrid.HasBlockAt(new Vector2Int(2, 0)), "Outer block coordinate should no longer be registered in grid");
+        Assert.AreNotEqual(asteroidObj.transform, outerBlock.transform.parent, "Outer block should be deparented from asteroid");
+        Assert.IsTrue(outerB0._detached, "Outer block should be marked as detached");
+
+        if (outerBlock != null)
+        {
+            Object.DestroyImmediate(outerBlock);
+        }
+    }
+
+    [Test]
+    public void AsteroidGrid_BlockDeath_ProjectileHit_TransfersImpactImpulseAndDetachesOrphans()
+    {
+        // Core at (0,0), Bridge at (1,0), Outer at (2,0)
+        GameObject bridgeBlock = asteroidGrid.SpawnBlockAtCoord(new Vector2Int(1, 0), 1);
+        GameObject outerBlock = asteroidGrid.SpawnBlockAtCoord(new Vector2Int(2, 0), 2);
+
+        block0 bridgeB0 = bridgeBlock.GetComponent<block0>();
+        block0 outerB0 = outerBlock.GetComponent<block0>();
+
+        // Create a bullet1 flying rightward (+X)
+        GameObject bulletObj = new GameObject("TestBullet");
+        bulletObj.transform.position = bridgeBlock.transform.position - new Vector3(1f, 0f, 0f);
+        bulletObj.transform.up = Vector3.right;
+        Rigidbody bulletRb = bulletObj.AddComponent<Rigidbody>();
+        bulletRb.linearVelocity = new Vector3(20f, 0f, 0f);
+        bullet1 b1 = bulletObj.AddComponent<bullet1>();
+        b1.Damage = 5;
+
+        bool detachedFired = false;
+        asteroidGrid.OnBlockDetached += (b, coord) =>
+        {
+            detachedFired = true;
+        };
+
+        // Bullet delivers lethal blow to bridgeBlock
+        bridgeB0.block_receive_hit(bulletObj.transform, b1);
+
+        // Verification:
+        Assert.IsTrue(detachedFired, "Outer block should be detached upon projectile killing bridge");
+        Assert.AreEqual(0, asteroidGrid.ActiveBlockCount);
+        Assert.IsFalse(asteroidGrid.HasBlockAt(new Vector2Int(2, 0)));
+        Assert.IsTrue(outerB0._detached);
+
+        Rigidbody outerRb = outerBlock.GetComponent<Rigidbody>();
+        Assert.IsNotNull(outerRb);
+        Assert.Greater(outerRb.linearVelocity.x, 0f, "Impact velocity should have positive X direction from bullet flight vector");
+
+        Object.DestroyImmediate(bulletObj);
+        if (outerBlock != null) Object.DestroyImmediate(outerBlock);
+    }
+
+    [Test]
+    public void AsteroidGrid_BlockDeath_LeafBlockDestroyed_KeepsConnectedBlocksAttached()
+    {
+        // Core at (0, 0), bridge at (1, 0), outer leaf at (2, 0)
+        GameObject bridgeBlock = asteroidGrid.SpawnBlockAtCoord(new Vector2Int(1, 0), 2);
+        GameObject outerBlock = asteroidGrid.SpawnBlockAtCoord(new Vector2Int(2, 0), 1);
+
+        block0 bridgeB0 = bridgeBlock.GetComponent<block0>();
+        block0 outerB0 = outerBlock.GetComponent<block0>();
+
+        bool detachedEventFired = false;
+        asteroidGrid.OnBlockDetached += (b, coord) =>
+        {
+            detachedEventFired = true;
+        };
+
+        // Destroy the outer leaf block only
+        outerB0.block_receive_hit(null, null, 10);
+
+        // No orphan blocks should be detached because bridgeBlock is still connected to Core (0,0)
+        Assert.IsFalse(detachedEventFired, "No blocks should be detached when destroying a leaf block");
+        Assert.AreEqual(1, asteroidGrid.ActiveBlockCount, "Bridge block should remain active");
+        Assert.IsTrue(asteroidGrid.HasBlockAt(new Vector2Int(1, 0)), "Bridge block should still be in grid");
+        Assert.AreEqual(asteroidObj.transform, bridgeBlock.transform.parent, "Bridge block should stay parented to asteroid");
+        Assert.IsFalse(bridgeB0._detached, "Bridge block must not be marked detached");
     }
 
     [Test]
@@ -328,7 +436,7 @@ public class AsteroidGridTests
         Vector3 impactImpulse = new Vector3(8f, 0f, 0f);
 
         // Check for unconnected blocks and impart player impact force
-        asteroidGrid.check_for_unconected(impactImpulse);
+        asteroidGrid.check_for_unconnected(impactImpulse);
 
         // Outer block (2,0) is detached
         Assert.AreEqual(0, asteroidGrid.ActiveBlockCount);

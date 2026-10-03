@@ -149,12 +149,12 @@ public class AsteroidBase : MonoBehaviour
         return UpdateMass();
     }
 
-    public virtual void check_for_unconected()
+    public virtual void check_for_unconnected()
     {
-        check_for_unconected(Vector3.zero);
+        check_for_unconnected(Vector3.zero);
     }
 
-    public virtual void check_for_unconected(Vector3 impactImpulse)
+    public virtual void check_for_unconnected(Vector3 impactImpulse)
     {
         tres.Clear();
         Transform[] m = scan_connected(transform);
