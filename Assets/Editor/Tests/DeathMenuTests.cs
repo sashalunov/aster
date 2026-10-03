@@ -17,6 +17,7 @@ public class DeathMenuTests
     public void SetUp()
     {
         PlayerMetaProgression.ResetAllProgress();
+        PlayerProfile.ResetAllProfileData();
 
         _holder = new GameObject("DeathMenuHolder");
         _deathMenu = _holder.AddComponent<DeathMenu>();
@@ -39,6 +40,9 @@ public class DeathMenuTests
         _deathMenu._mainMenu = _mainMenuComp;
 
         // UI text elements
+        _deathMenu.titleText = new GameObject("Title").AddComponent<TextMeshProUGUI>();
+        _deathMenu.pilotNameText = new GameObject("PilotName").AddComponent<TextMeshProUGUI>();
+        _deathMenu.highScoreText = new GameObject("HighScore").AddComponent<TextMeshProUGUI>();
         _deathMenu.runTimeText = new GameObject("RunTime").AddComponent<TextMeshProUGUI>();
         _deathMenu.wavesClearedText = new GameObject("Waves").AddComponent<TextMeshProUGUI>();
         _deathMenu.scrapEarnedText = new GameObject("Scrap").AddComponent<TextMeshProUGUI>();
@@ -72,6 +76,7 @@ public class DeathMenuTests
     {
         Time.timeScale = 1f;
         PlayerMetaProgression.ResetAllProgress();
+        PlayerProfile.ResetAllProfileData();
 
         if (_holder != null) Object.DestroyImmediate(_holder);
         if (_playerObj != null) Object.DestroyImmediate(_playerObj);
@@ -155,5 +160,35 @@ public class DeathMenuTests
         Assert.IsFalse(_deathMenu.IsOpen);
         Assert.IsFalse(_panel.activeSelf);
         Assert.IsTrue(_mainMenuComp.IsOpen);
+    }
+
+    [Test]
+    public void DeathMenu_OpenDeathMenu_RecordsHighScoreAndUpdatesPilotDebrief()
+    {
+        PlayerProfile.SetPlayerName("Viper");
+        _playerComp.Progression.AddXP(250);
+
+        _deathMenu.OpenDeathMenu();
+
+        Assert.IsTrue(_deathMenu.IsNewHighScore, "Initial run should be a new high score");
+        Assert.AreEqual(250, PlayerProfile.HighScore);
+        StringAssert.Contains("PILOT: Viper", _deathMenu.pilotNameText.text);
+        StringAssert.Contains("BEST XP: 250", _deathMenu.highScoreText.text);
+        Assert.AreEqual("NEW HIGH SCORE!", _deathMenu.titleText.text);
+    }
+
+    [Test]
+    public void DeathMenu_OpenDeathMenu_PreparesLeaderboardPayload()
+    {
+        PlayerProfile.SetPlayerName("Phoenix");
+        _playerComp.Progression.AddXP(500);
+
+        _deathMenu.OpenDeathMenu();
+
+        Assert.IsNotNull(_deathMenu.LastLeaderboardPayload);
+        Assert.AreEqual("Phoenix", _deathMenu.LastLeaderboardPayload.playerName);
+        Assert.AreEqual(500, _deathMenu.LastLeaderboardPayload.scoreValue);
+        Assert.IsFalse(string.IsNullOrEmpty(_deathMenu.LastLeaderboardPayload.playerId));
+        Assert.IsFalse(string.IsNullOrEmpty(_deathMenu.LastLeaderboardPayload.ToJson()));
     }
 }

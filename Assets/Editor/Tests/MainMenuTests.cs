@@ -1,6 +1,8 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class MainMenuTests
 {
@@ -10,10 +12,17 @@ public class MainMenuTests
     private GameObject _pausePanel;
     private GameObject _playerObj;
     private player _playerComp;
+    private GameObject _inputObj;
+    private TMP_InputField _inputField;
+    private GameObject _resetBtnObj;
+    private Button _resetButton;
 
     [SetUp]
     public void SetUp()
     {
+        PlayerMetaProgression.ResetAllProgress();
+        PlayerProfile.ResetAllProfileData();
+
         _menuHolder = new GameObject("MainMenuHolder");
         _mainMenu = _menuHolder.AddComponent<MainMenu>();
 
@@ -25,6 +34,18 @@ public class MainMenuTests
         _pausePanel.transform.SetParent(_menuHolder.transform);
         _pausePanel.SetActive(false);
         _mainMenu._menuRe_ = _pausePanel;
+
+        _inputObj = new GameObject("InputName");
+        _inputObj.transform.SetParent(_startPanel.transform);
+        _inputField = _inputObj.AddComponent<TMP_InputField>();
+        _mainMenu.nameInputField = _inputField;
+        _mainMenu.BindNameInput();
+
+        _resetBtnObj = new GameObject("ResetProgress");
+        _resetBtnObj.transform.SetParent(_startPanel.transform);
+        _resetButton = _resetBtnObj.AddComponent<Button>();
+        _mainMenu.resetProgressButton = _resetButton;
+        _mainMenu.BindButtons();
 
         _playerObj = new GameObject("PlayerShip");
         _playerComp = _playerObj.AddComponent<player>();
@@ -38,6 +59,8 @@ public class MainMenuTests
     public void TearDown()
     {
         Time.timeScale = 1f;
+        PlayerMetaProgression.ResetAllProgress();
+        PlayerProfile.ResetAllProfileData();
 
         if (_menuHolder != null) Object.DestroyImmediate(_menuHolder);
         if (_playerObj != null) Object.DestroyImmediate(_playerObj);
@@ -163,5 +186,94 @@ public class MainMenuTests
         _mainMenu.ResumeGame();
         Assert.IsTrue(resumedFired, "OnGameResumed should fire");
         Assert.IsTrue(closedFired, "OnMenuClosed should fire");
+    }
+
+    [Test]
+    public void MainMenu_StartGame_SavesPlayerNameFromInputField()
+    {
+        _inputField.text = "Valkyrie_7";
+        _mainMenu.StartGame();
+
+        Assert.AreEqual("Valkyrie_7", PlayerProfile.PlayerName);
+    }
+
+    [Test]
+    public void MainMenu_StartGame_WithEmptyInputField_UsesDefaultName()
+    {
+        _inputField.text = "   ";
+        _mainMenu.StartGame();
+
+        Assert.AreEqual(PlayerProfile.DEFAULT_NAME, PlayerProfile.PlayerName);
+    }
+
+    [Test]
+    public void MainMenu_OpenMainMenu_LoadsCurrentPlayerNameIntoInputField()
+    {
+        PlayerProfile.SetPlayerName("Falcon_09");
+
+        _mainMenu.OpenMainMenu();
+
+        Assert.AreEqual("Falcon_09", _inputField.text);
+    }
+
+    [Test]
+    public void MainMenu_ResolveNameInput_FindsInputFieldInChildren()
+    {
+        _mainMenu.nameInputField = null;
+        _mainMenu.ResolveNameInput();
+
+        Assert.IsNotNull(_mainMenu.nameInputField, "ResolveNameInput should find input field in children");
+        Assert.AreEqual(_inputField, _mainMenu.nameInputField);
+    }
+
+    [Test]
+    public void MainMenu_ResetProgressButton_HiddenWhenNoSaveData()
+    {
+        _mainMenu.OpenMainMenu();
+
+        Assert.IsFalse(_resetButton.gameObject.activeSelf, "Reset button should be hidden when no save data exists");
+    }
+
+    [Test]
+    public void MainMenu_ResetProgressButton_VisibleWhenSaveDataExists()
+    {
+        PlayerProfile.SetPlayerName("SavedPilot");
+
+        _mainMenu.OpenMainMenu();
+
+        Assert.IsTrue(_resetButton.gameObject.activeSelf, "Reset button should be visible when save data exists");
+    }
+
+    [Test]
+    public void MainMenu_ResetProgress_ResetsUpgradesScrapNameAndHidesButton()
+    {
+        PlayerProfile.SetPlayerName("VeteranPilot");
+        PlayerMetaProgression.AddScrap(500);
+        PlayerMetaProgression.TryPurchaseUpgrade(MetaUpgradeType.HullArmor);
+
+        _mainMenu.OpenMainMenu();
+        Assert.IsTrue(_resetButton.gameObject.activeSelf);
+
+        bool resetFired = false;
+        _mainMenu.OnProgressReset += () => resetFired = true;
+
+        _mainMenu.ResetProgress();
+
+        Assert.IsTrue(resetFired, "OnProgressReset event should fire");
+        Assert.AreEqual(PlayerProfile.DEFAULT_NAME, PlayerProfile.PlayerName);
+        Assert.AreEqual(PlayerProfile.DEFAULT_NAME, _inputField.text);
+        Assert.AreEqual(0, PlayerMetaProgression.BankedScrap);
+        Assert.AreEqual(0, PlayerMetaProgression.GetUpgradeLevel(MetaUpgradeType.HullArmor));
+        Assert.IsFalse(_resetButton.gameObject.activeSelf, "Reset button should be hidden after reset");
+    }
+
+    [Test]
+    public void MainMenu_ResolveResetProgressButton_FindsButtonInChildren()
+    {
+        _mainMenu.resetProgressButton = null;
+        _mainMenu.ResolveResetProgressButton();
+
+        Assert.IsNotNull(_mainMenu.resetProgressButton, "ResolveResetProgressButton should find reset button in children");
+        Assert.AreEqual(_resetButton, _mainMenu.resetProgressButton);
     }
 }

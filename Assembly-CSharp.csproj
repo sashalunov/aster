@@ -60,9 +60,11 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeUnityExtended.cs" />
     <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
     <Compile Include="Assets/Scripts/Asteroids/AsteroidGrid.cs" />
+    <Compile Include="Assets/Scripts/Powerups/powerup.cs" />
     <Compile Include="Assets/Scripts/Player/player_gun.cs" />
     <Compile Include="Assets/Scripts/Asteroids/block0.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUnityVersion.cs" />
+    <Compile Include="Assets/Scripts/Powerups/PowerupBase.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerProgression.cs" />
     <Compile Include="Assets/Scripts/Level/scroller.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleAudio.cs" />
@@ -73,13 +75,14 @@
     <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
     <Compile Include="Assets/Scripts/Asteroids/SpawnerCollider.cs" />
     <Compile Include="Assets/Scripts/UI/WaveMenu.cs" />
+    <Compile Include="Assets/Scripts/Player/PlayerProfile.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenAnimation.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModulePhysics2D.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTk2d.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeAudio.cs" />
+    <Compile Include="Assets/Scripts/Powerups/PowerupManager.cs" />
     <Compile Include="Assets/Scripts/Enemies/TurretAI.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleEPOOutline.cs" />
-    <Compile Include="Assets/Scripts/Combat/powerup.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTextMeshPro.cs" />
     <Compile Include="Assets/Scripts/Player/player.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUtils.cs" />
@@ -88,6 +91,7 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
     <Compile Include="Assets/Scripts/UI/DeathMenu.cs" />
     <Compile Include="Assets/Scripts/Level/level_open.cs" />
+    <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
     <Compile Include="Assets/Scripts/Asteroids/AsteroidBase.cs" />
   </ItemGroup>
   <ItemGroup>

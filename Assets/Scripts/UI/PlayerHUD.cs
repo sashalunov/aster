@@ -9,6 +9,7 @@ public class PlayerHUD : MonoBehaviour
     [SerializeField] private PlayerProgression _progression;
 
     [Header("Progression UI")]
+    public TMP_Text playerNameText;
     public TMP_Text xpText;
     public TMP_Text xpNextText;
     public TMP_Text waveText;
@@ -82,6 +83,8 @@ public class PlayerHUD : MonoBehaviour
     {
         if (_isSubscribed) return;
 
+        PlayerProfile.OnPlayerNameChanged += UpdatePlayerNameDisplay;
+
         if (_progression != null)
         {
             _progression.OnXPChanged += UpdateXPDisplay;
@@ -100,6 +103,8 @@ public class PlayerHUD : MonoBehaviour
     {
         if (!_isSubscribed) return;
 
+        PlayerProfile.OnPlayerNameChanged -= UpdatePlayerNameDisplay;
+
         if (_progression != null)
         {
             _progression.OnXPChanged -= UpdateXPDisplay;
@@ -116,6 +121,8 @@ public class PlayerHUD : MonoBehaviour
 
     public void RefreshAllDisplays()
     {
+        UpdatePlayerNameDisplay(PlayerProfile.PlayerName);
+
         if (_progression != null)
         {
             UpdateXPDisplay(_progression.CurrentXP, _progression.GetNextXPGoal());
@@ -126,6 +133,14 @@ public class PlayerHUD : MonoBehaviour
             UpdateWeaponDisplay(_player._bullet_force, _player._fire_rate, _player._bullet_dmg);
             UpdateShieldDisplay(_player.shield_value, _player.shield_max_value);
             UpdateHealthDisplay(_player.health_value, _player.health_max_value);
+        }
+    }
+
+    public void UpdatePlayerNameDisplay(string name)
+    {
+        if (playerNameText != null)
+        {
+            playerNameText.SetText("PILOT: " + name);
         }
     }
 

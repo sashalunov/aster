@@ -101,6 +101,7 @@ public class player : MonoBehaviour
     public int _playerlvl => Progression != null ? Progression.PlayerLevel : 0;
     public int _playerlvlweapon => Progression != null ? Progression.WeaponLevel : 0;
     public int _wavelvl => Progression != null ? Progression.WaveLevel : 0;
+    public string PlayerName => PlayerProfile.PlayerName;
 
 
     private Vector3 moveDirection = Vector3.zero;

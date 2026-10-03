@@ -120,6 +120,18 @@ public static class PlayerMetaProgression
         }
     }
 
+    /// <summary>
+    /// Checks whether any meta progression data (scrap, upgrades) is stored in PlayerPrefs.
+    /// </summary>
+    public static bool HasAnyProgress()
+    {
+        return PlayerPrefs.HasKey(PREF_SCRAP)
+            || PlayerPrefs.HasKey(PREF_HULL)
+            || PlayerPrefs.HasKey(PREF_SHIELD)
+            || PlayerPrefs.HasKey(PREF_THRUST)
+            || PlayerPrefs.HasKey(PREF_WEAPON);
+    }
+
     public static void ResetAllProgress()
     {
         PlayerPrefs.DeleteKey(PREF_SCRAP);

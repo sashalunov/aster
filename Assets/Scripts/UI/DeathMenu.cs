@@ -25,6 +25,8 @@ public class DeathMenu : MonoBehaviour
     public TMP_Text wavesClearedText;
     public TMP_Text scrapEarnedText;
     public TMP_Text totalScrapText;
+    public TMP_Text pilotNameText;
+    public TMP_Text highScoreText;
 
     [Header("Meta Upgrade Elements")]
     public TMP_Text hullLevelText;
@@ -55,6 +57,9 @@ public class DeathMenu : MonoBehaviour
     public bool IsOpen { get; private set; }
     public int LastRunScrapEarned { get; private set; }
     public float LastRunDuration { get; private set; }
+    public bool IsNewHighScore { get; private set; }
+    public bool IsNewBestWave { get; private set; }
+    public LeaderboardPayload LastLeaderboardPayload { get; private set; }
 
     public event Action OnDeathMenuOpened;
     public event Action OnDeathMenuClosed;
@@ -202,6 +207,11 @@ public class DeathMenu : MonoBehaviour
         LastRunScrapEarned = (int)(runXP + (runCreds * 5) + (ulong)(waves * 25) + 20);
         PlayerMetaProgression.AddScrap(LastRunScrapEarned);
 
+        // Record run and prepare leaderboard payload
+        IsNewHighScore = PlayerProfile.RecordRun(runXP, waves, LastRunDuration, out bool isNewWave);
+        IsNewBestWave = isNewWave;
+        LastLeaderboardPayload = PlayerProfile.SubmitLeaderboardEntry(runXP, waves, LastRunDuration);
+
         UpdateDebriefDisplay(LastRunDuration, waves, LastRunScrapEarned);
         RefreshAllUpgrades();
 
@@ -214,6 +224,18 @@ public class DeathMenu : MonoBehaviour
         int minutes = Mathf.FloorToInt(duration / 60f);
         int seconds = Mathf.FloorToInt(duration % 60f);
 
+        if (titleText != null)
+        {
+            titleText.SetText(IsNewHighScore ? "NEW HIGH SCORE!" : "HULL DESTROYED");
+        }
+        if (pilotNameText != null)
+        {
+            pilotNameText.SetText("PILOT: " + PlayerProfile.PlayerName);
+        }
+        if (highScoreText != null)
+        {
+            highScoreText.SetText("BEST XP: " + PlayerProfile.HighScore);
+        }
         if (runTimeText != null)
         {
             runTimeText.SetText(string.Format("SURVIVAL TIME: {0:00}:{1:00}", minutes, seconds));
