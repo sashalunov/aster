@@ -177,21 +177,60 @@ public class GunMigrationTests
     }
 
     [Test]
-    public void LegacyPlayerGun_DelegatesToModernGun_WhenAttached()
+    public void Gun_StatUpgrades_ApplyProperlyAndEnhanceEffectiveStats()
     {
-        GameObject gunObj = new GameObject("HybridGun");
-        player_gun pg = gunObj.AddComponent<player_gun>();
+        GameObject gunObj = new GameObject("UpgradableGun");
         GunKinetic modernGun = gunObj.AddComponent<GunKinetic>();
         modernGun.SetOwner(_playerObj);
-        pg._player = _player;
 
-        // Calling legacy fire() should trigger modern gun TryFire
-        pg.fire();
+        float baseDmg = modernGun.Data.bulletDamage;
+        float baseForce = modernGun.Data.bulletForce;
 
-        bulletKinetic bullet = Object.FindAnyObjectByType<bulletKinetic>();
-        Assert.IsNotNull(bullet, "Should fire via modern Gun and spawn bulletKinetic");
+        modernGun.UpgradeDamage(2f);
+        modernGun.UpgradeForce(4f);
+        modernGun.UpgradeBurst(1);
+
+        Assert.AreEqual(baseDmg + 2f, modernGun.EffectiveDamage);
+        Assert.AreEqual(baseForce + 4f, modernGun.EffectiveForce);
+        Assert.AreEqual(2, modernGun.EffectiveBurstCount);
 
         Object.DestroyImmediate(gunObj);
+    }
+
+    [Test]
+    public void Gun_AmmoSystem_RespectsInfiniteAndFiniteAmmo()
+    {
+        GameObject gunObj = new GameObject("AmmoGun");
+        Gun gun = gunObj.AddComponent<Gun>();
+
+        GunData data = ScriptableObject.CreateInstance<GunData>();
+        data.gunId = "ammo_test";
+        data.bulletPrefab = Resources.Load<GameObject>("bulletKinetic");
+        data.ammo_quantity = -1; // Infinite ammo
+        gun.Data = data;
+
+        Assert.IsTrue(gun.IsInfiniteAmmo);
+        Assert.IsTrue(gun.HasAmmo);
+
+        // Finite ammo test
+        data.ammo_quantity = 5;
+        gun.InitializeAmmo();
+
+        Assert.IsFalse(gun.IsInfiniteAmmo);
+        Assert.AreEqual(5, gun.CurrentAmmo);
+        Assert.AreEqual(5, gun.MaxAmmo);
+        Assert.IsTrue(gun.HasAmmo);
+
+        // Consume ammo on fire
+        gun.TryFire();
+        Assert.AreEqual(4, gun.CurrentAmmo);
+
+        // Refill ammo
+        gun.RefillAmmo();
+        Assert.AreEqual(5, gun.CurrentAmmo);
+
+        Object.DestroyImmediate(gunObj);
+        Object.DestroyImmediate(data);
     }
 
     [Test]

@@ -5,10 +5,17 @@ using TMPro;
 using UnityEngine.UI;
 using DG.Tweening;
 
+public enum WeaponStatType
+{
+    Damage,
+    Force,
+    FireRate
+}
+
 public class player : MonoBehaviour
 {
     public Transform _ship_hull;
-    public List<player_gun> _guns = new List<player_gun>();
+    public List<Gun> _guns = new List<Gun>();
     public List<GunSocket> _sockets = new List<GunSocket>();
     public Transform _guns_container;
 
@@ -18,7 +25,29 @@ public class player : MonoBehaviour
     public event System.Action<float, float, float> OnWeaponStatsChanged;
     public event System.Action<float, float> OnShieldChanged;
     public event System.Action<float, float> OnHealthChanged;
+    public event System.Action<int> OnUpgradePointsChanged;
     public event System.Action OnDeath;
+
+    [Header("Upgrade Points")]
+    [SerializeField] private int _upgradePoints = 0;
+    public int UpgradePoints
+    {
+        get => _upgradePoints;
+        set
+        {
+            _upgradePoints = Mathf.Max(0, value);
+            OnUpgradePointsChanged?.Invoke(_upgradePoints);
+        }
+    }
+
+    public void AddUpgradePoints(int amount)
+    {
+        if (amount <= 0) return;
+        _upgradePoints += amount;
+        OnUpgradePointsChanged?.Invoke(_upgradePoints);
+    }
+
+    public bool HasUpgradePoints(int cost = 1) => _upgradePoints >= cost;
 
     public bool isDead = false;
     public bool IsDead => isDead;
@@ -234,6 +263,22 @@ public class player : MonoBehaviour
             {   
             }
 
+            if (_can_play && _upgradePoints > 0)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1))
+                {
+                    UpgradeDamageWithPoints(1);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha2))
+                {
+                    UpgradeForceWithPoints(1);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha3))
+                {
+                    UpgradeFireRateWithPoints(1);
+                }
+            }
+
             if (Input.GetKey("left"))
             {
                 //transform.position = transform.position - new Vector3(speed * Time.deltaTime,0,0);
@@ -295,10 +340,19 @@ public class player : MonoBehaviour
         if (pwrup_fx != null)
         {
             GameObject rndbonus = Instantiate(pwrup_fx, pos, Quaternion.identity) as GameObject;
-            powerup pup = rndbonus.GetComponent<powerup>();
+            StandardPowerup pup = rndbonus != null ? rndbonus.GetComponent<StandardPowerup>() : null;
             if (pup != null)
             {
-                pup._type = (powerup.PowerupType)Random.Range(0, 3);
+                StandardPowerup.StandardType[] choices = {
+                    StandardPowerup.StandardType.SpeedUp,
+                    StandardPowerup.StandardType.DamageUp,
+                    StandardPowerup.StandardType.PowerUp,
+                    StandardPowerup.StandardType.GunKinetic,
+                    StandardPowerup.StandardType.GunPlasma,
+                    StandardPowerup.StandardType.AmmoRefill,
+                    StandardPowerup.StandardType.UpgradePoint
+                };
+                pup.Type = choices[Random.Range(0, choices.Length)];
             }
         }
     }
@@ -318,71 +372,15 @@ public class player : MonoBehaviour
 
         if (col.collider.tag == "upgrade")
         {
-            GameObject showup;
-
-            powerup pup = col.collider.GetComponent<powerup>();
-            print(pup._type);
-
-            switch (pup._type)
+            PowerupBase pb = col.collider.GetComponent<PowerupBase>();
+            if (pb != null)
             {
-                case powerup.PowerupType.gun0_speed:
-                    _fire_hz += 1;
-                    _fire_rate = 1f / _fire_hz;
-
-                    showup = Instantiate(Resources.Load("show_upgrade"), transform.position, Quaternion.identity) as GameObject;
-                    showup.GetComponentInChildren<TextMeshPro>().SetText("SPEED UP! ");
-                    showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
-
-                    break;
-
-                case powerup.PowerupType.gun0_power:
-                    _bullet_force += 1f;
-
-                    showup = Instantiate(Resources.Load("show_upgrade"), transform.position, Quaternion.identity) as GameObject;
-                    showup.GetComponentInChildren<TextMeshPro>().SetText("POWER UP! ");
-                    showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
-
-                    break;
-                case powerup.PowerupType.gun0_damage:
-                    _bullet_dmg += 1f;
-
-                    showup = Instantiate(Resources.Load("show_upgrade"), transform.position, Quaternion.identity) as GameObject;
-                    showup.GetComponentInChildren<TextMeshPro>().SetText("DAMAGE UP! ");
-                    showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
-
-                    break;
-
-                case powerup.PowerupType.gun0_double:
-                    showup = Instantiate(Resources.Load("show_upgrade"), transform.position, Quaternion.identity) as GameObject;
-                    showup.GetComponentInChildren<TextMeshPro>().SetText("DOUBLE GUN! ");
-                    showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
-
-                    //_gun0_double = true;
-                    //foreach (Transform t in _gun0_points)
-                    //	t.gameObject.SetActive(true);
-                    break;
-
-                case powerup.PowerupType.laser0:
-                    showup = Instantiate(Resources.Load("show_upgrade"), transform.position, Quaternion.identity) as GameObject;
-                    showup.GetComponentInChildren<TextMeshPro>().SetText("LASER GUN! ");
-                    showup.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
-
-                    //_laser0 = true;
-                    break;
-                case powerup.PowerupType.shield:
-                    shield_value += 1f;
-
-                    showup = Instantiate(Resources.Load("shield_upgrade"), transform.position, Quaternion.identity) as GameObject;
-                    showup.GetComponentInChildren<TextMeshPro>().SetText("SHIELD UP! ");
-                    showup.transform.localScale = new Vector3(1.2f, 1.2f, 1.2f);
-
-                    break;
-
+                pb.TryCollect(this);
             }
-            //_player.AddXP(col.GetComponent<AsteroidDestructible>().core_destruct());
-
-            Destroy(col.collider.gameObject);
-
+            else
+            {
+                Destroy(col.collider.gameObject);
+            }
         }
 
         if (col.collider.tag == "block")
@@ -689,13 +687,13 @@ public class player : MonoBehaviour
     }
 
     /// <summary>
-    /// Checks if the player has any guns equipped or mounted (legacy player_gun or modern Gun).
+    /// Checks if the player has any guns equipped or mounted.
     /// </summary>
     /// <param name="includeInactive">Whether to include inactive GameObjects in the check.</param>
     /// <returns>True if at least one gun exists on or under the player.</returns>
     public bool HasGuns(bool includeInactive = true)
     {
-        // 1. Check legacy _guns list
+        // 1. Check direct _guns list
         if (_guns != null)
         {
             for (int i = 0; i < _guns.Count; i++)
@@ -716,11 +714,7 @@ public class player : MonoBehaviour
             }
         }
 
-        // 3. Check legacy player_gun components in children
-        player_gun[] pGuns = GetComponentsInChildren<player_gun>(includeInactive);
-        if (pGuns != null && pGuns.Length > 0) return true;
-
-        // 4. Check modern Gun components in children
+        // 3. Check modern Gun components in children
         Gun[] guns = GetComponentsInChildren<Gun>(includeInactive);
         if (guns != null && guns.Length > 0) return true;
 
@@ -812,37 +806,24 @@ public class player : MonoBehaviour
     }
 
     /// <summary>
-    /// Gets all distinct gun Components (either player_gun or Gun) attached or mounted to the player.
+    /// Gets all distinct Gun components attached or mounted to the player.
     /// </summary>
-    public List<Component> GetGuns(bool includeInactive = true)
+    public List<Gun> GetEquippedGuns(bool includeInactive = true)
     {
-        List<Component> result = new List<Component>();
-        HashSet<Component> seen = new HashSet<Component>();
+        List<Gun> result = new List<Gun>();
+        HashSet<Gun> seen = new HashSet<Gun>();
 
         if (_guns != null)
         {
             for (int i = 0; i < _guns.Count; i++)
             {
-                player_gun pg = _guns[i];
-                if (pg != null && (includeInactive || pg.gameObject.activeInHierarchy))
+                Gun g = _guns[i];
+                if (g != null && (includeInactive || g.gameObject.activeInHierarchy))
                 {
-                    if (seen.Add(pg))
+                    if (seen.Add(g))
                     {
-                        result.Add(pg);
+                        result.Add(g);
                     }
-                }
-            }
-        }
-
-        player_gun[] childPlayerGuns = GetComponentsInChildren<player_gun>(includeInactive);
-        if (childPlayerGuns != null)
-        {
-            for (int i = 0; i < childPlayerGuns.Length; i++)
-            {
-                player_gun pg = childPlayerGuns[i];
-                if (pg != null && seen.Add(pg))
-                {
-                    result.Add(pg);
                 }
             }
         }
@@ -880,6 +861,20 @@ public class player : MonoBehaviour
     }
 
     /// <summary>
+    /// Legacy compatibility accessor returning equipped Gun components.
+    /// </summary>
+    public List<Component> GetGuns(bool includeInactive = true)
+    {
+        List<Component> result = new List<Component>();
+        List<Gun> equipped = GetEquippedGuns(includeInactive);
+        for (int i = 0; i < equipped.Count; i++)
+        {
+            result.Add(equipped[i]);
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Total count of unique weapon sockets on the player.
     /// </summary>
     public int SocketCount => GetSockets().Count;
@@ -887,14 +882,14 @@ public class player : MonoBehaviour
     /// <summary>
     /// Total count of mounted or equipped guns on the player.
     /// </summary>
-    public int GunCount => GetGuns().Count;
+    public int GunCount => GetEquippedGuns().Count;
 
     #endregion
 
     #region Weapon Control & Socket Management
 
     /// <summary>
-    /// Aims all equipped weapons (GunSockets, standalone Guns, and legacy player_guns) toward target world position.
+    /// Aims all equipped weapons (GunSockets and standalone Guns) toward target world position.
     /// </summary>
     public void AimWeapons(Vector3 targetWorldPosition)
     {
@@ -918,23 +913,21 @@ public class player : MonoBehaviour
             }
         }
 
-        // 3. Aim legacy player_gun components
+        // 3. Aim standalone guns in _guns
         if (_guns != null)
         {
             for (int i = 0; i < _guns.Count; i++)
             {
-                var g = _guns[i];
-                if (g != null && g._point_turret != null)
+                if (_guns[i] != null && _guns[i].GetComponentInParent<GunSocket>() == null)
                 {
-                    Vector3 na = g._point_turret.position;
-                    g._point_turret.rotation = Quaternion.Euler(new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(targetWorldPosition.y - na.y, targetWorldPosition.x - na.x) - 90f));
+                    _guns[i].AimAt(targetWorldPosition);
                 }
             }
         }
     }
 
     /// <summary>
-    /// Triggers weapon fire on all weapon systems (mounted socket guns, standalone guns, and legacy player_guns).
+    /// Triggers weapon fire on all weapon systems (mounted socket guns and standalone guns).
     /// </summary>
     /// <returns>True if at least one weapon fired.</returns>
     public bool FireWeapons()
@@ -967,17 +960,15 @@ public class player : MonoBehaviour
             }
         }
 
-        // 3. Fire legacy player_gun components based on player fire_rate cadence
-        if (_guns != null && _guns.Count > 0)
+        // 3. Fire direct guns in _guns
+        if (_guns != null)
         {
-            if (fire_time_accum >= _fire_rate)
+            for (int i = 0; i < _guns.Count; i++)
             {
-                fire_time_accum = 0;
-                for (int i = 0; i < _guns.Count; i++)
+                if (_guns[i] != null && _guns[i].GetComponentInParent<GunSocket>() == null)
                 {
-                    if (_guns[i] != null)
+                    if (_guns[i].TryFire())
                     {
-                        _guns[i].fire();
                         anyFired = true;
                     }
                 }
@@ -1087,13 +1078,13 @@ public class player : MonoBehaviour
 
     /// <summary>
     /// Adds a gun to the player, mounting onto an available empty socket or creating a new socket.
-    /// Supports both modern Gun prefabs (Kinetic, Plasma) and legacy gun0 fallback.
+    /// Supports modern Gun prefabs (Kinetic Cannon, Plasma Repeater).
     /// </summary>
     public bool AddGun(Gun gunPrefab = null)
     {
         if (GunCount >= PowerupManager.MAX_GUNS) return false;
 
-        // 1. If no specific gun is provided, default to Kinetic gun, Plasma gun, or gun0
+        // 1. If no specific gun is provided, default to Kinetic gun or Plasma gun
         if (gunPrefab == null)
         {
             GameObject kineticPrefab = Resources.Load<GameObject>("gunKinetic");
@@ -1109,18 +1100,12 @@ public class player : MonoBehaviour
                     gunPrefab = plasmaPrefab.GetComponent<Gun>();
                 }
             }
-            if (gunPrefab == null)
-            {
-                GameObject gun0Prefab = Resources.Load<GameObject>("gun0");
-                if (gun0Prefab != null)
-                {
-                    gunPrefab = gun0Prefab.GetComponent<Gun>();
-                }
-            }
         }
 
+        if (gunPrefab == null) return false;
+
         // 2. Try mounting to an existing empty socket
-        if (gunPrefab != null && HasAvailableSocket())
+        if (HasAvailableSocket())
         {
             if (MountGun(gunPrefab))
             {
@@ -1133,7 +1118,7 @@ public class player : MonoBehaviour
         if (SocketCount < PowerupManager.MAX_GUNS)
         {
             GunSocket newSocket = AddSocket();
-            if (newSocket != null && gunPrefab != null)
+            if (newSocket != null)
             {
                 bool mounted = newSocket.AttachGun(gunPrefab, gameObject);
                 UpdateWeaponHUD();
@@ -1141,31 +1126,140 @@ public class player : MonoBehaviour
             }
         }
 
-        // 4. Fallback legacy instantiation if legacy gun0 is used without sockets
-        Transform gun0Res = Resources.Load<Transform>("gun0");
-        if (_guns_container == null)
+        // 4. Fallback: attach gun directly under guns_container or ship
+        Transform container = _guns_container != null ? _guns_container : transform.Find("gun_container") ?? transform;
+        Gun newGunInstance = Instantiate(gunPrefab, container.position, container.rotation, container);
+        newGunInstance.SetOwner(gameObject);
+        _guns.Add(newGunInstance);
+        UpdateWeaponHUD();
+        return true;
+    }
+
+    #endregion
+
+    #region Gun Stat Upgrades
+
+    /// <summary>
+    /// Upgrades all guns matching the gunId (or all guns if gunId is null/empty).
+    /// Returns the number of guns upgraded.
+    /// </summary>
+    public int UpgradeGuns(string gunId, float dmgBonus = 0f, float rateBonus = 0f, float forceBonus = 0f, int burstBonus = 0)
+    {
+        int count = 0;
+        List<Gun> guns = GetEquippedGuns();
+        for (int i = 0; i < guns.Count; i++)
         {
-            Transform container = transform.Find("gun_container");
-            _guns_container = container != null ? container : transform;
-        }
-        if (gun0Res != null)
-        {
-            Transform newgun = Instantiate(gun0Res, transform.position, Quaternion.identity) as Transform;
-            newgun.parent = _guns_container;
-            player_gun pg = newgun.GetComponent<player_gun>();
-            if (pg != null)
+            Gun g = guns[i];
+            if (g == null) continue;
+            if (string.IsNullOrEmpty(gunId) || (g.Data != null && g.Data.gunId == gunId))
             {
-                pg._player = this;
-                _guns.Add(pg);
+                g.UpgradeStats(dmgBonus, rateBonus, forceBonus, burstBonus);
+                count++;
             }
-            newgun.localPosition = Vector3.zero;
-            newgun.localRotation = Quaternion.identity;
-            UpdateWeaponHUD();
-            return true;
+        }
+        UpdateWeaponHUD();
+        return count;
+    }
+
+    /// <summary>
+    /// Specifically upgrades Kinetic guns equipped on the player.
+    /// </summary>
+    public int UpgradeKineticGuns(float dmgBonus = 1f, float forceBonus = 2f)
+    {
+        return UpgradeGuns(GunKinetic.DEFAULT_GUN_ID, dmgBonus, 0f, forceBonus, 0);
+    }
+
+    /// <summary>
+    /// Specifically upgrades Plasma guns equipped on the player.
+    /// </summary>
+    public int UpgradePlasmaGuns(float dmgBonus = 0.5f, float rateBonus = 0.5f, int burstBonus = 0)
+    {
+        return UpgradeGuns(GunPlasma.DEFAULT_GUN_ID, dmgBonus, rateBonus, 0f, burstBonus);
+    }
+
+    /// <summary>
+    /// Refills ammunition on all finite-ammo guns equipped on the player.
+    /// </summary>
+    public void RefillAllWeaponsAmmo(int amount = -1)
+    {
+        List<Gun> guns = GetEquippedGuns();
+        for (int i = 0; i < guns.Count; i++)
+        {
+            if (guns[i] == null) continue;
+            if (amount < 0)
+            {
+                guns[i].RefillAmmo();
+            }
+            else
+            {
+                guns[i].AddAmmo(amount);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Spends collected upgrade points on a weapon stat (Damage, Force, or FireRate).
+    /// Enhances both base ship weapon attributes and currently equipped Gun instances.
+    /// </summary>
+    public bool SpendUpgradePoints(WeaponStatType stat, int pointsCost = 1, string gunId = null)
+    {
+        if (pointsCost <= 0 || !HasUpgradePoints(pointsCost)) return false;
+
+        _upgradePoints -= pointsCost;
+        OnUpgradePointsChanged?.Invoke(_upgradePoints);
+
+        switch (stat)
+        {
+            case WeaponStatType.Damage:
+                _bullet_dmg = Mathf.Clamp(_bullet_dmg + 1f * pointsCost, 1f, PowerupManager.MAX_BULLET_DMG);
+                UpgradeGuns(gunId, dmgBonus: 1f * pointsCost);
+                if (PowerupManager.Instance != null)
+                {
+                    PowerupManager.Instance.SpawnFloatingFeedback("+DMG UPGRADE!", transform.position, new Color(1f, 0.3f, 0.3f));
+                }
+                break;
+
+            case WeaponStatType.Force:
+                _bullet_force = Mathf.Clamp(_bullet_force + 2f * pointsCost, 1f, PowerupManager.MAX_BULLET_FORCE);
+                UpgradeGuns(gunId, forceBonus: 2f * pointsCost);
+                if (PowerupManager.Instance != null)
+                {
+                    PowerupManager.Instance.SpawnFloatingFeedback("+FORCE UPGRADE!", transform.position, new Color(0.9f, 0.3f, 1f));
+                }
+                break;
+
+            case WeaponStatType.FireRate:
+                _fire_hz = Mathf.Clamp(_fire_hz + 0.5f * pointsCost, 1f, PowerupManager.MAX_FIRE_HZ);
+                _fire_rate = 1f / _fire_hz;
+                UpgradeGuns(gunId, rateBonus: 0.5f * pointsCost);
+                if (PowerupManager.Instance != null)
+                {
+                    PowerupManager.Instance.SpawnFloatingFeedback("+RATE UPGRADE!", transform.position, new Color(1f, 0.9f, 0.2f));
+                }
+                break;
         }
 
-        return false;
+        UpdateWeaponHUD();
+        return true;
     }
+
+    /// <summary>
+    /// Spends upgrade points to boost weapon damage.
+    /// </summary>
+    public bool UpgradeDamageWithPoints(int pointsCost = 1, string gunId = null) =>
+        SpendUpgradePoints(WeaponStatType.Damage, pointsCost, gunId);
+
+    /// <summary>
+    /// Spends upgrade points to boost projectile impulse force.
+    /// </summary>
+    public bool UpgradeForceWithPoints(int pointsCost = 1, string gunId = null) =>
+        SpendUpgradePoints(WeaponStatType.Force, pointsCost, gunId);
+
+    /// <summary>
+    /// Spends upgrade points to boost weapon fire rate.
+    /// </summary>
+    public bool UpgradeFireRateWithPoints(int pointsCost = 1, string gunId = null) =>
+        SpendUpgradePoints(WeaponStatType.FireRate, pointsCost, gunId);
 
     #endregion
 }

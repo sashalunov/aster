@@ -14,7 +14,11 @@ public class StandardPowerup : PowerupBase
         DamageUp,
         ShieldUp,
         ExtraSocket,
-        ScrapSalvage
+        ScrapSalvage,
+        GunKinetic,
+        GunPlasma,
+        AmmoRefill,
+        UpgradePoint
     }
 
     [Header("Standard Powerup Configuration")]
@@ -78,6 +82,26 @@ public class StandardPowerup : PowerupBase
                 displayName = "SCRAP +25";
                 themeColor = new Color(1f, 0.6f, 0.1f); // Orange
                 break;
+            case StandardType.GunKinetic:
+                powerupId = "gun_kinetic";
+                displayName = "KINETIC CANNON!";
+                themeColor = new Color(1f, 0.55f, 0.1f); // Amber / Orange
+                break;
+            case StandardType.GunPlasma:
+                powerupId = "gun_plasma";
+                displayName = "PLASMA REPEATER!";
+                themeColor = new Color(0.2f, 0.8f, 1f); // Electric Blue / Cyan
+                break;
+            case StandardType.AmmoRefill:
+                powerupId = "ammo_refill";
+                displayName = "AMMO REFILL!";
+                themeColor = new Color(0.3f, 1f, 0.5f); // Bright Green
+                break;
+            case StandardType.UpgradePoint:
+                powerupId = "upgrade_point";
+                displayName = "UPGRADE POINT!";
+                themeColor = new Color(1f, 0.85f, 0.1f); // Gold / Yellow
+                break;
         }
     }
 
@@ -102,6 +126,14 @@ public class StandardPowerup : PowerupBase
                 case StandardType.ScrapSalvage:
                     PlayerMetaProgression.AddScrap(Mathf.RoundToInt(potency * 25f));
                     return true;
+                case StandardType.GunKinetic:
+                    return PowerupManager.Instance.ApplyGun(targetPlayer, "gunKinetic");
+                case StandardType.GunPlasma:
+                    return PowerupManager.Instance.ApplyGun(targetPlayer, "gunPlasma");
+                case StandardType.AmmoRefill:
+                    return PowerupManager.Instance.ApplyAmmoRefill(targetPlayer);
+                case StandardType.UpgradePoint:
+                    return PowerupManager.Instance.ApplyUpgradePoint(targetPlayer, Mathf.Max(1, Mathf.RoundToInt(potency)));
             }
         }
         else
@@ -131,6 +163,16 @@ public class StandardPowerup : PowerupBase
                     return true;
                 case StandardType.ScrapSalvage:
                     PlayerMetaProgression.AddScrap(Mathf.RoundToInt(potency * 25f));
+                    return true;
+                case StandardType.GunKinetic:
+                    return targetPlayer.AddGun(Resources.Load<GameObject>("gunKinetic")?.GetComponent<Gun>());
+                case StandardType.GunPlasma:
+                    return targetPlayer.AddGun(Resources.Load<GameObject>("gunPlasma")?.GetComponent<Gun>());
+                case StandardType.AmmoRefill:
+                    targetPlayer.RefillAllWeaponsAmmo();
+                    return true;
+                case StandardType.UpgradePoint:
+                    targetPlayer.AddUpgradePoints(Mathf.Max(1, Mathf.RoundToInt(potency)));
                     return true;
             }
         }

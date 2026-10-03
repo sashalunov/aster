@@ -45,14 +45,15 @@ public class GunPlasma : Gun
         GunData data = ScriptableObject.CreateInstance<GunData>();
         data.gunId = DEFAULT_GUN_ID;
         data.displayName = DEFAULT_DISPLAY_NAME;
-        data.bulletDamage = 2.0f;
-        data.bulletForce = 1.0f;
+        data.bulletDamage = 1.0f;
+        data.bulletForce = 9.0f;
         data.fireRate = 1.5f;
         data.bulletLifetime = 3.0f;
         data.spreadAngle = 3.5f;
         data.projectilesPerShot = 1;
         data.burstCount = 2;
         data.burstInterval = 0.07f;
+        data.ammo_quantity = -1;
 
         if (bulletPrefab != null)
         {

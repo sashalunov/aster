@@ -244,6 +244,42 @@ public class PowerupManager : MonoBehaviour
         return p.AddGun();
     }
 
+    public bool ApplyGun(player p, string gunResourceName)
+    {
+        if (p == null) return false;
+        GameObject prefabObj = Resources.Load<GameObject>(gunResourceName);
+        if (prefabObj == null) return false;
+        Gun gunComp = prefabObj.GetComponent<Gun>();
+        if (gunComp == null) return false;
+        return p.AddGun(gunComp);
+    }
+
+    public bool ApplyGun(player p, Gun gunPrefab)
+    {
+        if (p == null) return false;
+        return p.AddGun(gunPrefab);
+    }
+
+    public bool ApplyGunUpgrade(player p, string gunId, float dmgBonus = 1f, float rateBonus = 0f, float forceBonus = 0f, int burstBonus = 0)
+    {
+        if (p == null) return false;
+        return p.UpgradeGuns(gunId, dmgBonus, rateBonus, forceBonus, burstBonus) > 0;
+    }
+
+    public bool ApplyAmmoRefill(player p, int amount = -1)
+    {
+        if (p == null) return false;
+        p.RefillAllWeaponsAmmo(amount);
+        return true;
+    }
+
+    public bool ApplyUpgradePoint(player p, int amount = 1)
+    {
+        if (p == null) return false;
+        p.AddUpgradePoints(amount);
+        return true;
+    }
+
     // =========================================================================
     // Spawning & Factories
     // =========================================================================

@@ -61,8 +61,6 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeUnityExtended.cs" />
     <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
     <Compile Include="Assets/Scripts/Asteroids/AsteroidGrid.cs" />
-    <Compile Include="Assets/Scripts/Powerups/powerup.cs" />
-    <Compile Include="Assets/Scripts/Player/player_gun.cs" />
     <Compile Include="Assets/Scripts/Asteroids/block0.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUnityVersion.cs" />
     <Compile Include="Assets/Scripts/Powerups/PowerupBase.cs" />

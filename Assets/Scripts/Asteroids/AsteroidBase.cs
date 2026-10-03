@@ -360,8 +360,8 @@ public class AsteroidBase : MonoBehaviour
         if (shieldFx != null)
         {
             GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
-            powerup pu = shbonus.GetComponent<powerup>();
-            if (pu != null) pu._type = powerup.PowerupType.shield;
+            StandardPowerup pu = shbonus != null ? shbonus.GetComponent<StandardPowerup>() : null;
+            if (pu != null) pu.Type = StandardPowerup.StandardType.ShieldUp;
         }
 
 

@@ -181,10 +181,10 @@ public class block0 : MonoBehaviour
                     GameObject rndbonus = Instantiate(pwrupFx, deathPos, Quaternion.identity) as GameObject;
                     if (rndbonus != null)
                     {
-                        powerup pup = rndbonus.GetComponent<powerup>();
+                        StandardPowerup pup = rndbonus.GetComponent<StandardPowerup>();
                         if (pup != null)
                         {
-                            pup._type = wasCore ? powerup.PowerupType.shield : (powerup.PowerupType)UnityEngine.Random.Range(0, 3);
+                            pup.Type = wasCore ? StandardPowerup.StandardType.ShieldUp : (StandardPowerup.StandardType)UnityEngine.Random.Range(0, 4);
                         }
                     }
                 }

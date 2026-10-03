@@ -58,4 +58,32 @@ public class GunData : ScriptableObject
 
     [Tooltip("Delay in seconds between successive shots in a burst.")]
     public float burstInterval = 0.08f;
+
+    [Header("Ammunition")]
+    [Tooltip("Prefab for ammo pickups or ammo box drops.")]
+    public GameObject ammo_prefab;
+
+    [Tooltip("Ammo quantity or capacity. Set to -1 for infinite ammo by default.")]
+    public int ammo_quantity = -1;
+
+    // Friendly accessors / aliases
+    public GameObject ammoPrefab
+    {
+        get => ammo_prefab;
+        set => ammo_prefab = value;
+    }
+
+    public int ammoQuantity
+    {
+        get => ammo_quantity;
+        set => ammo_quantity = value;
+    }
+
+    public int ammo
+    {
+        get => ammo_quantity;
+        set => ammo_quantity = value;
+    }
+
+    public bool isInfiniteAmmo => ammo_quantity < 0;
 }

@@ -27,11 +27,31 @@ public class Gun : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private string fireAnimationName = "urret_fire";
 
+    [Header("Ammunition Runtime State")]
+    [Tooltip("Current ammunition count. -1 indicates infinite ammunition.")]
+    [SerializeField] private int currentAmmo = -1;
+
+    [Header("Runtime Stat Modifiers / Upgrades")]
+    [SerializeField] private float damageBonus = 0f;
+    [SerializeField] private float fireRateBonus = 0f;
+    [SerializeField] private float bulletForceBonus = 0f;
+    [SerializeField] private float spreadReduction = 0f;
+    [SerializeField] private int bonusProjectilesPerShot = 0;
+    [SerializeField] private int bonusBurstCount = 0;
+    [SerializeField] private int bonusMaxAmmo = 0;
+
     // Public properties
     public GunData Data
     {
         get => gunData;
-        set => gunData = value;
+        set
+        {
+            gunData = value;
+            if (gunData != null && gunData.ammo_quantity >= 0 && currentAmmo < 0)
+            {
+                currentAmmo = gunData.ammo_quantity;
+            }
+        }
     }
 
     public Transform MuzzlePoint => muzzlePoint != null ? muzzlePoint : transform;
@@ -40,11 +60,96 @@ public class Gun : MonoBehaviour
     public Rigidbody OwnerRigidbody { get; private set; }
     public Collider[] OwnerColliders { get; private set; }
 
-    public bool CanFire => Time.time >= _nextFireTime;
-    public float FireRate => gunData != null ? gunData.fireRate : 1f;
+    public int CurrentAmmo
+    {
+        get => currentAmmo;
+        set
+        {
+            currentAmmo = value;
+            OnAmmoChanged?.Invoke(currentAmmo, MaxAmmo);
+        }
+    }
+
+    public int MaxAmmo => EffectiveMaxAmmo;
+    public bool IsInfiniteAmmo => gunData == null || gunData.ammo_quantity < 0;
+    public bool HasAmmo => IsInfiniteAmmo || currentAmmo > 0;
+
+    public float DamageBonus => damageBonus;
+    public float FireRateBonus => fireRateBonus;
+    public float ForceBonus => bulletForceBonus;
+    public int BonusBurstCount => bonusBurstCount;
+
+    public float EffectiveDamage => Mathf.Max(0.1f, (gunData != null ? gunData.bulletDamage : 1f) + damageBonus);
+    public float EffectiveFireRate => Mathf.Max(0.1f, (gunData != null ? gunData.fireRate : 1f) + fireRateBonus);
+    public float EffectiveForce => Mathf.Max(0.1f, (gunData != null ? gunData.bulletForce : 1f) + bulletForceBonus);
+    public float EffectiveSpread => Mathf.Max(0f, (gunData != null ? gunData.spreadAngle : 0f) - spreadReduction);
+    public int EffectiveProjectilesPerShot => Mathf.Max(1, (gunData != null ? gunData.projectilesPerShot : 1) + bonusProjectilesPerShot);
+    public int EffectiveBurstCount => Mathf.Max(1, (gunData != null ? gunData.burstCount : 1) + bonusBurstCount);
+    public int EffectiveMaxAmmo => gunData != null && gunData.ammo_quantity >= 0 ? gunData.ammo_quantity + bonusMaxAmmo : -1;
+
+    public bool CanFire => Time.time >= _nextFireTime && HasAmmo;
+    public float FireRate => EffectiveFireRate;
 
     // Events
     public event Action<Gun> OnFired;
+    public event Action<int, int> OnAmmoChanged; // (currentAmmo, maxAmmo)
+    public event Action<Gun> OnStatsUpgraded;
+
+    public void UpgradeDamage(float delta)
+    {
+        damageBonus += delta;
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeFireRate(float delta)
+    {
+        fireRateBonus += delta;
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeForce(float delta)
+    {
+        bulletForceBonus += delta;
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeSpread(float reduction)
+    {
+        spreadReduction = Mathf.Min(spreadReduction + reduction, gunData != null ? gunData.spreadAngle : 0f);
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeProjectiles(int delta)
+    {
+        bonusProjectilesPerShot += delta;
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeBurst(int delta)
+    {
+        bonusBurstCount += delta;
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeMaxAmmo(int delta)
+    {
+        bonusMaxAmmo += delta;
+        if (!IsInfiniteAmmo)
+        {
+            currentAmmo += delta;
+            OnAmmoChanged?.Invoke(currentAmmo, MaxAmmo);
+        }
+        OnStatsUpgraded?.Invoke(this);
+    }
+
+    public void UpgradeStats(float dmgDelta = 0f, float rateDelta = 0f, float forceDelta = 0f, int burstDelta = 0)
+    {
+        damageBonus += dmgDelta;
+        fireRateBonus += rateDelta;
+        bulletForceBonus += forceDelta;
+        bonusBurstCount += burstDelta;
+        OnStatsUpgraded?.Invoke(this);
+    }
 
     private float _nextFireTime = 0f;
     private Coroutine _burstRoutine;
@@ -52,6 +157,15 @@ public class Gun : MonoBehaviour
     private void Awake()
     {
         AutoResolveComponents();
+        InitializeAmmo();
+    }
+
+    public void InitializeAmmo()
+    {
+        if (gunData != null)
+        {
+            currentAmmo = gunData.ammo_quantity;
+        }
     }
 
     public void AutoResolveComponents()
@@ -188,7 +302,7 @@ public class Gun : MonoBehaviour
 
     private IEnumerator ExecuteBurstFireRoutine()
     {
-        int count = Mathf.Max(1, gunData.burstCount);
+        int count = Mathf.Max(1, EffectiveBurstCount);
         float interval = Mathf.Max(0.02f, gunData.burstInterval);
 
         for (int i = 0; i < count; i++)
@@ -211,8 +325,8 @@ public class Gun : MonoBehaviour
         Transform turret = TurretPoint;
         Quaternion baseRot = turret != null ? turret.rotation : muzzle.rotation;
 
-        int count = Mathf.Max(1, gunData.projectilesPerShot);
-        float spread = gunData.spreadAngle;
+        int count = Mathf.Max(1, EffectiveProjectilesPerShot);
+        float spread = EffectiveSpread;
 
         for (int i = 0; i < count; i++)
         {
@@ -233,7 +347,39 @@ public class Gun : MonoBehaviour
         }
 
         PlayFiringFeedback();
+        if (!IsInfiniteAmmo)
+        {
+            currentAmmo--;
+            OnAmmoChanged?.Invoke(currentAmmo, MaxAmmo);
+        }
         OnFired?.Invoke(this);
+    }
+
+    /// <summary>
+    /// Adds ammunition to this weapon, clamped to MaxAmmo (if finite).
+    /// Returns the actual amount of ammunition added.
+    /// </summary>
+    public int AddAmmo(int amount)
+    {
+        if (IsInfiniteAmmo || amount <= 0) return 0;
+
+        int before = currentAmmo;
+        int max = MaxAmmo > 0 ? MaxAmmo : int.MaxValue;
+        currentAmmo = Mathf.Min(currentAmmo + amount, max);
+        OnAmmoChanged?.Invoke(currentAmmo, MaxAmmo);
+        return currentAmmo - before;
+    }
+
+    /// <summary>
+    /// Refills weapon ammunition to maximum capacity.
+    /// </summary>
+    public void RefillAmmo()
+    {
+        if (!IsInfiniteAmmo)
+        {
+            currentAmmo = MaxAmmo;
+            OnAmmoChanged?.Invoke(currentAmmo, MaxAmmo);
+        }
     }
 
     private void SpawnProjectile(Vector3 position, Quaternion rotation)
@@ -245,7 +391,7 @@ public class Gun : MonoBehaviour
         ProjectileBase proj = bulletObj.GetComponent<ProjectileBase>();
         if (proj != null)
         {
-            proj.Initialize(Owner, Mathf.Max(1, Mathf.RoundToInt(gunData.bulletDamage)), gunData.bulletForce);
+            proj.Initialize(Owner, Mathf.Max(1, Mathf.RoundToInt(EffectiveDamage)), EffectiveForce);
             proj.Lifetime = gunData.bulletLifetime;
         }
 
@@ -253,7 +399,7 @@ public class Gun : MonoBehaviour
         bullet1 b1 = bulletObj.GetComponent<bullet1>();
         if (b1 != null)
         {
-            b1._hit_damage = Mathf.Max(1, Mathf.RoundToInt(gunData.bulletDamage));
+            b1._hit_damage = Mathf.Max(1, Mathf.RoundToInt(EffectiveDamage));
             if (Owner != null)
             {
                 player p = Owner.GetComponent<player>() ?? Owner.GetComponentInParent<player>();
@@ -283,7 +429,7 @@ public class Gun : MonoBehaviour
         {
             Vector3 inheritVel = OwnerRigidbody != null ? OwnerRigidbody.linearVelocity : Vector3.zero;
             rb.linearVelocity = inheritVel;
-            rb.AddForce(bulletObj.transform.up * gunData.bulletForce, ForceMode.Impulse);
+            rb.AddForce(bulletObj.transform.up * EffectiveForce, ForceMode.Impulse);
         }
 
         // Auto destroy bullet after configured lifetime

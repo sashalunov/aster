@@ -77,12 +77,13 @@ public class PlayerWeaponCheckTests
     }
 
     [Test]
-    public void HasGuns_ReturnsTrue_ForLegacyPlayerGunInList()
+    public void HasGuns_ReturnsTrue_ForGunInList()
     {
         GameObject gunObj = new GameObject("PlayerGun");
         gunObj.transform.SetParent(_playerObj.transform);
-        player_gun pg = gunObj.AddComponent<player_gun>();
-        _player._guns.Add(pg);
+        Gun gun = gunObj.AddComponent<Gun>();
+        gun.Data = _testGunData;
+        _player._guns.Add(gun);
 
         Assert.IsTrue(_player.HasGuns());
         Assert.IsTrue(_player.HasAnyGuns());
@@ -90,11 +91,12 @@ public class PlayerWeaponCheckTests
     }
 
     [Test]
-    public void HasGuns_ReturnsTrue_ForLegacyPlayerGunInChildEvenIfNotInList()
+    public void HasGuns_ReturnsTrue_ForGunInChildEvenIfNotInList()
     {
         GameObject gunObj = new GameObject("PlayerGunChild");
         gunObj.transform.SetParent(_playerObj.transform);
-        player_gun pg = gunObj.AddComponent<player_gun>();
+        Gun gun = gunObj.AddComponent<Gun>();
+        gun.Data = _testGunData;
 
         Assert.IsTrue(_player.HasGuns());
         Assert.AreEqual(1, _player.GunCount);

@@ -30,6 +30,9 @@ public class PlayerHUD : MonoBehaviour
     public TMP_Text healthText;
     public Image healthProgress;
 
+    [Header("Upgrade Points UI")]
+    public TMP_Text upgradePointsText;
+
     private bool _isSubscribed = false;
 
     private void Awake()
@@ -111,6 +114,7 @@ public class PlayerHUD : MonoBehaviour
             _player.OnWeaponStatsChanged += UpdateWeaponDisplay;
             _player.OnShieldChanged += UpdateShieldDisplay;
             _player.OnHealthChanged += UpdateHealthDisplay;
+            _player.OnUpgradePointsChanged += UpdateUpgradePointsDisplay;
             _isSubscribed = true;
         }
     }
@@ -131,6 +135,7 @@ public class PlayerHUD : MonoBehaviour
             _player.OnWeaponStatsChanged -= UpdateWeaponDisplay;
             _player.OnShieldChanged -= UpdateShieldDisplay;
             _player.OnHealthChanged -= UpdateHealthDisplay;
+            _player.OnUpgradePointsChanged -= UpdateUpgradePointsDisplay;
         }
         _isSubscribed = false;
     }
@@ -149,6 +154,16 @@ public class PlayerHUD : MonoBehaviour
             UpdateWeaponDisplay(_player._bullet_force, _player._fire_rate, _player._bullet_dmg);
             UpdateShieldDisplay(_player.shield_value, _player.shield_max_value);
             UpdateHealthDisplay(_player.health_value, _player.health_max_value);
+            UpdateUpgradePointsDisplay(_player.UpgradePoints);
+        }
+    }
+
+    public void UpdateUpgradePointsDisplay(int points)
+    {
+        if (upgradePointsText != null)
+        {
+            upgradePointsText.SetText("PTS: " + points.ToString());
+            upgradePointsText.gameObject.SetActive(points > 0);
         }
     }
 
