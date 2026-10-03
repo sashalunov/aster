@@ -344,15 +344,7 @@ public class MainMenu : MonoBehaviour
 
         ApplyPauseState(false);
 
-        if (_wave_menu != null)
-        {
-            _wave_menu.SetActive(true);
-            WaveMenu wm = _wave_menu.GetComponent<WaveMenu>();
-            if (wm != null)
-            {
-                wm.StartWaves();
-            }
-        }
+        
 
          if (WaveManager.Instance != null)
          {

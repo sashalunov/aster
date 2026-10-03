@@ -76,7 +76,6 @@
     <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
     <Compile Include="Assets/Scripts/Combat/GunSocket.cs" />
     <Compile Include="Assets/Scripts/Asteroids/SpawnerCollider.cs" />
-    <Compile Include="Assets/Scripts/UI/WaveMenu.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerProfile.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenAnimation.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModulePhysics2D.cs" />
@@ -94,7 +93,6 @@
     <Compile Include="Assets/Scripts/Combat/bullet1.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
     <Compile Include="Assets/Scripts/UI/DeathMenu.cs" />
-    <Compile Include="Assets/Scripts/Level/level_open.cs" />
     <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
     <Compile Include="Assets/Scripts/Asteroids/AsteroidBase.cs" />
   </ItemGroup>

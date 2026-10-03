@@ -1,29 +1,18 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-
 using TMPro;
 using UnityEngine.UI;
 using DG.Tweening;
 
 public class player : MonoBehaviour
 {
-    public enum GunType
-    {
-        GUN0 = 0,
-        GUN0_double,
-        GUN0_triple,
-        LASER0,
-
-    }
     public Transform _ship_hull;
     public List<player_gun> _guns = new List<player_gun>();
     public Transform _guns_container;
-    public Transform _gun0_prefab;
 
     public Camera _player_cam;
     public AudioSource _clip_lvlup;
-    public AudioSource _clip_gun0_fire;
 
     public event System.Action<float, float, float> OnWeaponStatsChanged;
     public event System.Action<float, float> OnShieldChanged;
@@ -38,7 +27,23 @@ public class player : MonoBehaviour
 
     public float shield_value = 10.0f;
     public float shield_max_value = 10.0f;
-
+    private PlayerProgression _progression;
+    public PlayerProgression Progression
+    {
+        get
+        {
+            if (_progression == null)
+            {
+                _progression = GetComponent<PlayerProgression>();
+                if (_progression == null)
+                {
+                    _progression = gameObject.AddComponent<PlayerProgression>();
+                }
+            }
+            return _progression;
+        }
+        private set => _progression = value;
+    }
     public void Die()
     {
         if (isDead) return;
@@ -75,31 +80,9 @@ public class player : MonoBehaviour
         OnDeath?.Invoke();
     }
 
-    float speed = 6.0f;
-    public ulong _wpn_value = 0;
-
-    private PlayerProgression _progression;
-    public PlayerProgression Progression
-    {
-        get
-        {
-            if (_progression == null)
-            {
-                _progression = GetComponent<PlayerProgression>();
-                if (_progression == null)
-                {
-                    _progression = gameObject.AddComponent<PlayerProgression>();
-                }
-            }
-            return _progression;
-        }
-        private set => _progression = value;
-    }
-
     public ulong _xp_value => Progression != null ? Progression.CurrentXP : 0;
     public ulong _cred_value = 0;
-    public int _playerlvl => Progression != null ? Progression.PlayerLevel : 0;
-    public int _playerlvlweapon => Progression != null ? Progression.WeaponLevel : 0;
+
     public int _wavelvl => Progression != null ? Progression.WaveLevel : 0;
     public string PlayerName => PlayerProfile.PlayerName;
 
@@ -108,8 +91,7 @@ public class player : MonoBehaviour
 
     public Transform bullet;
     public ParticleSystem ps_thruster;
-    public Transform urret;
-    public Transform _laser0_trail;
+
 
     private float zoom_lastTime = 0;
     private float zoom_lerpTime = 2;
@@ -121,25 +103,18 @@ public class player : MonoBehaviour
     public float _fire_rate = 1;
 
     private float fire_time_accum = 1;
-    public float _laser_rate = 1;
-    public float _laser_time = 1;
-    public float _laser_time_accum = 0;
-    bool _laser_enabled = false;
-
+  
     private bool _tap_hold = false;
     private bool _tap_enabled = true;
     private float _tap_time_accum = 0;
     public float _tap_rate = 0.5f;
 
 
-    public float _laser_cooldawn_accum = 0;
-    public float _laser_max_dist = 5f;
 
     public ParticleSystem _ps_lvlup;
 
     public UnityEngine.Object shield_fx;
     public UnityEngine.Object pwrup_fx;
-    public UnityEngine.Object gun_muzzle_fx;
 
     public bool _can_play = false;
     public Collider _out_sphere;
@@ -176,14 +151,8 @@ public class player : MonoBehaviour
     {
         shield_fx = Resources.Load("shield_damage");
         pwrup_fx = Resources.Load("powerup");
-        gun_muzzle_fx = Resources.Load("ps_muzzle");
-
+     
         PlayerMetaProgression.ApplyTo(this);
-
-        if (_guns.Count == 0)
-        {
-            AddGun();
-        }
 
         UpdateShieldHUD();
         UpdateHealthHUD();
@@ -199,9 +168,6 @@ public class player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        RaycastHit hit;
-
-        //CharacterController controller = GetComponent<CharacterController>();
         Vector3 mousepos = Vector3.zero;
         Vector3 playerpos = Vector3.zero;
         playerpos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
@@ -224,7 +190,6 @@ public class player : MonoBehaviour
 
         if (_can_play)
         {
-            _guns_container.transform.localEulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
 
             foreach (var g in _guns)
             {
@@ -237,10 +202,11 @@ public class player : MonoBehaviour
             }
 
             _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
+           // _guns_container.transform.localEulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
 
             _tap_time_accum += Time.deltaTime;
             fire_time_accum += Time.deltaTime;
-            _laser_cooldawn_accum += Time.deltaTime;
+           
 
             if (Input.GetMouseButton(0)  )
             {
@@ -680,23 +646,7 @@ public class player : MonoBehaviour
         }
     }
 
-    void gun0_fire(Transform torigin)
-    {
-
-        Transform clone = Instantiate(bullet, torigin.position, urret.rotation) as Transform;
-        clone.GetComponent<bullet1>()._player = this;
-        //clone.GetComponent<bullet1>()._trail.startLifetime = 0.1f * (1 / _fire_rate);
-        clone.GetComponent<bullet1>()._hit_damage = (int)_bullet_dmg;
-
-        Physics.IgnoreCollision(clone.GetComponent<Collider>(), GetComponent<Collider>());
-        // Add force to the cloned object in the object's forward direction
-        clone.GetComponent<Rigidbody>().linearVelocity = GetComponent<Rigidbody>().linearVelocity;
-        clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_bullet_force), ForceMode.Impulse);
-        //GetComponent<Rigidbody>().AddForce((clone.transform.forward * -bullet_force * 0.25f) , ForceMode.Impulse);
-
-        //GetComponentInChildren<AudioSource>().PlayOneShot(_clip_gun0_fire);
-
-    }
+   
     public void UpdateWeaponHUD()
     {
         OnWeaponStatsChanged?.Invoke(_bullet_force, _fire_rate, _bullet_dmg);
@@ -712,59 +662,59 @@ public class player : MonoBehaviour
         OnHealthChanged?.Invoke(health_value, health_max_value);
     }
 
-    public void AddGun()
-    {
-        if (_guns.Count >= 8) return;
+    // public void AddGun()
+    // {
+    //     if (_guns.Count >= 8) return;
 
-        if (_gun0_prefab == null)
-        {
-            _gun0_prefab = Resources.Load<Transform>("gun0");
-        }
-        if (_guns_container == null)
-        {
-            Transform container = transform.Find("gun_container");
-            _guns_container = container != null ? container : transform;
-        }
+    //     if (_gun0_prefab == null)
+    //     {
+    //         _gun0_prefab = Resources.Load<Transform>("gun0");
+    //     }
+    //     if (_guns_container == null)
+    //     {
+    //         Transform container = transform.Find("gun_container");
+    //         _guns_container = container != null ? container : transform;
+    //     }
 
-        if (_gun0_prefab == null)
-        {
-            Debug.LogWarning("Cannot AddGun: _gun0_prefab is null and could not be loaded from Resources/gun0");
-            return;
-        }
+    //     if (_gun0_prefab == null)
+    //     {
+    //         Debug.LogWarning("Cannot AddGun: _gun0_prefab is null and could not be loaded from Resources/gun0");
+    //         return;
+    //     }
 
-        Transform newgun = Instantiate(_gun0_prefab, transform.position, Quaternion.identity) as Transform;
-        newgun.parent = _guns_container;
-        newgun.GetComponent<player_gun>()._player = this;
-        _guns.Add(newgun.GetComponent<player_gun>());
-        newgun.transform.localEulerAngles = new Vector3(0, 0, 0);
-        newgun.transform.localScale = new Vector3(0, 0, 0);
+    //     Transform newgun = Instantiate(_gun0_prefab, transform.position, Quaternion.identity) as Transform;
+    //     newgun.parent = _guns_container;
+    //     newgun.GetComponent<player_gun>()._player = this;
+    //     _guns.Add(newgun.GetComponent<player_gun>());
+    //     newgun.transform.localEulerAngles = new Vector3(0, 0, 0);
+    //     newgun.transform.localScale = new Vector3(0, 0, 0);
 
-        newgun.transform.DOScale(new Vector3(1, 1, 1), 1);
-        if (_guns.Count > 1)
-        {
-            float newangle = 360f / _guns.Count;
-            int cnt = 0;
+    //     newgun.transform.DOScale(new Vector3(1, 1, 1), 1);
+    //     if (_guns.Count > 1)
+    //     {
+    //         float newangle = 360f / _guns.Count;
+    //         int cnt = 0;
 
-            foreach (var gun in _guns) 
-            {
+    //         foreach (var gun in _guns) 
+    //         {
 
-                if(_guns.Count == 2)
-                {
-                    //gun.transform.localEulerAngles = new Vector3(0, 0, newangle * cnt + 90f);
-                    gun.transform.DOLocalRotate(new Vector3(0, 0, newangle * cnt + 90f), 1);
-                }
-                else
-                {
-                    //gun.transform.localEulerAngles = new Vector3(0, 0, newangle * cnt);
-                    gun.transform.DOLocalRotate(new Vector3(0, 0, newangle * cnt ), 1);
+    //             if(_guns.Count == 2)
+    //             {
+    //                 //gun.transform.localEulerAngles = new Vector3(0, 0, newangle * cnt + 90f);
+    //                 gun.transform.DOLocalRotate(new Vector3(0, 0, newangle * cnt + 90f), 1);
+    //             }
+    //             else
+    //             {
+    //                 //gun.transform.localEulerAngles = new Vector3(0, 0, newangle * cnt);
+    //                 gun.transform.DOLocalRotate(new Vector3(0, 0, newangle * cnt ), 1);
 
-                }
+    //             }
 
-                cnt++;
+    //             cnt++;
 
-            }
+    //         }
 
-        }
-        UpdateWeaponHUD();
-    }
+    //     }
+    //     UpdateWeaponHUD();
+    // }
 }

@@ -8,11 +8,12 @@ public class StandardPowerup : PowerupBase
 {
     public enum StandardType
     {
+        XpUp,
         SpeedUp,
         PowerUp,
         DamageUp,
-        ShieldRestore,
-        ExtraGun,
+        ShieldUp,
+        ExtraSocket,
         ScrapSalvage
     }
 
@@ -62,14 +63,14 @@ public class StandardPowerup : PowerupBase
                 displayName = "DAMAGE UP!";
                 themeColor = new Color(1f, 0.25f, 0.25f); // Red
                 break;
-            case StandardType.ShieldRestore:
-                powerupId = "shield_restore";
+            case StandardType.ShieldUp:
+                powerupId = "shield_up";
                 displayName = "SHIELD UP!";
                 themeColor = new Color(0.2f, 0.8f, 1f); // Cyan
                 break;
-            case StandardType.ExtraGun:
-                powerupId = "extra_gun";
-                displayName = "DOUBLE GUN!";
+            case StandardType.ExtraSocket:
+                powerupId = "extra_socket";
+                displayName = "EXTRA SOCKET!";
                 themeColor = new Color(0.3f, 1f, 0.4f); // Green
                 break;
             case StandardType.ScrapSalvage:
@@ -94,9 +95,9 @@ public class StandardPowerup : PowerupBase
                     return PowerupManager.Instance.ApplyPowerUp(targetPlayer, potency);
                 case StandardType.DamageUp:
                     return PowerupManager.Instance.ApplyDamageUp(targetPlayer, potency);
-                case StandardType.ShieldRestore:
+                case StandardType.ShieldUp:
                     return PowerupManager.Instance.ApplyShield(targetPlayer, potency);
-                case StandardType.ExtraGun:
+                case StandardType.ExtraSocket:
                     return PowerupManager.Instance.ApplyExtraGun(targetPlayer);
                 case StandardType.ScrapSalvage:
                     PlayerMetaProgression.AddScrap(Mathf.RoundToInt(potency * 25f));
@@ -121,12 +122,12 @@ public class StandardPowerup : PowerupBase
                     targetPlayer._bullet_dmg = Mathf.Min(targetPlayer._bullet_dmg + potency, 25f);
                     targetPlayer.UpdateWeaponHUD();
                     return true;
-                case StandardType.ShieldRestore:
+                case StandardType.ShieldUp:
                     targetPlayer.shield_value = Mathf.Min(targetPlayer.shield_value + potency, targetPlayer.shield_max_value * 1.5f);
                     targetPlayer.UpdateShieldHUD();
                     return true;
-                case StandardType.ExtraGun:
-                    targetPlayer.AddGun();
+                case StandardType.ExtraSocket:
+                    //targetPlayer.AddGun();
                     return true;
                 case StandardType.ScrapSalvage:
                     PlayerMetaProgression.AddScrap(Mathf.RoundToInt(potency * 25f));

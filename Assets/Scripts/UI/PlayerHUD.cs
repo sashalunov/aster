@@ -14,6 +14,8 @@ public class PlayerHUD : MonoBehaviour
     public TMP_Text xpNextText;
     public TMP_Text waveText;
     public TMP_Text timerText;
+    public Image xpProgress;
+    public Image xpProgressFill;
 
     [Header("Weapon UI")]
     public TMP_Text wpnPowerText;
@@ -163,18 +165,23 @@ public class PlayerHUD : MonoBehaviour
         if (xpText != null) xpText.SetText("XP: " + currentXP);
         if (xpNextText != null) xpNextText.SetText("Next: " + nextGoalXP);
         if (waveText != null && _progression != null) waveText.SetText("Wave: " + _progression.WaveLevel);
+
+                xpProgressFill.fillAmount = _progression != null && _progression.GetNextXPGoal() > 0 ? Mathf.Clamp01((float)_progression.CurrentXP / (float)_progression.GetNextXPGoal()) : 0f;
+        if (xpProgressFill != null) xpProgressFill.gameObject.SetActive(_progression != null && _progression.GetNextXPGoal() > 0);
+
     }
 
     public void UpdateWaveDisplay(int wave)
     {
         if (waveText != null) waveText.SetText("Wave: " + wave);
+
     }
 
     public void UpdateWeaponDisplay(float power, float rate, float damage)
     {
-        if (wpnPowerText != null) wpnPowerText.SetText("Power: " + power.ToString());
-        if (wpnRateText != null) wpnRateText.SetText("Rate: " + (rate > 0 ? (1f / rate).ToString("0.#") + "Hz" : "0Hz"));
-        if (wpnDamageText != null) wpnDamageText.SetText("Damage: " + damage.ToString());
+        if (wpnPowerText != null) wpnPowerText.SetText("kinetic: " + power.ToString());
+        if (wpnRateText != null) wpnRateText.SetText("rate: " + (rate > 0 ? (1f / rate).ToString("0.#") + "Hz" : "0Hz"));
+        if (wpnDamageText != null) wpnDamageText.SetText("damage: " + damage.ToString());
     }
 
     public void UpdateShieldDisplay(float currentShield, float maxShield)

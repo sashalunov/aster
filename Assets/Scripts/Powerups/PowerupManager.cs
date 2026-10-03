@@ -235,7 +235,7 @@ public class PowerupManager : MonoBehaviour
 
         if (p._guns != null && p._guns.Count < MAX_GUNS)
         {
-            p.AddGun();
+            
             return true;
         }
         return false;

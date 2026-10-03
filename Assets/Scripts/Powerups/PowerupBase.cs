@@ -78,9 +78,9 @@ public abstract class PowerupBase : MonoBehaviour
         if (_rigidbody != null)
         {
             // Ensure 2.5D space plane constraint: no Z drifting or unwanted tumbling
-            _rigidbody.constraints = RigidbodyConstraints.FreezePositionZ |
-                                     RigidbodyConstraints.FreezeRotationX |
-                                     RigidbodyConstraints.FreezeRotationY;
+            //_rigidbody.constraints = RigidbodyConstraints.FreezePositionZ |
+           //                          RigidbodyConstraints.FreezeRotationX |
+            //                         RigidbodyConstraints.FreezeRotationY;
             _rigidbody.useGravity = false;
         }
 
@@ -277,6 +277,9 @@ public abstract class PowerupBase : MonoBehaviour
 
     protected virtual void OnTriggerEnter(Collider other)
     {
+        // Ignore sensory/boundary trigger spheres like max_view_radius
+        if (other != null && other.isTrigger) return;
+
         CheckAndCollect(other.gameObject);
     }
 

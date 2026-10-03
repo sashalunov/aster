@@ -25,9 +25,9 @@ public class player_gun : MonoBehaviour
 
     public void fire()
     {
-        var muzzle = Instantiate(_player.gun_muzzle_fx, _gun_muzzle_point.position, Quaternion.identity) as GameObject;
+       //var muzzle = Instantiate(_player.gun_muzzle_fx, _gun_muzzle_point.position, Quaternion.identity) as GameObject;
         //muzzle.GetComponentInChildren<TextMeshPro>().SetText("+" + damage.ToString());
-        muzzle.transform.parent = _gun_muzzle_point;
+        //muzzle.transform.parent = _gun_muzzle_point;
         _point_turret.GetComponent<Animator>().Play("urret_fire");
 
         fire_bullet();
@@ -43,4 +43,23 @@ public class player_gun : MonoBehaviour
         clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_player._bullet_force), ForceMode.Impulse);
 
     }
+
+
+    //  void gun0_fire(Transform torigin)
+    // {
+
+    //     Transform clone = Instantiate(bullet, torigin.position, urret.rotation) as Transform;
+    //     clone.GetComponent<bullet1>()._player = this;
+    //     //clone.GetComponent<bullet1>()._trail.startLifetime = 0.1f * (1 / _fire_rate);
+    //     clone.GetComponent<bullet1>()._hit_damage = (int)_bullet_dmg;
+
+    //     Physics.IgnoreCollision(clone.GetComponent<Collider>(), GetComponent<Collider>());
+    //     // Add force to the cloned object in the object's forward direction
+    //     clone.GetComponent<Rigidbody>().linearVelocity = GetComponent<Rigidbody>().linearVelocity;
+    //     clone.GetComponent<Rigidbody>().AddForce(clone.transform.up * (_bullet_force), ForceMode.Impulse);
+    //     //GetComponent<Rigidbody>().AddForce((clone.transform.forward * -bullet_force * 0.25f) , ForceMode.Impulse);
+
+    //     //GetComponentInChildren<AudioSource>().PlayOneShot(_clip_gun0_fire);
+
+    // }
 }
