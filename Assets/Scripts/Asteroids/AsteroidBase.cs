@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using TMPro;
 using System.Xml.Xsl;
 
-[ExecuteInEditMode]
 [RequireComponent(typeof(Rigidbody))]
 public class AsteroidBase : MonoBehaviour
 {
@@ -49,6 +48,15 @@ public class AsteroidBase : MonoBehaviour
     private System.Random srnd = new System.Random();
     public GameObject _block;
     public int _num_boxes_generated = 0;
+
+    [Header("Destruction State")]
+    [Tooltip("True if this asteroid is currently in the process of gameplay destruction.")]
+    public bool isDestructing = false;
+
+    protected virtual void Reset()
+    {
+        EnsureRigidbody();
+    }
 
     protected virtual void Awake()
     {

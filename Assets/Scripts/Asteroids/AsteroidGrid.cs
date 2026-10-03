@@ -96,9 +96,6 @@ public class AsteroidGrid : AsteroidBase
     private readonly Dictionary<GameObject, Vector2Int> blockReservations = new Dictionary<GameObject, Vector2Int>();
     private readonly HashSet<GameObject> processedAccretionInFrame = new HashSet<GameObject>();
 
-    // Destruction state flag to prevent re-entrant calls
-    private bool isDestructing = false;
-
     // Reusable BFS structures to prevent GC allocations
     private readonly Queue<Vector2Int> bfsQueue = new Queue<Vector2Int>(64);
     private readonly HashSet<Vector2Int> bfsReachable = new HashSet<Vector2Int>(64);
@@ -193,8 +190,14 @@ public class AsteroidGrid : AsteroidBase
         {
             RegisterExistingChildrenIntoGrid();
         }
+        UpdateMass();
         BindCoreBlockEvents();
         BindAllBlockEvents();
+
+        if (Application.isPlaying && WaveManager.Instance != null)
+        {
+            WaveManager.Instance.RegisterThreat(gameObject);
+        }
     }
 
     /// <summary>
@@ -254,15 +257,13 @@ public class AsteroidGrid : AsteroidBase
 
     protected virtual void OnDestroy()
     {
-        if (!isDestructing)
-        {
-            isDestructing = true;
-            magneticAccretion = false;
-            allowReattachmentOnCollision = false;
-            reservedSlots.Clear();
-            blockReservations.Clear();
-            DetachAllChildrenOnDestruction();
-        }
+        isDestructing = true;
+        magneticAccretion = false;
+        allowReattachmentOnCollision = false;
+        reservedSlots.Clear();
+        blockReservations.Clear();
+        UnbindCoreBlockEvents();
+        UnbindAllBlockEvents();
     }
 
     #region Procedural Block Placement (3 Math & Fractal Functions)
@@ -557,6 +558,11 @@ public class AsteroidGrid : AsteroidBase
         blockToCoord.Clear();
 
         Transform newParent = transform.parent;
+        if (newParent != null && Application.isPlaying && (!newParent.gameObject.scene.isLoaded || !newParent.gameObject.activeInHierarchy))
+        {
+            newParent = null;
+        }
+
         foreach (GameObject blockObj in childrenToDetach)
         {
             if (blockObj == null) continue;
@@ -565,10 +571,7 @@ public class AsteroidGrid : AsteroidBase
             {
                 UnbindBlockEvents(b0);
                 reward += b0._hits;
-
-                // Deparent from dying asteroid
-                blockObj.transform.parent = newParent;
-
+    
                 b0.EndLife(newParent);
                 b0.gameObject.tag = "block";
 
@@ -937,10 +940,13 @@ public class AsteroidGrid : AsteroidBase
             UnbindBlockEvents(b0);
             b0._detached = true;
 
-            // Deparent from asteroid transform
-            blockObj.transform.parent = transform.parent;
+            Transform targetParent = transform.parent;
+            if (targetParent != null && (!targetParent.gameObject.scene.isLoaded || !targetParent.gameObject.activeInHierarchy))
+            {
+                targetParent = null;
+            }
 
-            b0.EndLife(transform.parent);
+            b0.EndLife(targetParent);
             b0.gameObject.tag = "block";
 
             Collider c = blockObj.GetComponent<Collider>();
@@ -1385,6 +1391,30 @@ public class AsteroidGrid : AsteroidBase
                     Destroy(pair.Value);
 #else
                 Destroy(pair.Value);
+#endif
+            }
+        }
+
+        // Also clean up any extra block0 children attached to transform not indexed in gridBlocks
+        List<GameObject> extraBlocks = new List<GameObject>();
+        foreach (Transform child in transform)
+        {
+            if (child != null && (child.GetComponent<block0>() != null || child.name == "core_block" || child.name.StartsWith("b_")))
+            {
+                extraBlocks.Add(child.gameObject);
+            }
+        }
+        foreach (GameObject go in extraBlocks)
+        {
+            if (go != null)
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(go);
+                else
+                    Destroy(go);
+#else
+                Destroy(go);
 #endif
             }
         }

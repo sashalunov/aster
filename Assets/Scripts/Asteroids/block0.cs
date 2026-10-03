@@ -271,7 +271,15 @@ public class block0 : MonoBehaviour
 
     public void EndLife(Transform newparent)
     {
-        transform.parent = newparent;
+        try
+        {
+            transform.parent = newparent;
+        }
+        catch (Exception)
+        {
+            transform.parent = null;
+        }
+
         Rigidbody rb = gameObject.GetComponent<Rigidbody>();
         if (rb == null)
         {
@@ -287,18 +295,20 @@ public class block0 : MonoBehaviour
 
     void OnDestroy()
     {
+        if (!Application.isPlaying || !gameObject.scene.isLoaded) return;
+
         bool wasCore = isCore || gameObject.name == "core_block" || CompareTag("core");
         if (wasCore && !_dead)
         {
             _dead = true;
             OnCoreDestroyed?.Invoke(this, null, null);
             AsteroidBase parentAst = GetComponentInParent<AsteroidBase>();
-            if (parentAst != null)
+            if (parentAst != null && !parentAst.isDestructing)
             {
                 parentAst.core_destruct(null);
             }
         }
-        else if (!wasCore && !_dead && Application.isPlaying)
+        else if (!wasCore && !_dead)
         {
             _dead = true;
             bool hasSubscribers = OnBlockDestroyed != null;
@@ -306,7 +316,7 @@ public class block0 : MonoBehaviour
             if (!hasSubscribers)
             {
                 AsteroidBase parentAst = GetComponentInParent<AsteroidBase>();
-                if (parentAst != null)
+                if (parentAst != null && !parentAst.isDestructing)
                 {
                     parentAst.check_for_unconnected();
                 }

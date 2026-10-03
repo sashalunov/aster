@@ -568,4 +568,40 @@ public class AsteroidGridTests
 
         Object.DestroyImmediate(childObj);
     }
+
+    [Test]
+    public void AsteroidGrid_PreGeneratedUnderParentContainer_RegistersChildrenAndMassOnStart()
+    {
+        GameObject container = new GameObject("Content");
+        GameObject astObj = new GameObject("PreGenAsteroid");
+        astObj.transform.parent = container.transform;
+
+        AsteroidGrid grid = astObj.AddComponent<AsteroidGrid>();
+
+        GameObject coreGo = new GameObject("core_block");
+        coreGo.transform.parent = astObj.transform;
+        coreGo.transform.localPosition = Vector3.zero;
+        block0 coreB0 = coreGo.AddComponent<block0>();
+        coreB0.SetHits(3);
+
+        GameObject blockGo = new GameObject("b_1_1");
+        blockGo.transform.parent = astObj.transform;
+        blockGo.transform.localPosition = new Vector3(1f, 1f, 0f);
+        block0 b1 = blockGo.AddComponent<block0>();
+        b1.SetHits(2);
+
+        System.Reflection.MethodInfo regMethod = typeof(AsteroidGrid).GetMethod("RegisterExistingChildrenIntoGrid", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        regMethod.Invoke(grid, null);
+        grid.UpdateMass();
+
+        Assert.AreEqual(2, grid.ActiveBlockCount);
+        Assert.AreEqual(coreB0, grid.coreBlock);
+        Assert.AreEqual(5, grid.GetComponent<Rigidbody>().mass);
+
+        // Tearing down the parent container must not throw or attempt illegal reparenting
+        Assert.DoesNotThrow(() =>
+        {
+            Object.DestroyImmediate(container);
+        });
+    }
 }
