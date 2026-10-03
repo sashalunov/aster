@@ -26,8 +26,11 @@ public class WaveManager : MonoBehaviour
         public int waveNumber = 1;
         public string waveTitle = "Wave 1";
         
-        [Header("Duration & Objectives")]
-        [Tooltip("Max combat duration in seconds. If 0 or negative, wave lasts until threat budget is cleared.")]
+        [Header("Objectives & Scaling")]
+        [Tooltip("Target XP required to clear this wave. If 0 or negative, resolves automatically from PlayerProgression.waveGoals.")]
+        public ulong targetXPGoal = 0;
+
+        [Tooltip("Max combat duration in seconds (optional fallback if useWaveTimer is enabled).")]
         public float duration = 30f;
         
         [Tooltip("Total threat points/budget to spawn during this wave.")]
@@ -46,6 +49,7 @@ public class WaveManager : MonoBehaviour
         [Header("Rewards")]
         public int rewardCredits = 25;
         public int rewardXP = 50;
+        public bool grantExtraGun = false;      // Grants an additional turret/socket
 
         public WaveDefinition Clone()
         {
@@ -60,6 +64,16 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private float waveTimer = 0f;
     [SerializeField] private int remainingThreatBudget = 0;
 
+    [Header("Objectives & Pacing")]
+    [Tooltip("If true, wave completes automatically when the player's XP reaches the wave's goal.")]
+    public bool completeOnXPGoal = true;
+
+    [Tooltip("If true, wave clears when combat duration timer expires. Disabled by default (XP-goal driven).")]
+    public bool useWaveTimer = false;
+
+    [Tooltip("If true, threats continue spawning continuously until the wave objective is reached.")]
+    public bool continuousSpawning = true;
+
     [Header("Timers Configuration")]
     [Tooltip("Countdown duration before combat begins")]
     public float countdownDuration = 3f;
@@ -70,6 +84,10 @@ public class WaveManager : MonoBehaviour
     [Header("Wave Progression Config")]
     [Tooltip("Pre-configured waves. If current wave exceeds this list, procedural waves are generated.")]
     public List<WaveDefinition> authoredWaves = new List<WaveDefinition>();
+
+    [Header("Progression Link")]
+    [Tooltip("Optional explicit reference to the player's progression. Resolves automatically if null.")]
+    [SerializeField] private PlayerProgression playerProgression;
 
     [Header("Runtime Active Threats")]
     private readonly HashSet<GameObject> activeThreats = new HashSet<GameObject>();
@@ -92,10 +110,35 @@ public class WaveManager : MonoBehaviour
     public int ActiveThreatCount => activeThreats.Count;
     public WaveDefinition CurrentWaveConfig { get; private set; }
 
+    public PlayerProgression ActiveProgression
+    {
+        get
+        {
+            if (playerProgression == null)
+            {
+                player p = FindAnyObjectByType<player>();
+                if (p != null)
+                {
+                    playerProgression = p.Progression ?? p.GetComponent<PlayerProgression>();
+                }
+            }
+            return playerProgression;
+        }
+        set
+        {
+            if (playerProgression != value)
+            {
+                UnsubscribeProgression();
+                playerProgression = value;
+                SubscribeProgression();
+            }
+        }
+    }
+
     /// <summary>
     /// Whether spawning systems should actively spawn new threats right now.
     /// </summary>
-    public virtual bool CanSpawn => currentState == WaveState.Combat && remainingThreatBudget > 0;
+    public virtual bool CanSpawn => currentState == WaveState.Combat && (continuousSpawning || remainingThreatBudget > 0);
 
     protected virtual void Awake()
     {
@@ -115,12 +158,90 @@ public class WaveManager : MonoBehaviour
         }
     }
 
+    protected virtual void OnEnable()
+    {
+        SubscribeProgression();
+    }
+
+    protected virtual void OnDisable()
+    {
+        UnsubscribeProgression();
+    }
+
     protected virtual void OnDestroy()
     {
+        UnsubscribeProgression();
         if (Instance == this)
         {
             Instance = null;
         }
+    }
+
+    private void SubscribeProgression()
+    {
+        PlayerProgression prog = ActiveProgression;
+        if (prog != null)
+        {
+            prog.OnXPChanged -= HandleXPChanged;
+            prog.OnXPChanged += HandleXPChanged;
+            prog.OnWaveCompleted -= HandleProgressionWaveCompleted;
+            prog.OnWaveCompleted += HandleProgressionWaveCompleted;
+        }
+    }
+
+    private void UnsubscribeProgression()
+    {
+        if (playerProgression != null)
+        {
+            playerProgression.OnXPChanged -= HandleXPChanged;
+            playerProgression.OnWaveCompleted -= HandleProgressionWaveCompleted;
+        }
+    }
+
+    private void HandleXPChanged(ulong currentXP, ulong nextGoal)
+    {
+        if (currentState == WaveState.Combat && completeOnXPGoal)
+        {
+            ulong targetGoal = GetTargetXPGoal(currentWaveIndex);
+            if (currentXP >= targetGoal)
+            {
+                CompleteWave();
+            }
+        }
+    }
+
+    private void HandleProgressionWaveCompleted(int completedWaveLevel)
+    {
+        if (currentState == WaveState.Combat && completeOnXPGoal)
+        {
+            CompleteWave();
+        }
+    }
+
+    public virtual ulong GetTargetXPGoal(int waveNumber)
+    {
+        if (CurrentWaveConfig != null && CurrentWaveConfig.targetXPGoal > 0)
+        {
+            return CurrentWaveConfig.targetXPGoal;
+        }
+
+        PlayerProgression prog = ActiveProgression;
+        if (prog != null && prog.waveGoals != null && prog.waveGoals.Length > 0)
+        {
+            int index = Mathf.Clamp(waveNumber - 1, 0, prog.waveGoals.Length - 1);
+            return prog.waveGoals[index];
+        }
+
+        return (ulong)(10 * Mathf.Max(1, waveNumber));
+    }
+
+    public virtual bool IsXPGoalReached()
+    {
+        PlayerProgression prog = ActiveProgression;
+        if (prog == null) return false;
+
+        ulong goal = GetTargetXPGoal(currentWaveIndex);
+        return prog.CurrentXP >= goal;
     }
 
     protected virtual void Update()
@@ -288,12 +409,12 @@ public class WaveManager : MonoBehaviour
     {
         stateTimer += deltaTime;
 
-        if (CurrentWaveConfig != null && CurrentWaveConfig.duration > 0f)
+        if (useWaveTimer && CurrentWaveConfig != null && CurrentWaveConfig.duration > 0f)
         {
             waveTimer = Mathf.Max(0f, CurrentWaveConfig.duration - stateTimer);
             OnWaveTimerTick?.Invoke(waveTimer, CurrentWaveConfig.duration);
 
-            // If time expired, wave is cleared
+            // If time expired, wave is cleared (only when useWaveTimer is explicitly true)
             if (waveTimer <= 0f)
             {
                 CompleteWave();
@@ -302,11 +423,11 @@ public class WaveManager : MonoBehaviour
         }
         else
         {
-            waveTimer = 0f;
+            waveTimer = stateTimer;
             OnWaveTimerTick?.Invoke(stateTimer, 0f);
         }
 
-        // Objective check: if threat budget spent and no active threats remain
+        // Objective check: if threat budget spent and no active threats remain, or wave XP goal met
         EvaluateWaveClearConditions();
     }
 
@@ -327,8 +448,15 @@ public class WaveManager : MonoBehaviour
 
     protected virtual void EvaluateWaveClearConditions()
     {
-        // If the wave is objective-based (all threats spawned and destroyed)
-        if (remainingThreatBudget <= 0 && activeThreats.Count == 0)
+        // 1. Primary Objective: Check if Wave Goal XP is reached
+        if (completeOnXPGoal && IsXPGoalReached())
+        {
+            CompleteWave();
+            return;
+        }
+
+        // 2. Secondary Objective: if not continuous spawning, check threat quota
+        if (!continuousSpawning && remainingThreatBudget <= 0 && activeThreats.Count == 0)
         {
             CompleteWave();
         }
@@ -349,6 +477,18 @@ public class WaveManager : MonoBehaviour
             {
                 p._cred_value += (ulong)CurrentWaveConfig.rewardCredits;
             }
+            if (CurrentWaveConfig.grantExtraGun)
+            {
+                if (PowerupManager.Instance != null)
+                {
+                    PowerupManager.Instance.ApplyExtraGun(p);
+                }
+            }
+
+            if (PowerupManager.Instance != null)
+            {
+                PowerupManager.Instance.CollectAllRemaining(p);
+            }
         }
     }
 
@@ -361,6 +501,12 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     public virtual bool ConsumeThreatBudget(int cost = 1)
     {
+        if (continuousSpawning)
+        {
+            remainingThreatBudget = Mathf.Max(0, remainingThreatBudget - cost);
+            return true;
+        }
+
         if (remainingThreatBudget < cost) return false;
 
         remainingThreatBudget -= cost;

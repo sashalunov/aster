@@ -17,6 +17,7 @@ public class PowerupManager : MonoBehaviour
         {
             if (_instance == null)
             {
+                
                 _instance = FindAnyObjectByType<PowerupManager>();
                 if (_instance == null)
                 {

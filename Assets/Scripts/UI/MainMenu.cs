@@ -22,10 +22,6 @@ public class MainMenu : MonoBehaviour
     [Tooltip("TMP input field for entering player name.")]
     public TMP_InputField nameInputField;
 
-    [Header("Legacy / External References")]
-    public GameObject _ultradeath_on_start;
-    public GameObject _wave_menu;
-
     [Header("Player Reference")]
     public player _player;
 

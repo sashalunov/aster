@@ -76,6 +76,7 @@ public class WaveManagerTests
     [Test]
     public void WaveManager_CombatDurationExpiry_CompletesWaveAndEntersIntermission()
     {
+        waveManager.useWaveTimer = true;
         waveManager.StartRun();
         waveManager.TriggerCombatImmediately();
 
@@ -101,8 +102,44 @@ public class WaveManagerTests
     }
 
     [Test]
+    public void WaveManager_XPGoalReached_CompletesWaveAndEntersIntermission()
+    {
+        GameObject playerObj = new GameObject("PlayerForWaveTest");
+        player playerComp = playerObj.AddComponent<player>();
+        PlayerProgression prog = playerComp.Progression;
+
+        waveManager.ActiveProgression = prog;
+        waveManager.StartRun();
+        waveManager.TriggerCombatImmediately();
+
+        Assert.AreEqual(WaveManager.WaveState.Combat, waveManager.State);
+
+        bool waveCompletedFired = false;
+        int completedWaveNum = 0;
+        waveManager.OnWaveCompleted += (waveNum, config) =>
+        {
+            waveCompletedFired = true;
+            completedWaveNum = waveNum;
+        };
+
+        ulong wave1Goal = waveManager.GetTargetXPGoal(1);
+        Assert.Greater(wave1Goal, 0);
+
+        // Add enough XP to reach wave goal
+        prog.AddXP((int)wave1Goal);
+
+        Assert.IsTrue(waveCompletedFired);
+        Assert.AreEqual(1, completedWaveNum);
+        Assert.AreEqual(WaveManager.WaveState.Intermission, waveManager.State);
+
+        Object.DestroyImmediate(playerObj);
+    }
+
+    [Test]
     public void WaveManager_ThreatBudgetAndTracking_ClearsWaveWhenQuotaAndThreatsZero()
     {
+        waveManager.continuousSpawning = false;
+        waveManager.completeOnXPGoal = false;
         waveManager.StartRun();
         waveManager.TriggerCombatImmediately();
 

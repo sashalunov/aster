@@ -83,6 +83,7 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeAudio.cs" />
     <Compile Include="Assets/Scripts/Powerups/PowerupManager.cs" />
     <Compile Include="Assets/Scripts/Combat/GunData.cs" />
+    <Compile Include="Assets/Scripts/UI/WaveClearedPopup.cs" />
     <Compile Include="Assets/Scripts/Combat/Gun.cs" />
     <Compile Include="Assets/Scripts/Enemies/TurretAI.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleEPOOutline.cs" />
