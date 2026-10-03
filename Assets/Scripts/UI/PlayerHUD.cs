@@ -73,9 +73,23 @@ public class PlayerHUD : MonoBehaviour
         {
             _player = FindAnyObjectByType<player>();
         }
-        if (_progression == null && _player != null)
+        if (_player != null)
         {
-            _progression = _player.Progression ?? _player.GetComponent<PlayerProgression>();
+            PlayerProgression activeProg = _player.Progression ?? _player.GetComponent<PlayerProgression>();
+            if (_progression != activeProg)
+            {
+                if (_isSubscribed && _progression != null)
+                {
+                    _progression.OnXPChanged -= UpdateXPDisplay;
+                    _progression.OnWaveCompleted -= UpdateWaveDisplay;
+                }
+                _progression = activeProg;
+                if (_isSubscribed && _progression != null)
+                {
+                    _progression.OnXPChanged += UpdateXPDisplay;
+                    _progression.OnWaveCompleted += UpdateWaveDisplay;
+                }
+            }
         }
     }
 
@@ -140,7 +154,7 @@ public class PlayerHUD : MonoBehaviour
     {
         if (playerNameText != null)
         {
-            playerNameText.SetText("PILOT: " + name);
+            playerNameText.SetText( name);
         }
     }
 

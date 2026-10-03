@@ -103,17 +103,23 @@ public class block0 : MonoBehaviour
                 }
             }
 
-            if (b1 != null && b1._player != null)
+            player p = (b1 != null && b1._player != null) ? b1._player : null;
+            if (p == null && source != null)
             {
-                b1._player.AddXP(damage, transform);
-            }
-            else if (source != null)
-            {
-                player p = source.GetComponent<player>() ?? source.GetComponentInParent<player>();
-                if (p != null)
+                p = source.GetComponent<player>() ?? source.GetComponentInParent<player>();
+                if (p == null)
                 {
-                    p.AddXP(damage, transform);
+                    ProjectileBase pb = source.GetComponent<ProjectileBase>();
+                    if (pb != null && pb.Owner != null)
+                    {
+                        p = pb.Owner.GetComponent<player>() ?? pb.Owner.GetComponentInParent<player>();
+                    }
                 }
+            }
+
+            if (p != null)
+            {
+                p.AddXP(damage, transform);
             }
         }
 

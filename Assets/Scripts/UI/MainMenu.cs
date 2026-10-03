@@ -354,6 +354,13 @@ public class MainMenu : MonoBehaviour
             }
         }
 
+         if (WaveManager.Instance != null)
+         {
+             WaveManager.Instance.StartRun();
+         }
+    
+  
+
         OnGameStarted?.Invoke();
     }
 
