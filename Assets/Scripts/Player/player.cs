@@ -315,15 +315,38 @@ public class player : MonoBehaviour
     }
     /// It is recommended that you make only one call to Move or SimpleMove per frame.	
 
-    void OnTriggerExit(Collider col)
+    public void HandleTriggerExit(Collider col)
     {
-        // Destroy everything that leaves the trigger
+        if (col == null) return;
 
-        if (col.tag == "core")
+        // When asteroid core leaves the player's view radius, transition asteroid to dormant sleep state
+        if (col.CompareTag("core"))
         {
-            Destroy(col.gameObject);
+            AsteroidBase asteroid = col.GetComponentInParent<AsteroidBase>();
+            if (asteroid != null && !asteroid.isDestructing)
+            {
+                asteroid.SetSleeping(true);
+            }
         }
     }
+
+    public void HandleTriggerEnter(Collider col)
+    {
+        if (col == null) return;
+
+        // When asteroid enters the player's view radius, reactivate / wake it up
+        if (col.CompareTag("core") || col.CompareTag("block"))
+        {
+            AsteroidBase asteroid = col.GetComponentInParent<AsteroidBase>();
+            if (asteroid != null && !asteroid.isDestructing && asteroid.IsSleeping)
+            {
+                asteroid.SetSleeping(false);
+            }
+        }
+    }
+
+    void OnTriggerExit(Collider col) => HandleTriggerExit(col);
+    void OnTriggerEnter(Collider col) => HandleTriggerEnter(col);
 
     public int AddXP(int xp_amount, Transform col = null)
     {

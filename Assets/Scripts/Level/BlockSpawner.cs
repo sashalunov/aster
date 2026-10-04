@@ -74,6 +74,10 @@ public class BlockSpawner : MonoBehaviour
     [Min(1)]
     public int asteroidThreatCost = 2;
 
+    [Header("Asteroid Field Integration")]
+    [Tooltip("Optional reference to an AsteroidFieldSpawner managing pregenerated fields.")]
+    public AsteroidFieldSpawner fieldSpawner;
+
     [Header("General Spawner Settings")]
     [Tooltip("Whether the spawner is actively running.")]
     public bool isSpawning = true;

@@ -89,6 +89,21 @@ public class block0 : MonoBehaviour
 
         var damage = incomingDamage >= _hits ? _hits : incomingDamage;
 
+        // Resolve player reference
+        player p = (b1 != null && b1._player != null) ? b1._player : null;
+        if (p == null && source != null)
+        {
+            p = source.GetComponent<player>() ?? source.GetComponentInParent<player>();
+            if (p == null)
+            {
+                ProjectileBase pb = source.GetComponent<ProjectileBase>();
+                if (pb != null && pb.Owner != null)
+                {
+                    p = pb.Owner.GetComponent<player>() ?? pb.Owner.GetComponentInParent<player>();
+                }
+            }
+        }
+
         // Damage FX & XP Awarding
         if (damage > 0)
         {
@@ -102,20 +117,6 @@ public class block0 : MonoBehaviour
                     var tmp = popup.GetComponentInChildren<TextMeshPro>();
                     if (tmp != null) tmp.SetText("+" + damage.ToString());
                    // popup.transform.localScale = isCore ? new Vector3(1.5f, 1.5f, 1.2f) : new Vector3(1.3f, 1.3f, 1.15f);
-                }
-            }
-
-            player p = (b1 != null && b1._player != null) ? b1._player : null;
-            if (p == null && source != null)
-            {
-                p = source.GetComponent<player>() ?? source.GetComponentInParent<player>();
-                if (p == null)
-                {
-                    ProjectileBase pb = source.GetComponent<ProjectileBase>();
-                    if (pb != null && pb.Owner != null)
-                    {
-                        p = pb.Owner.GetComponent<player>() ?? pb.Owner.GetComponentInParent<player>();
-                    }
                 }
             }
 
@@ -172,19 +173,27 @@ public class block0 : MonoBehaviour
             }
 
             // Bonus and Core Drops
-            if (_bonus || wasCore)
+            bool shouldDropDirectly = !wasCore || parentAst == null;
+            if (shouldDropDirectly)
             {
-                string dropResource = wasCore ? "powerup_shield" : "powerup";
-                var pwrupFx = Resources.Load(dropResource) ?? Resources.Load("powerup");
-                if (pwrupFx != null)
+                if (PowerupManager.Instance != null)
                 {
-                    GameObject rndbonus = Instantiate(pwrupFx, deathPos, Quaternion.identity) as GameObject;
-                    if (rndbonus != null)
+                    PowerupManager.Instance.HandleBlockDestructionDrop(deathPos, wasCore, p, _bonus);
+                }
+                else if (_bonus || wasCore)
+                {
+                    string dropResource = wasCore ? "powerup_shield" : "powerup";
+                    var pwrupFx = Resources.Load(dropResource) ?? Resources.Load("powerup");
+                    if (pwrupFx != null)
                     {
-                        StandardPowerup pup = rndbonus.GetComponent<StandardPowerup>();
-                        if (pup != null)
+                        GameObject rndbonus = Instantiate(pwrupFx, deathPos, Quaternion.identity) as GameObject;
+                        if (rndbonus != null)
                         {
-                            pup.Type = wasCore ? StandardPowerup.StandardType.ShieldUp : (StandardPowerup.StandardType)UnityEngine.Random.Range(0, 4);
+                            StandardPowerup pup = rndbonus.GetComponent<StandardPowerup>();
+                            if (pup != null)
+                            {
+                                pup.Type = wasCore ? StandardPowerup.StandardType.ShieldUp : (StandardPowerup.StandardType)UnityEngine.Random.Range(0, 4);
+                            }
                         }
                     }
                 }

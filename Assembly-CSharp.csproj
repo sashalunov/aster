@@ -96,6 +96,7 @@
     <Compile Include="Assets/Scripts/Combat/GunKinetic.cs" />
     <Compile Include="Assets/Scripts/Combat/bullet1.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
+    <Compile Include="Assets/Scripts/Level/AsteroidFieldSpawner.cs" />
     <Compile Include="Assets/Scripts/UI/DeathMenu.cs" />
     <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
     <Compile Include="Assets/Scripts/Combat/bulletPlasma.cs" />

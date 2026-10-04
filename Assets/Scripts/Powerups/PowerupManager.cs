@@ -17,7 +17,6 @@ public class PowerupManager : MonoBehaviour
         {
             if (_instance == null)
             {
-                
                 _instance = FindAnyObjectByType<PowerupManager>();
                 if (_instance == null)
                 {
@@ -27,6 +26,7 @@ public class PowerupManager : MonoBehaviour
             }
             return _instance;
         }
+        set => _instance = value;
     }
 
     [System.Serializable]
@@ -340,6 +340,239 @@ public class PowerupManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    // =========================================================================
+    // Wave & Block Drop Resolution
+    // =========================================================================
+
+    /// <summary>
+    /// Resolves and spawns powerup drops on block or core destruction based on the active wave configuration,
+    /// 100% XP milestone thresholds, and fallback drop tables.
+    /// </summary>
+    public PowerupBase HandleBlockDestructionDrop(Vector3 position, bool isCore, player targetPlayer = null, bool forceDrop = false)
+    {
+        if (targetPlayer == null)
+        {
+            targetPlayer = FindAnyObjectByType<player>();
+        }
+
+        ulong currentXP = 0;
+        if (targetPlayer != null && targetPlayer.Progression != null)
+        {
+            currentXP = targetPlayer.Progression.CurrentXP;
+        }
+
+        WaveManager wm = WaveManager.Instance;
+        WaveDefinition wave = wm != null ? wm.CurrentWaveConfig : null;
+        ulong waveEarnedXP = wm != null ? wm.WaveEarnedXP : 0;
+
+        // 1. Check for guaranteed 100% XP milestone drops in the active wave
+        if (wave != null && wave.xpThresholdDrops != null && wave.xpThresholdDrops.Count > 0)
+        {
+            List<PowerupBase> milestoneDrops = null;
+            for (int i = 0; i < wave.xpThresholdDrops.Count; i++)
+            {
+                var xpDrop = wave.xpThresholdDrops[i];
+                if (xpDrop == null) continue;
+                if (xpDrop.oncePerWave && xpDrop.hasDropped) continue;
+
+                ulong xpToCheck = xpDrop.isWaveRelative ? waveEarnedXP : currentXP;
+                if (xpToCheck >= xpDrop.xpThreshold)
+                {
+                    xpDrop.hasDropped = true;
+                    if (milestoneDrops == null) milestoneDrops = new List<PowerupBase>();
+
+                    Vector3 spawnPos = position;
+                    if (milestoneDrops.Count > 0)
+                    {
+                        spawnPos += new Vector3(milestoneDrops.Count * 0.75f, 0f, 0f);
+                    }
+
+                    PowerupBase spawned = SpawnDropEntry(xpDrop.prefab, xpDrop.powerupType, spawnPos);
+                    if (spawned != null)
+                    {
+                        milestoneDrops.Add(spawned);
+                    }
+                }
+            }
+
+            if (milestoneDrops != null && milestoneDrops.Count > 0)
+            {
+                return milestoneDrops[0];
+            }
+        }
+
+        // 2. Core drop handling
+        if (isCore)
+        {
+            float coreChance = wave != null ? wave.coreDropChance : 1f;
+            if (forceDrop || UnityEngine.Random.value <= coreChance)
+            {
+                if (wave != null && wave.coreGuaranteedPrefab != null)
+                {
+                    return SpawnPowerupFromPrefab(wave.coreGuaranteedPrefab, position);
+                }
+                if (wave != null && wave.useCoreGuaranteedType)
+                {
+                    return SpawnDropEntry(null, wave.coreGuaranteedType, position);
+                }
+                if (wave != null && wave.dropTable != null && wave.dropTable.Count > 0)
+                {
+                    return SpawnFromWaveDropTable(wave.dropTable, position);
+                }
+                return SpawnDefaultCoreDrop(position);
+            }
+            return null;
+        }
+
+        // 3. Regular block drop handling
+        float blockChance = wave != null ? wave.blockDropChance : 0.15f;
+        if (forceDrop || UnityEngine.Random.value <= blockChance)
+        {
+            if (wave != null && wave.dropTable != null && wave.dropTable.Count > 0)
+            {
+                return SpawnFromWaveDropTable(wave.dropTable, position);
+            }
+            if (dropTable != null && dropTable.Count > 0)
+            {
+                return SpawnRandomPowerup(position);
+            }
+            return SpawnDefaultBlockDrop(position);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Spawns a powerup from a specified prefab or assigns powerupType onto a newly instantiated standard powerup.
+    /// </summary>
+    public PowerupBase SpawnDropEntry(GameObject prefab, StandardPowerup.StandardType powerupType, Vector3 position)
+    {
+        if (prefab != null)
+        {
+            return SpawnPowerupFromPrefab(prefab, position);
+        }
+
+        GameObject template = Resources.Load<GameObject>("powerup");
+#if UNITY_EDITOR
+        if (template == null)
+        {
+            template = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/powerup.prefab");
+        }
+#endif
+        GameObject instance = null;
+        if (template != null)
+        {
+            instance = Instantiate(template, position, Quaternion.identity);
+        }
+        else
+        {
+            instance = new GameObject("Powerup_" + powerupType);
+            instance.transform.position = position;
+            instance.AddComponent<StandardPowerup>();
+        }
+
+        StandardPowerup sp = instance.GetComponent<StandardPowerup>();
+        if (sp != null)
+        {
+            sp.Type = powerupType;
+        }
+
+        PowerupBase pb = instance.GetComponent<PowerupBase>();
+        if (pb != null)
+        {
+            Register(pb);
+        }
+        return pb;
+    }
+
+    /// <summary>
+    /// Spawns a powerup from a prefab GameObject and registers it.
+    /// </summary>
+    public PowerupBase SpawnPowerupFromPrefab(GameObject prefab, Vector3 position)
+    {
+        if (prefab == null) return null;
+
+        GameObject instance = Instantiate(prefab, position, Quaternion.identity);
+        PowerupBase pu = instance.GetComponent<PowerupBase>();
+        if (pu != null)
+        {
+            Register(pu);
+        }
+        return pu;
+    }
+
+    /// <summary>
+    /// Rolls and spawns a powerup from a wave's weighted drop table.
+    /// </summary>
+    public PowerupBase SpawnFromWaveDropTable(List<WaveDropEntry> entries, Vector3 position)
+    {
+        if (entries == null || entries.Count == 0) return null;
+
+        float totalWeight = 0f;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (entries[i] != null && entries[i].weight > 0f)
+            {
+                totalWeight += entries[i].weight;
+            }
+        }
+
+        if (totalWeight <= 0f) return null;
+
+        float roll = UnityEngine.Random.Range(0f, totalWeight);
+        float cumulative = 0f;
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            if (entry == null || entry.weight <= 0f) continue;
+
+            cumulative += entry.weight;
+            if (roll <= cumulative)
+            {
+                return SpawnDropEntry(entry.prefab, entry.powerupType, position);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Default core drop fallback: spawns powerup_shield or ShieldUp.
+    /// </summary>
+    public PowerupBase SpawnDefaultCoreDrop(Vector3 position)
+    {
+        GameObject shieldPrefab = Resources.Load<GameObject>("powerup_shield");
+#if UNITY_EDITOR
+        if (shieldPrefab == null)
+        {
+            shieldPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/powerup_shield.prefab");
+        }
+#endif
+        if (shieldPrefab != null)
+        {
+            return SpawnPowerupFromPrefab(shieldPrefab, position);
+        }
+        return SpawnDropEntry(null, StandardPowerup.StandardType.ShieldUp, position);
+    }
+
+    /// <summary>
+    /// Default standard block drop fallback.
+    /// </summary>
+    public PowerupBase SpawnDefaultBlockDrop(Vector3 position)
+    {
+        StandardPowerup.StandardType[] pool = new StandardPowerup.StandardType[]
+        {
+            StandardPowerup.StandardType.UpgradePoint,
+            StandardPowerup.StandardType.AmmoRefill,
+            StandardPowerup.StandardType.SpeedUp,
+            StandardPowerup.StandardType.DamageUp,
+            StandardPowerup.StandardType.ShieldUp
+        };
+        StandardPowerup.StandardType selected = pool[UnityEngine.Random.Range(0, pool.Length)];
+        return SpawnDropEntry(null, selected, position);
     }
 
     // =========================================================================

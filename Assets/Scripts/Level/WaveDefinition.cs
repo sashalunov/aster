@@ -1,8 +1,102 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
+/// Serializable entry for wave-specific weighted powerup drop tables.
+/// </summary>
+[System.Serializable]
+public class WaveDropEntry
+{
+    [Tooltip("Prefab containing a PowerupBase component. If null, standard powerup prefab is instantiated with powerupType.")]
+    public GameObject prefab;
+
+    [Tooltip("Standard powerup type to assign if prefab is null or standard powerup.")]
+    public StandardPowerup.StandardType powerupType = StandardPowerup.StandardType.UpgradePoint;
+
+    [Tooltip("Relative drop weight (higher = more frequent).")]
+    [Range(0.01f, 100f)]
+    public float weight = 1f;
+
+    [Tooltip("Optional label/description for this drop.")]
+    public string label = "Drop";
+
+    public WaveDropEntry() { }
+
+    public WaveDropEntry(StandardPowerup.StandardType type, float dropWeight = 1f, GameObject customPrefab = null, string dropLabel = null)
+    {
+        powerupType = type;
+        weight = dropWeight;
+        prefab = customPrefab;
+        label = dropLabel ?? type.ToString();
+    }
+
+    public WaveDropEntry Clone()
+    {
+        return new WaveDropEntry
+        {
+            prefab = this.prefab,
+            powerupType = this.powerupType,
+            weight = this.weight,
+            label = this.label
+        };
+    }
+}
+
+/// <summary>
+/// Serializable entry for guaranteed 100% powerup drops triggered when player reaches specific XP milestones.
+/// </summary>
+[System.Serializable]
+public class WaveXPDropEntry
+{
+    [Tooltip("Player XP required to trigger this guaranteed drop.")]
+    public ulong xpThreshold = 0;
+
+    [Tooltip("If true, xpThreshold is evaluated relative to XP gained during this wave instead of total lifetime XP.")]
+    public bool isWaveRelative = false;
+
+    [Tooltip("Specific powerup prefab to spawn. If null, standard powerup prefab is instantiated with powerupType.")]
+    public GameObject prefab;
+
+    [Tooltip("Standard powerup type to spawn if prefab is null or standard powerup.")]
+    public StandardPowerup.StandardType powerupType = StandardPowerup.StandardType.UpgradePoint;
+
+    [Tooltip("Whether this milestone drops only once during this wave.")]
+    public bool oncePerWave = true;
+
+    [Tooltip("Runtime state: whether this threshold drop has already occurred in the current wave.")]
+    [System.NonSerialized]
+    public bool hasDropped = false;
+
+    public WaveXPDropEntry() { }
+
+    public WaveXPDropEntry(ulong xpThreshold, StandardPowerup.StandardType type, bool waveRelative = false, GameObject customPrefab = null, bool once = true)
+    {
+        this.xpThreshold = xpThreshold;
+        this.powerupType = type;
+        this.isWaveRelative = waveRelative;
+        this.prefab = customPrefab;
+        this.oncePerWave = once;
+        this.hasDropped = false;
+    }
+
+    public WaveXPDropEntry Clone()
+    {
+        return new WaveXPDropEntry
+        {
+            xpThreshold = this.xpThreshold,
+            isWaveRelative = this.isWaveRelative,
+            prefab = this.prefab,
+            powerupType = this.powerupType,
+            oncePerWave = this.oncePerWave,
+            hasDropped = false
+        };
+    }
+}
+
+/// <summary>
 /// ScriptableObject data asset defining authored and procedural wave configurations.
-/// Controls game pacing, threat budgets, asteroid cluster composition, and wave completion rewards.
+/// Controls game pacing, threat budgets, asteroid cluster composition, wave completion rewards,
+/// and customizable powerup drop tables including guaranteed 100% XP milestone drops.
 /// </summary>
 [CreateAssetMenu(fileName = "WaveDefinition", menuName = "Aster/Wave Definition", order = 1)]
 public class WaveDefinition : ScriptableObject
@@ -36,6 +130,49 @@ public class WaveDefinition : ScriptableObject
     public int rewardXP = 50;
     public bool grantExtraGun = false;
 
+    [Header("Powerup Drops - General")]
+    [Tooltip("Probability [0, 1] of a regular (non-core) block dropping a powerup upon destruction.")]
+    [Range(0f, 1f)]
+    public float blockDropChance = 0.15f;
+
+    [Tooltip("Probability [0, 1] of an asteroid core dropping a powerup upon destruction.")]
+    [Range(0f, 1f)]
+    public float coreDropChance = 1.0f;
+
+    [Tooltip("Guaranteed powerup prefab dropped by cores. If null, core drops roll from dropTable.")]
+    public GameObject coreGuaranteedPrefab;
+
+    [Tooltip("If true, core will drop a powerup of coreGuaranteedType when coreGuaranteedPrefab is null.")]
+    public bool useCoreGuaranteedType = false;
+
+    [Tooltip("Powerup type guaranteed for cores if useCoreGuaranteedType is true and coreGuaranteedPrefab is null.")]
+    public StandardPowerup.StandardType coreGuaranteedType = StandardPowerup.StandardType.ShieldUp;
+
+    [Header("Powerup Drops - Weighted Table")]
+    [Tooltip("Weighted drop table for this wave. If empty, falls back to PowerupManager default drop table.")]
+    public List<WaveDropEntry> dropTable = new List<WaveDropEntry>();
+
+    [Header("Powerup Drops - 100% XP Milestones")]
+    [Tooltip("Guaranteed 100% powerup drops triggered when player reaches specific XP thresholds.")]
+    public List<WaveXPDropEntry> xpThresholdDrops = new List<WaveXPDropEntry>();
+
+    /// <summary>
+    /// Resets runtime drop tracking flags (e.g. at the start of a wave).
+    /// </summary>
+    public void ResetRuntimeDrops()
+    {
+        if (xpThresholdDrops != null)
+        {
+            for (int i = 0; i < xpThresholdDrops.Count; i++)
+            {
+                if (xpThresholdDrops[i] != null)
+                {
+                    xpThresholdDrops[i].hasDropped = false;
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Creates an in-memory clone of this wave definition asset.
     /// </summary>
@@ -55,6 +192,31 @@ public class WaveDefinition : ScriptableObject
         clone.rewardCredits = this.rewardCredits;
         clone.rewardXP = this.rewardXP;
         clone.grantExtraGun = this.grantExtraGun;
+
+        clone.blockDropChance = this.blockDropChance;
+        clone.coreDropChance = this.coreDropChance;
+        clone.coreGuaranteedPrefab = this.coreGuaranteedPrefab;
+        clone.useCoreGuaranteedType = this.useCoreGuaranteedType;
+        clone.coreGuaranteedType = this.coreGuaranteedType;
+
+        if (this.dropTable != null)
+        {
+            clone.dropTable = new List<WaveDropEntry>();
+            for (int i = 0; i < this.dropTable.Count; i++)
+            {
+                clone.dropTable.Add(this.dropTable[i]?.Clone());
+            }
+        }
+
+        if (this.xpThresholdDrops != null)
+        {
+            clone.xpThresholdDrops = new List<WaveXPDropEntry>();
+            for (int i = 0; i < this.xpThresholdDrops.Count; i++)
+            {
+                clone.xpThresholdDrops.Add(this.xpThresholdDrops[i]?.Clone());
+            }
+        }
+
         return clone;
     }
 
@@ -74,7 +236,14 @@ public class WaveDefinition : ScriptableObject
         bool grantExtraGun = false,
         ulong targetXPGoal = 0,
         int shellLevel = 1,
-        int blockLevel = 1)
+        int blockLevel = 1,
+        float blockDropChance = 0.15f,
+        float coreDropChance = 1.0f,
+        GameObject coreGuaranteedPrefab = null,
+        bool useCoreGuaranteedType = false,
+        StandardPowerup.StandardType coreGuaranteedType = StandardPowerup.StandardType.ShieldUp,
+        List<WaveDropEntry> dropTable = null,
+        List<WaveXPDropEntry> xpThresholdDrops = null)
     {
         WaveDefinition def = ScriptableObject.CreateInstance<WaveDefinition>();
         def.waveNumber = waveNumber;
@@ -90,6 +259,15 @@ public class WaveDefinition : ScriptableObject
         def.targetXPGoal = targetXPGoal;
         def.shellLevel = shellLevel;
         def.blockLevel = blockLevel;
+
+        def.blockDropChance = blockDropChance;
+        def.coreDropChance = coreDropChance;
+        def.coreGuaranteedPrefab = coreGuaranteedPrefab;
+        def.useCoreGuaranteedType = useCoreGuaranteedType;
+        def.coreGuaranteedType = coreGuaranteedType;
+        def.dropTable = dropTable != null ? new List<WaveDropEntry>(dropTable) : new List<WaveDropEntry>();
+        def.xpThresholdDrops = xpThresholdDrops != null ? new List<WaveXPDropEntry>(xpThresholdDrops) : new List<WaveXPDropEntry>();
+
         return def;
     }
 }

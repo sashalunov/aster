@@ -596,6 +596,7 @@ public class TankAI : MonoBehaviour
         if (rb != null && rb.isKinematic)
         {
             rb.MoveRotation(newRot);
+            rb.rotation = newRot;
         }
         transform.rotation = newRot;
     }

@@ -73,6 +73,19 @@ public class WaveManager : MonoBehaviour
     public int ActiveThreatCount => activeThreats.Count;
     public WaveDefinition CurrentWaveConfig { get; private set; }
 
+    [Header("Progression Tracking")]
+    private ulong waveStartXP = 0;
+    public ulong WaveStartXP => waveStartXP;
+    public ulong WaveEarnedXP
+    {
+        get
+        {
+            PlayerProgression prog = ActiveProgression;
+            if (prog == null) return 0;
+            return prog.CurrentXP >= waveStartXP ? prog.CurrentXP - waveStartXP : 0;
+        }
+    }
+
     public PlayerProgression ActiveProgression
     {
         get
@@ -311,9 +324,13 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     public virtual void TriggerCombatImmediately()
     {
+        if (currentWaveIndex < 1)
+        {
+            currentWaveIndex = 1;
+        }
         if (CurrentWaveConfig == null)
         {
-            CurrentWaveConfig = GetWaveDefinition(Mathf.Max(1, currentWaveIndex));
+            CurrentWaveConfig = GetWaveDefinition(currentWaveIndex);
         }
         SetState(WaveState.Combat);
     }
@@ -401,6 +418,9 @@ public class WaveManager : MonoBehaviour
         {
             CurrentWaveConfig = GetWaveDefinition(currentWaveIndex);
         }
+
+        CurrentWaveConfig?.ResetRuntimeDrops();
+        waveStartXP = ActiveProgression != null ? ActiveProgression.CurrentXP : 0;
 
         remainingThreatBudget = CurrentWaveConfig.threatBudget;
         waveTimer = CurrentWaveConfig.duration;
@@ -580,7 +600,18 @@ public class WaveManager : MonoBehaviour
                 minMass: 2,
                 maxMass: 3,
                 rewardCredits: 20,
-                rewardXP: 40
+                rewardXP: 40,
+                blockDropChance: 0.12f,
+                coreDropChance: 1.0f,
+                dropTable: new List<WaveDropEntry>
+                {
+                    new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 60f),
+                    new WaveDropEntry(StandardPowerup.StandardType.AmmoRefill, 40f)
+                },
+                xpThresholdDrops: new List<WaveXPDropEntry>
+                {
+                    new WaveXPDropEntry(5, StandardPowerup.StandardType.UpgradePoint)
+                }
             ),
             WaveDefinition.Create(
                 waveNumber: 2,
@@ -591,7 +622,20 @@ public class WaveManager : MonoBehaviour
                 minMass: 2,
                 maxMass: 5,
                 rewardCredits: 35,
-                rewardXP: 75
+                rewardXP: 75,
+                blockDropChance: 0.15f,
+                coreDropChance: 1.0f,
+                dropTable: new List<WaveDropEntry>
+                {
+                    new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 50f),
+                    new WaveDropEntry(StandardPowerup.StandardType.AmmoRefill, 30f),
+                    new WaveDropEntry(StandardPowerup.StandardType.GunKinetic, 20f)
+                },
+                xpThresholdDrops: new List<WaveXPDropEntry>
+                {
+                    new WaveXPDropEntry(25, StandardPowerup.StandardType.UpgradePoint),
+                    new WaveXPDropEntry(50, StandardPowerup.StandardType.GunKinetic)
+                }
             ),
             WaveDefinition.Create(
                 waveNumber: 3,
@@ -603,7 +647,21 @@ public class WaveManager : MonoBehaviour
                 maxMass: 6,
                 rewardCredits: 50,
                 rewardXP: 120,
-                grantExtraGun: true
+                grantExtraGun: true,
+                blockDropChance: 0.18f,
+                coreDropChance: 1.0f,
+                dropTable: new List<WaveDropEntry>
+                {
+                    new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 40f),
+                    new WaveDropEntry(StandardPowerup.StandardType.AmmoRefill, 25f),
+                    new WaveDropEntry(StandardPowerup.StandardType.GunKinetic, 20f),
+                    new WaveDropEntry(StandardPowerup.StandardType.GunPlasma, 15f)
+                },
+                xpThresholdDrops: new List<WaveXPDropEntry>
+                {
+                    new WaveXPDropEntry(50, StandardPowerup.StandardType.UpgradePoint),
+                    new WaveXPDropEntry(150, StandardPowerup.StandardType.GunPlasma)
+                }
             )
         };
     }

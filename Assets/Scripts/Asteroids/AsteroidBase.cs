@@ -53,6 +53,53 @@ public class AsteroidBase : MonoBehaviour
     [Tooltip("True if this asteroid is currently in the process of gameplay destruction.")]
     public bool isDestructing = false;
 
+    [Header("Simulation LOD & Sleep State")]
+    [Tooltip("Whether this asteroid is currently in a dormant sleep state to save physics and CPU.")]
+    public bool isSleeping = false;
+    public bool IsSleeping => isSleeping;
+
+    protected Vector3 savedLinearVelocity = Vector3.zero;
+    protected Vector3 savedAngularVelocity = Vector3.zero;
+
+    /// <summary>
+    /// Sets the dormant sleep state of the asteroid to save PhysX and CPU cycles when outside view radius.
+    /// Preserves linear and angular velocity upon waking.
+    /// </summary>
+    public virtual void SetSleeping(bool sleep)
+    {
+        if (isDestructing) return;
+        if (isSleeping == sleep) return;
+
+        isSleeping = sleep;
+        Rigidbody rb = GetComponent<Rigidbody>();
+
+        if (isSleeping)
+        {
+            if (rb != null)
+            {
+                savedLinearVelocity = rb.linearVelocity;
+                savedAngularVelocity = rb.angularVelocity;
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+                rb.isKinematic = true;
+                rb.Sleep();
+            }
+        }
+        else
+        {
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                rb.WakeUp();
+                if (savedLinearVelocity.sqrMagnitude > 0.0001f || savedAngularVelocity.sqrMagnitude > 0.0001f)
+                {
+                    rb.linearVelocity = savedLinearVelocity;
+                    rb.angularVelocity = savedAngularVelocity;
+                }
+            }
+        }
+    }
+
     protected virtual void Reset()
     {
         EnsureRigidbody();
@@ -356,14 +403,21 @@ public class AsteroidBase : MonoBehaviour
         Destroy(gameObject);
 #endif
 
-        var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
-        if (shieldFx != null)
+        if (PowerupManager.Instance != null)
         {
-            GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
-            StandardPowerup pu = shbonus != null ? shbonus.GetComponent<StandardPowerup>() : null;
-            if (pu != null) pu.Type = StandardPowerup.StandardType.ShieldUp;
+            player p = (b1 != null && b1._player != null) ? b1._player : FindAnyObjectByType<player>();
+            PowerupManager.Instance.HandleBlockDestructionDrop(transform.position, isCore: true, p);
         }
-
+        else
+        {
+            var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
+            if (shieldFx != null)
+            {
+                GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
+                StandardPowerup pu = shbonus != null ? shbonus.GetComponent<StandardPowerup>() : null;
+                if (pu != null) pu.Type = StandardPowerup.StandardType.ShieldUp;
+            }
+        }
 
         return reward + _core_hits;
 

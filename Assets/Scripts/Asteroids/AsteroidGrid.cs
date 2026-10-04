@@ -249,9 +249,30 @@ public class AsteroidGrid : AsteroidBase
             return;
         }
 
-        if (magneticAccretion && !isDestructing && Application.isPlaying)
+        if (magneticAccretion && !isDestructing && !isSleeping && Application.isPlaying)
         {
             ProcessMagneticAccretion(Time.fixedDeltaTime);
+        }
+    }
+
+    /// <summary>
+    /// Sets the dormant sleep state of the AsteroidGrid, pausing or playing child particle systems.
+    /// </summary>
+    public override void SetSleeping(bool sleep)
+    {
+        base.SetSleeping(sleep);
+
+        ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
+        if (ps != null)
+        {
+            if (sleep)
+            {
+                ps.Pause();
+            }
+            else
+            {
+                ps.Play();
+            }
         }
     }
 
@@ -395,6 +416,10 @@ public class AsteroidGrid : AsteroidBase
 
     private void HandleBlockHit(block0 block, Transform source, bullet1 b1)
     {
+        if (isSleeping)
+        {
+            SetSleeping(false);
+        }
         UpdateMass();
     }
 
@@ -434,6 +459,11 @@ public class AsteroidGrid : AsteroidBase
 
     public override int core_receive_hit(Transform source, bullet1 b1)
     {
+        if (isSleeping)
+        {
+            SetSleeping(false);
+        }
+
         if (coreBlock != null && !coreBlock._dead)
         {
             int remaining = coreBlock.block_receive_hit(source, b1);
@@ -499,12 +529,20 @@ public class AsteroidGrid : AsteroidBase
             }
         }
 
-        var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
-        if (shieldFx != null)
+        if (PowerupManager.Instance != null)
         {
-            GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
-            StandardPowerup pu = shbonus != null ? shbonus.GetComponent<StandardPowerup>() : null;
-            if (pu != null) pu.Type = StandardPowerup.StandardType.ShieldUp;
+            player killer = (b1 != null && b1._player != null) ? b1._player : FindAnyObjectByType<player>();
+            PowerupManager.Instance.HandleBlockDestructionDrop(transform.position, isCore: true, killer);
+        }
+        else
+        {
+            var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
+            if (shieldFx != null)
+            {
+                GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
+                StandardPowerup pu = shbonus != null ? shbonus.GetComponent<StandardPowerup>() : null;
+                if (pu != null) pu.Type = StandardPowerup.StandardType.ShieldUp;
+            }
         }
 
         if (WaveManager.Instance != null)
