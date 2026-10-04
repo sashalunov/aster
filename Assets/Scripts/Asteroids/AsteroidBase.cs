@@ -323,8 +323,11 @@ public class AsteroidBase : MonoBehaviour
                 b1._player.AddXP(damage, transform);
             }
             UpdateMass();
-            var bonus = Instantiate(Resources.Load("show_corehit"), transform.position, Quaternion.identity) as GameObject;
-            bonus.GetComponentInChildren<TextMeshPro>().SetText("+" + damage.ToString());
+            var bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
+            if (bonus != null)
+            {
+                bonus.GetComponentInChildren<TextMeshPro>()?.SetText("+" + damage.ToString());
+            }
             //bonus.transform.localScale = new Vector3(1.3f, 1.3f, 1.15f);
         }
         if (newhits < 1)
@@ -388,10 +391,12 @@ public class AsteroidBase : MonoBehaviour
             b1._player.AddXP((reward + _core_hits), transform);
         }
 
-        GameObject bonus = Instantiate(Resources.Load("show_corehit"), transform.position, Quaternion.identity) as GameObject;
-        bonus.GetComponentInChildren<TextMeshPro>().SetText("+"+ (reward + _core_hits).ToString());
-        bonus.transform.localScale = new Vector3(1.5f, 1.5f, 1.1f);
-
+        GameObject bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
+        if (bonus != null)
+        {
+            bonus.GetComponentInChildren<TextMeshPro>()?.SetText("+"+ (reward + _core_hits).ToString());
+            bonus.transform.localScale = new Vector3(1.5f, 1.5f, 1.1f);
+        }
 
         // GetComponent<AudioSource>().PlayOneShot(GetComponent<AudioSource>().clip);
 #if UNITY_EDITOR
@@ -410,7 +415,7 @@ public class AsteroidBase : MonoBehaviour
         }
         else
         {
-            var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
+            var shieldFx = PrefabManager.Get(PrefabId.PowerupShield) ?? PrefabManager.Get(PrefabId.PowerupDefault);
             if (shieldFx != null)
             {
                 GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
@@ -427,7 +432,7 @@ public class AsteroidBase : MonoBehaviour
     {
         Vector3 colpos = col.transform.position;
         this.GetComponent<Rigidbody>().AddForceAtPosition(bdir * 15f, colpos, ForceMode.Impulse);
-        Instantiate(Resources.Load("additive_bonus"), colpos, Quaternion.identity);
+        PrefabManager.Instantiate(PrefabId.AdditiveBonusFx, colpos, Quaternion.identity);
        Destroy(col.gameObject);
     }
 

@@ -115,8 +115,8 @@ public class TurretAITests
         turretObj.transform.rotation = Quaternion.FromToRotation(Vector3.up, Vector3.forward);
 
         // Load bullet1 prefab
-        ai.bulletPrefab = Resources.Load<GameObject>("bullet1");
-        Assert.IsNotNull(ai.bulletPrefab, "bullet1 prefab should be loadable from Resources");
+        ai.bulletPrefab = PrefabManager.Get(PrefabId.BulletEnemy);
+        Assert.IsNotNull(ai.bulletPrefab, "bullet1 prefab should be loadable from PrefabManager");
 
         // Fire bullet
         ai.Shoot();

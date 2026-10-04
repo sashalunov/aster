@@ -180,8 +180,8 @@ public class player : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        shield_fx = Resources.Load("shield_damage");
-        pwrup_fx = Resources.Load("powerup");
+        shield_fx = PrefabManager.Get(PrefabId.ShieldDamageFx);
+        pwrup_fx = PrefabManager.Get(PrefabId.PowerupDefault);
      
         PlayerMetaProgression.ApplyTo(this);
 
@@ -192,8 +192,11 @@ public class player : MonoBehaviour
 
     void PlaceTapMarker(Vector3 pos)
     {
-        GameObject tap = Instantiate(Resources.Load("tap_marker"), pos, Quaternion.identity) as GameObject;
-        Destroy(tap, 3.5f);
+        GameObject tap = PrefabManager.Instantiate(PrefabId.TapMarker, pos, Quaternion.identity);
+        if (tap != null)
+        {
+            Destroy(tap, 3.5f);
+        }
     }
 
     // Update is called once per frame
@@ -1111,18 +1114,10 @@ public class player : MonoBehaviour
         // 1. If no specific gun is provided, default to Kinetic gun or Plasma gun
         if (gunPrefab == null)
         {
-            GameObject kineticPrefab = Resources.Load<GameObject>("gunKinetic");
-            if (kineticPrefab != null)
-            {
-                gunPrefab = kineticPrefab.GetComponent<Gun>();
-            }
+            gunPrefab = PrefabManager.Get<Gun>(PrefabId.GunKinetic);
             if (gunPrefab == null)
             {
-                GameObject plasmaPrefab = Resources.Load<GameObject>("gunPlasma");
-                if (plasmaPrefab != null)
-                {
-                    gunPrefab = plasmaPrefab.GetComponent<Gun>();
-                }
+                gunPrefab = PrefabManager.Get<Gun>(PrefabId.GunPlasma);
             }
         }
 

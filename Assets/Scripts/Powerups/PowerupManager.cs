@@ -105,11 +105,11 @@ public class PowerupManager : MonoBehaviour
     {
         if (showUpgradePrefab == null)
         {
-            showUpgradePrefab = Resources.Load<GameObject>("show_upgrade");
+            showUpgradePrefab = PrefabManager.Get(PrefabId.ShowUpgradeFx);
         }
         if (shieldUpgradePrefab == null)
         {
-            shieldUpgradePrefab = Resources.Load<GameObject>("shield_upgrade");
+            shieldUpgradePrefab = PrefabManager.Get(PrefabId.ShieldUpgradeFx);
         }
     }
 
@@ -247,7 +247,7 @@ public class PowerupManager : MonoBehaviour
     public bool ApplyGun(player p, string gunResourceName)
     {
         if (p == null) return false;
-        GameObject prefabObj = Resources.Load<GameObject>(gunResourceName);
+        GameObject prefabObj = PrefabManager.Get(gunResourceName);
         if (prefabObj == null) return false;
         Gun gunComp = prefabObj.GetComponent<Gun>();
         if (gunComp == null) return false;
@@ -454,13 +454,7 @@ public class PowerupManager : MonoBehaviour
             return SpawnPowerupFromPrefab(prefab, position);
         }
 
-        GameObject template = Resources.Load<GameObject>("powerup");
-#if UNITY_EDITOR
-        if (template == null)
-        {
-            template = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/powerup.prefab");
-        }
-#endif
+        GameObject template = PrefabManager.Get(PrefabId.PowerupDefault);
         GameObject instance = null;
         if (template != null)
         {
@@ -544,13 +538,7 @@ public class PowerupManager : MonoBehaviour
     /// </summary>
     public PowerupBase SpawnDefaultCoreDrop(Vector3 position)
     {
-        GameObject shieldPrefab = Resources.Load<GameObject>("powerup_shield");
-#if UNITY_EDITOR
-        if (shieldPrefab == null)
-        {
-            shieldPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/powerup_shield.prefab");
-        }
-#endif
+        GameObject shieldPrefab = PrefabManager.Get(PrefabId.PowerupShield);
         if (shieldPrefab != null)
         {
             return SpawnPowerupFromPrefab(shieldPrefab, position);

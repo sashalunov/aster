@@ -107,8 +107,7 @@ public class block0 : MonoBehaviour
         // Damage FX & XP Awarding
         if (damage > 0)
         {
-            string popupResource = isCore ? "show_corehit" : "show_blockhit";
-            var hitFx = Resources.Load(popupResource) ?? Resources.Load("show_blockhit");
+            GameObject hitFx = PrefabManager.Get(isCore ? PrefabId.CoreHitFx : PrefabId.BlockHitFx);
             if (hitFx != null)
             {
                 var popup = Instantiate(hitFx, transform.position, Quaternion.identity) as GameObject; 
@@ -166,7 +165,7 @@ public class block0 : MonoBehaviour
                 }
             }
 
-            var destroyFx = Resources.Load("blockdestroy");
+            GameObject destroyFx = PrefabManager.Get(PrefabId.BlockDestroyFx);
             if (destroyFx != null)
             {
                 Instantiate(destroyFx, deathPos, Quaternion.identity);
@@ -182,8 +181,7 @@ public class block0 : MonoBehaviour
                 }
                 else if (_bonus || wasCore)
                 {
-                    string dropResource = wasCore ? "powerup_shield" : "powerup";
-                    var pwrupFx = Resources.Load(dropResource) ?? Resources.Load("powerup");
+                    GameObject pwrupFx = PrefabManager.Get(wasCore ? PrefabId.PowerupShield : PrefabId.PowerupDefault);
                     if (pwrupFx != null)
                     {
                         GameObject rndbonus = Instantiate(pwrupFx, deathPos, Quaternion.identity) as GameObject;
@@ -270,7 +268,7 @@ public class block0 : MonoBehaviour
     public void AddBonus()
     {
         _bonus = true;
-        var bonusPrefab = Resources.Load("additive_bonus");
+        GameObject bonusPrefab = PrefabManager.Get(PrefabId.AdditiveBonusFx);
         if (bonusPrefab != null)
         {
             GameObject bonus = Instantiate(bonusPrefab, new Vector3(transform.position.x, transform.position.y, -0.294f), Quaternion.identity) as GameObject;

@@ -144,12 +144,12 @@ public class TurretAI : MonoBehaviour
 
         if (bulletPrefab == null)
         {
-            bulletPrefab = Resources.Load<GameObject>("bullet1");
+            bulletPrefab = PrefabManager.Get(PrefabId.BulletEnemy);
         }
 
         if (muzzleFlashPrefab == null)
         {
-            muzzleFlashPrefab = Resources.Load<GameObject>("ps_muzzle");
+            muzzleFlashPrefab = PrefabManager.Get(PrefabId.MuzzleFlashFx);
         }
     }
 

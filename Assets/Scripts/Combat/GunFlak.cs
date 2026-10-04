@@ -60,7 +60,7 @@ public class GunFlak : Gun
         }
         else
         {
-            data.bulletPrefab = Resources.Load<GameObject>("bulletKinetic");
+            data.bulletPrefab = PrefabManager.Get(PrefabId.BulletKinetic);
         }
 
         return data;

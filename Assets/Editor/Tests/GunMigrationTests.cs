@@ -159,7 +159,7 @@ public class GunMigrationTests
         Assert.AreEqual(1, _player.SocketCount);
         Assert.IsTrue(_player.HasAvailableSocket());
 
-        GameObject gunPrefab = Resources.Load<GameObject>("gunKinetic");
+        GameObject gunPrefab = PrefabManager.Get(PrefabId.GunKinetic);
         Assert.IsNotNull(gunPrefab);
 
         // 1. Mounts to empty socket
@@ -205,7 +205,7 @@ public class GunMigrationTests
 
         GunData data = ScriptableObject.CreateInstance<GunData>();
         data.gunId = "ammo_test";
-        data.bulletPrefab = Resources.Load<GameObject>("bulletKinetic");
+        data.bulletPrefab = PrefabManager.Get(PrefabId.BulletKinetic);
         data.ammo_quantity = -1; // Infinite ammo
         gun.Data = data;
 

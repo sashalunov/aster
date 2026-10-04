@@ -302,13 +302,7 @@ public class AsteroidFieldSpawner : MonoBehaviour
             templateContainer = containerGo.transform;
         }
 
-        GameObject asterBasePrefab = Resources.Load<GameObject>("AsteroidGrid");
-#if UNITY_EDITOR
-        if (asterBasePrefab == null)
-        {
-            asterBasePrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/AsteroidGrid.prefab");
-        }
-#endif
+        GameObject asterBasePrefab = PrefabManager.Get(PrefabId.AsteroidGrid);
 
         // Define a set of diverse pregenerated variants with varying mass and threat budgets
         var variantConfigs = new[]

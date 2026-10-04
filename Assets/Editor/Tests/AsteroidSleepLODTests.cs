@@ -15,7 +15,7 @@ public class AsteroidSleepLODTests
         _playerObj = new GameObject("TestPlayer");
         _player = _playerObj.AddComponent<player>();
 
-        GameObject asterPrefab = Resources.Load<GameObject>("AsteroidGrid");
+        GameObject asterPrefab = PrefabManager.Get(PrefabId.AsteroidGrid);
         if (asterPrefab != null)
         {
             _asteroidObj = Object.Instantiate(asterPrefab, new Vector3(20, 0, 0), Quaternion.identity);

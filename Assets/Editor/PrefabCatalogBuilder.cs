@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class PrefabCatalogBuilder
 {
-    public const string CatalogPath = "Assets/ScriptableObjects/Database/GamePrefabCatalog.asset";
+    public const string CatalogPath = "Assets/Data/GamePrefabCatalog.asset";
 
     [MenuItem("Aster/Catalog/Sync Prefab Catalog")]
     public static PrefabCatalog SyncCatalog()
@@ -37,7 +37,6 @@ public static class PrefabCatalogBuilder
             { PrefabId.AsteroidBase, "AsteroidBase" },
             { PrefabId.CoreBlock, "core_block" },
             { PrefabId.Box1, "box1" },
-            { PrefabId.BirthSphere, "birth_sphere" },
             { PrefabId.GunKinetic, "gunKinetic" },
             { PrefabId.GunPlasma, "gunPlasma" },
             { PrefabId.BulletKinetic, "bulletKinetic" },

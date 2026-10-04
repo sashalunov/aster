@@ -168,8 +168,8 @@ public class PlayerWeaponCheckTests
     [Test]
     public void PlayerShip_Prefab_HasSocketsOnLoad()
     {
-        GameObject prefab = Resources.Load<GameObject>("Player_ship");
-        Assert.IsNotNull(prefab, "Player_ship prefab should exist in Resources");
+        GameObject prefab = PrefabManager.Get(PrefabId.PlayerShip);
+        Assert.IsNotNull(prefab, "Player_ship prefab should exist in catalog");
 
         GameObject instance = Object.Instantiate(prefab);
         player p = instance.GetComponent<player>();

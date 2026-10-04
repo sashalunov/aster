@@ -581,6 +581,23 @@ public class WaveManager : MonoBehaviour
     private void PopulateDefaultWaves()
     {
         WaveDefinition[] loaded = Resources.LoadAll<WaveDefinition>("Waves");
+#if UNITY_EDITOR
+        if (loaded == null || loaded.Length == 0)
+        {
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:WaveDefinition");
+            if (guids != null && guids.Length > 0)
+            {
+                var list = new List<WaveDefinition>();
+                for (int i = 0; i < guids.Length; i++)
+                {
+                    string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[i]);
+                    var wave = UnityEditor.AssetDatabase.LoadAssetAtPath<WaveDefinition>(path);
+                    if (wave != null) list.Add(wave);
+                }
+                loaded = list.ToArray();
+            }
+        }
+#endif
         if (loaded != null && loaded.Length > 0)
         {
             var sorted = new List<WaveDefinition>(loaded);

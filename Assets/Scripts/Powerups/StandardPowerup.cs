@@ -165,9 +165,9 @@ public class StandardPowerup : PowerupBase
                     PlayerMetaProgression.AddScrap(Mathf.RoundToInt(potency * 25f));
                     return true;
                 case StandardType.GunKinetic:
-                    return targetPlayer.AddGun(Resources.Load<GameObject>("gunKinetic")?.GetComponent<Gun>());
+                    return targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunKinetic));
                 case StandardType.GunPlasma:
-                    return targetPlayer.AddGun(Resources.Load<GameObject>("gunPlasma")?.GetComponent<Gun>());
+                    return targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunPlasma));
                 case StandardType.AmmoRefill:
                     targetPlayer.RefillAllWeaponsAmmo();
                     return true;

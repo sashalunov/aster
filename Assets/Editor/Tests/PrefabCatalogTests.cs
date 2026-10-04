@@ -224,4 +224,96 @@ public class PrefabCatalogTests
             }
         }
     }
+
+    [Test]
+    public void RelocatedPrefabs_AllCategoriesAreAccessibleViaPrefabManager()
+    {
+        PrefabManager.EnsureCatalogLoaded();
+
+        // Ammo
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.BulletKinetic), "BulletKinetic should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.BulletPlasma), "BulletPlasma should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.BulletEnemy), "BulletEnemy should be accessible");
+
+        // Guns
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.GunKinetic), "GunKinetic should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.GunPlasma), "GunPlasma should be accessible");
+
+        // Ships
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.PlayerShip), "PlayerShip should be accessible");
+
+        // Level
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.Block0), "Block0 should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.AsteroidGrid), "AsteroidGrid should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.AsteroidBase), "AsteroidBase should be accessible");
+
+        // FX
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.UltraDeath), "UltraDeath should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.BlockHitFx), "BlockHitFx should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.CoreHitFx), "CoreHitFx should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.BlockDestroyFx), "BlockDestroyFx should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.MuzzleFlashFx), "MuzzleFlashFx should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.AdditiveBonusFx), "AdditiveBonusFx should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.TapMarker), "TapMarker should be accessible");
+
+        // Powerups
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.PowerupDefault), "PowerupDefault should be accessible");
+        Assert.IsNotNull(PrefabManager.Get(PrefabId.PowerupShield), "PowerupShield should be accessible");
+    }
+
+    [Test]
+    public void Weapons_CorrectlyResolveBulletPrefabsFromPrefabManager()
+    {
+        PrefabManager.EnsureCatalogLoaded();
+
+        GunData kineticData = GunKinetic.CreateKineticGunData();
+        Assert.IsNotNull(kineticData.bulletPrefab, "GunKinetic default data must resolve bulletKinetic via PrefabManager");
+        Assert.AreEqual("bulletKinetic", kineticData.bulletPrefab.name);
+
+        GunData plasmaData = GunPlasma.CreatePlasmaGunData();
+        Assert.IsNotNull(plasmaData.bulletPrefab, "GunPlasma default data must resolve bulletPlasma via PrefabManager");
+        Assert.AreEqual("bulletPlasma", plasmaData.bulletPrefab.name);
+
+        GunData flakData = GunFlak.CreateKineticGunData();
+        Assert.IsNotNull(flakData.bulletPrefab, "GunFlak default data must resolve bulletKinetic via PrefabManager");
+        Assert.AreEqual("bulletKinetic", flakData.bulletPrefab.name);
+
+        Object.DestroyImmediate(kineticData);
+        Object.DestroyImmediate(plasmaData);
+        Object.DestroyImmediate(flakData);
+    }
+
+    [Test]
+    public void TurretAI_CorrectlyResolvesPrefabsFromPrefabManager()
+    {
+        PrefabManager.EnsureCatalogLoaded();
+
+        GameObject go = new GameObject("Turret");
+        TurretAI ai = go.AddComponent<TurretAI>();
+        ai.AutoConfigureReferences();
+
+        Assert.IsNotNull(ai.bulletPrefab, "TurretAI must resolve bulletPrefab via PrefabManager");
+        Assert.AreEqual("bullet1", ai.bulletPrefab.name);
+        Assert.IsNotNull(ai.muzzleFlashPrefab, "TurretAI must resolve muzzleFlashPrefab via PrefabManager");
+        Assert.AreEqual("ps_muzzle", ai.muzzleFlashPrefab.name);
+
+        Object.DestroyImmediate(go);
+    }
+
+    [Test]
+    public void BlockSpawner_CorrectlyResolvesPrefabsFromPrefabManager()
+    {
+        PrefabManager.EnsureCatalogLoaded();
+
+        GameObject go = new GameObject("Spawner");
+        BlockSpawner spawner = go.AddComponent<BlockSpawner>();
+
+        Assert.IsNotNull(spawner.blockPrefab, "BlockSpawner must resolve blockPrefab via PrefabManager");
+        Assert.AreEqual("block0", spawner.blockPrefab.name);
+        Assert.IsNotNull(spawner.asterPrefab, "BlockSpawner must resolve asterPrefab via PrefabManager");
+        Assert.AreEqual("AsteroidGrid", spawner.asterPrefab.name);
+
+        Object.DestroyImmediate(go);
+    }
 }
+

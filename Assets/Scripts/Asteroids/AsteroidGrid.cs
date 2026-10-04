@@ -132,7 +132,7 @@ public class AsteroidGrid : AsteroidBase
         EnsureCachedResources();
         if (_block == null)
         {
-            _block = Resources.Load<GameObject>("block0");
+            _block = PrefabManager.Get(PrefabId.Block0);
         }
         RegisterExistingChildrenIntoGrid();
     }
@@ -141,11 +141,11 @@ public class AsteroidGrid : AsteroidBase
     {
         if (resourcesCached) return;
 
-        cachedCoreHitFx = Resources.Load<GameObject>("show_corehit");
-        cachedBlockDestroyFx = Resources.Load<GameObject>("blockdestroy");
-        cachedShieldFx = Resources.Load<GameObject>("powerup_shield");
-        cachedPowerupFx = Resources.Load<GameObject>("powerup");
-        cachedAdditiveBonusFx = Resources.Load<GameObject>("additive_bonus");
+        cachedCoreHitFx = PrefabManager.Get(PrefabId.CoreHitFx);
+        cachedBlockDestroyFx = PrefabManager.Get(PrefabId.BlockDestroyFx);
+        cachedShieldFx = PrefabManager.Get(PrefabId.PowerupShield);
+        cachedPowerupFx = PrefabManager.Get(PrefabId.PowerupDefault);
+        cachedAdditiveBonusFx = PrefabManager.Get(PrefabId.AdditiveBonusFx);
         resourcesCached = true;
     }
 
@@ -312,7 +312,7 @@ public class AsteroidGrid : AsteroidBase
         EnsureCachedResources();
         if (_block == null)
         {
-            _block = Resources.Load<GameObject>("block0");
+            _block = PrefabManager.Get(PrefabId.Block0);
         }
 
         // Spawn authoritative central core block0 at (0, 0)
@@ -517,7 +517,7 @@ public class AsteroidGrid : AsteroidBase
             if (p != null) p.AddXP(totalXp, transform);
         }
 
-        var bonusFx = Resources.Load("show_corehit");
+        var bonusFx = cachedCoreHitFx != null ? cachedCoreHitFx : PrefabManager.Get(PrefabId.CoreHitFx);
         if (bonusFx != null)
         {
             GameObject bonus = Instantiate(bonusFx, transform.position, Quaternion.identity) as GameObject;
@@ -536,7 +536,7 @@ public class AsteroidGrid : AsteroidBase
         }
         else
         {
-            var shieldFx = Resources.Load("powerup_shield") ?? Resources.Load("powerup");
+            var shieldFx = cachedShieldFx != null ? cachedShieldFx : (PrefabManager.Get(PrefabId.PowerupShield) ?? PrefabManager.Get(PrefabId.PowerupDefault));
             if (shieldFx != null)
             {
                 GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
@@ -1364,7 +1364,7 @@ public class AsteroidGrid : AsteroidBase
 
         if (_block == null)
         {
-            _block = Resources.Load<GameObject>("block0");
+            _block = PrefabManager.Get(PrefabId.Block0);
             if (_block == null) return null;
         }
 

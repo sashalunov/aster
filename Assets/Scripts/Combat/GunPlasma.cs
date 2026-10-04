@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Plasma Repeater weapon component.
-/// Rapid-fires high-energy thermal bolts using bulletPlasma in tight 2-round bursts.
+/// Fires high-energy, rapid burst bolts using bulletPlasma.
 /// Inherits from modern universal Gun class.
 /// </summary>
 public class GunPlasma : Gun
@@ -46,7 +46,7 @@ public class GunPlasma : Gun
         data.gunId = DEFAULT_GUN_ID;
         data.displayName = DEFAULT_DISPLAY_NAME;
         data.bulletDamage = 1.0f;
-        data.bulletForce = 9.0f;
+        data.bulletForce = 5.0f;
         data.fireRate = 1.5f;
         data.bulletLifetime = 3.0f;
         data.spreadAngle = 3.5f;
@@ -61,9 +61,10 @@ public class GunPlasma : Gun
         }
         else
         {
-            data.bulletPrefab = Resources.Load<GameObject>("bulletPlasma");
+            data.bulletPrefab = PrefabManager.Get(PrefabId.BulletPlasma);
         }
 
         return data;
     }
 }
+

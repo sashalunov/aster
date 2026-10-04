@@ -205,19 +205,19 @@ public class BlockSpawner : MonoBehaviour
     /// </summary>
     public IReadOnlyList<GameObject> ActiveAsteroids => activeAsteroids;
 
-    protected virtual void Awake()
+    public void EnsurePrefabsConfigured()
     {
         if (blockPrefab == null)
         {
-            blockPrefab = Resources.Load<GameObject>("block0");
+            blockPrefab = PrefabManager.Get(PrefabId.Block0);
         }
 
         if (asterPrefab == null)
         {
-            asterPrefab = Resources.Load<GameObject>("AsteroidGrid");
+            asterPrefab = PrefabManager.Get(PrefabId.AsteroidGrid);
             if (asterPrefab == null)
             {
-                asterPrefab = Resources.Load<GameObject>("AsteroidBase");
+                asterPrefab = PrefabManager.Get(PrefabId.AsteroidBase);
             }
         }
 
@@ -225,6 +225,16 @@ public class BlockSpawner : MonoBehaviour
         {
             spawnContainer = transform;
         }
+    }
+
+    protected virtual void Reset()
+    {
+        EnsurePrefabsConfigured();
+    }
+
+    protected virtual void Awake()
+    {
+        EnsurePrefabsConfigured();
     }
 
     protected virtual void OnEnable()
@@ -357,10 +367,10 @@ public class BlockSpawner : MonoBehaviour
 
         if (blockPrefab == null)
         {
-            blockPrefab = Resources.Load<GameObject>("block0");
+            blockPrefab = PrefabManager.Get(PrefabId.Block0);
             if (blockPrefab == null)
             {
-                Debug.LogWarning("BlockSpawner: Cannot spawn block, blockPrefab is null and Resources/block0 could not be loaded.");
+                Debug.LogWarning("BlockSpawner: Cannot spawn block, blockPrefab is null and PrefabId.Block0 could not be loaded.");
                 return null;
             }
         }
@@ -421,10 +431,10 @@ public class BlockSpawner : MonoBehaviour
 
         if (asterPrefab == null)
         {
-            asterPrefab = Resources.Load<GameObject>("AsteroidGrid");
+            asterPrefab = PrefabManager.Get(PrefabId.AsteroidGrid);
             if (asterPrefab == null)
             {
-                asterPrefab = Resources.Load<GameObject>("AsteroidBase");
+                asterPrefab = PrefabManager.Get(PrefabId.AsteroidBase);
             }
         }
 
@@ -464,7 +474,7 @@ public class BlockSpawner : MonoBehaviour
         // If no core exists yet, generate authoritative core at (0, 0)
         if (grid.coreBlock == null)
         {
-            GameObject cPrefab = blockPrefab != null ? blockPrefab : Resources.Load<GameObject>("block0");
+            GameObject cPrefab = blockPrefab != null ? blockPrefab : PrefabManager.Get(PrefabId.Block0);
             grid._block = cPrefab;
             grid.generate_asteroid(coremass: asteroidCoreHits, massmin: 0, massmax: 0);
         }

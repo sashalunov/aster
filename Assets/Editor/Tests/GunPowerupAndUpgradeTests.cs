@@ -77,8 +77,8 @@ public class GunPowerupAndUpgradeTests
     [Test]
     public void Player_SpendUpgradePoints_CanTargetSpecificGunArchetype()
     {
-        _player.AddGun(Resources.Load<GameObject>("gunKinetic").GetComponent<Gun>());
-        _player.AddGun(Resources.Load<GameObject>("gunPlasma").GetComponent<Gun>());
+        _player.AddGun(PrefabManager.Get<Gun>(PrefabId.GunKinetic));
+        _player.AddGun(PrefabManager.Get<Gun>(PrefabId.GunPlasma));
         Assert.AreEqual(2, _player.GunCount);
 
         List<Gun> guns = _player.GetEquippedGuns();
@@ -119,7 +119,7 @@ public class GunPowerupAndUpgradeTests
 
         GunData data = ScriptableObject.CreateInstance<GunData>();
         data.gunId = "finite_gun";
-        data.bulletPrefab = Resources.Load<GameObject>("bulletKinetic");
+        data.bulletPrefab = PrefabManager.Get(PrefabId.BulletKinetic);
         data.ammo_quantity = 10;
         gun.Data = data;
         socket.AttachGunInstance(gun);
@@ -144,25 +144,25 @@ public class GunPowerupAndUpgradeTests
     [Test]
     public void PowerupPrefabs_ExistAndHaveCorrectTypes()
     {
-        GameObject pwpKinetic = Resources.Load<GameObject>("pwpGunKinetic") ?? UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Powerups/pwpGunKinetic.prefab");
+        GameObject pwpKinetic = PrefabManager.Get(PrefabId.PowerupGunKinetic);
         Assert.IsNotNull(pwpKinetic, "pwpGunKinetic prefab should exist");
         StandardPowerup spK = pwpKinetic.GetComponent<StandardPowerup>();
         Assert.IsNotNull(spK);
         Assert.AreEqual(StandardPowerup.StandardType.GunKinetic, spK.Type);
 
-        GameObject pwpPlasma = Resources.Load<GameObject>("pwpGunPlasma") ?? UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Powerups/pwpGunPlasma.prefab");
+        GameObject pwpPlasma = PrefabManager.Get(PrefabId.PowerupGunPlasma);
         Assert.IsNotNull(pwpPlasma, "pwpGunPlasma prefab should exist");
         StandardPowerup spP = pwpPlasma.GetComponent<StandardPowerup>();
         Assert.IsNotNull(spP);
         Assert.AreEqual(StandardPowerup.StandardType.GunPlasma, spP.Type);
 
-        GameObject pwpAmmo = Resources.Load<GameObject>("pwpAmmo") ?? UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Powerups/pwpAmmo.prefab");
+        GameObject pwpAmmo = PrefabManager.Get(PrefabId.PowerupAmmo);
         Assert.IsNotNull(pwpAmmo, "pwpAmmo prefab should exist");
         StandardPowerup spA = pwpAmmo.GetComponent<StandardPowerup>();
         Assert.IsNotNull(spA);
         Assert.AreEqual(StandardPowerup.StandardType.AmmoRefill, spA.Type);
 
-        GameObject pwpUpgradePoint = Resources.Load<GameObject>("pwpUpgradePoint") ?? UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Powerups/pwpUpgradePoint.prefab");
+        GameObject pwpUpgradePoint = PrefabManager.Get(PrefabId.PowerupUpgradePoint);
         Assert.IsNotNull(pwpUpgradePoint, "pwpUpgradePoint prefab should exist");
         StandardPowerup spUp = pwpUpgradePoint.GetComponent<StandardPowerup>();
         Assert.IsNotNull(spUp);
@@ -196,7 +196,7 @@ public class GunPowerupAndUpgradeTests
     [Test]
     public void Player_SpendUpgradePoints_Damage_IncreasesGunAndPlayerDamage()
     {
-        _player.AddGun(Resources.Load<GameObject>("gunKinetic").GetComponent<Gun>());
+        _player.AddGun(PrefabManager.Get<Gun>(PrefabId.GunKinetic));
         Gun gun = _player.GetEquippedGuns()[0];
 
         _player.UpgradePoints = 2;
@@ -213,7 +213,7 @@ public class GunPowerupAndUpgradeTests
     [Test]
     public void Player_SpendUpgradePoints_Force_IncreasesGunAndPlayerForce()
     {
-        _player.AddGun(Resources.Load<GameObject>("gunKinetic").GetComponent<Gun>());
+        _player.AddGun(PrefabManager.Get<Gun>(PrefabId.GunKinetic));
         Gun gun = _player.GetEquippedGuns()[0];
 
         _player.UpgradePoints = 1;
@@ -230,7 +230,7 @@ public class GunPowerupAndUpgradeTests
     [Test]
     public void Player_SpendUpgradePoints_FireRate_IncreasesGunAndPlayerRate()
     {
-        _player.AddGun(Resources.Load<GameObject>("gunPlasma").GetComponent<Gun>());
+        _player.AddGun(PrefabManager.Get<Gun>(PrefabId.GunPlasma));
         Gun gun = _player.GetEquippedGuns()[0];
 
         _player.UpgradePoints = 1;
