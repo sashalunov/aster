@@ -56,7 +56,7 @@ public class TurretAI : MonoBehaviour
     public float fireForce = 1.2f;
 
     [Tooltip("Damage dealt to player per bullet hit")]
-    public int bulletDamage = 1;
+    public float bulletDamage = 1;
 
     [Tooltip("Lifetime of bullets in seconds before auto-destroy")]
     public float bulletLifetime = 5f;
