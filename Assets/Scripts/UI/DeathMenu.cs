@@ -327,10 +327,7 @@ public class DeathMenu : MonoBehaviour
 
     private void PlayUpgradeFeedback()
     {
-        if (_player != null && _player._clip_lvlup != null)
-        {
-            _player._clip_lvlup.Play();
-        }
+       
     }
 
     public void RestartRun()

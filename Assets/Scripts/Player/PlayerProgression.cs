@@ -5,18 +5,16 @@ public class PlayerProgression : MonoBehaviour
 {
     public event Action<ulong, ulong> OnXPChanged;
     public event Action<int> OnPlayerLevelUp;
-    public event Action<int, Vector3> OnWeaponLevelUp;
     public event Action<int> OnWaveCompleted;
 
     [Header("Current Progress")]
     [SerializeField] private ulong currentXP = 0;
     [SerializeField] private int playerLevel = 0;
-    [SerializeField] private int weaponLevel = 0;
     [SerializeField] private int waveLevel = 0;
 
     public ulong CurrentXP => currentXP;
     public int PlayerLevel => playerLevel;
-    public int WeaponLevel => weaponLevel;
+
     public int WaveLevel => waveLevel;
 
     [Header("Progression Thresholds")]
@@ -31,7 +29,6 @@ public class PlayerProgression : MonoBehaviour
         currentXP += (ulong)amount;
         Vector3 sourcePos = source != null ? source.position : transform.position;
 
-        CheckWeaponLevelUp(sourcePos);
         CheckPlayerLevelUp();
         CheckWaveCompletion();
 
@@ -52,18 +49,6 @@ public class PlayerProgression : MonoBehaviour
             return levelUps[playerLevel];
         }
         return 0;
-    }
-
-    private void CheckWeaponLevelUp(Vector3 pos)
-    {
-        if (weaponUnlocks != null && weaponLevel < weaponUnlocks.Length)
-        {
-            if (currentXP >= weaponUnlocks[weaponLevel])
-            {
-                weaponLevel++;
-                OnWeaponLevelUp?.Invoke(weaponLevel, pos);
-            }
-        }
     }
 
     private void CheckPlayerLevelUp()
@@ -94,7 +79,6 @@ public class PlayerProgression : MonoBehaviour
     {
         currentXP = 0;
         playerLevel = 0;
-        weaponLevel = 0;
         waveLevel = 0;
         OnXPChanged?.Invoke(currentXP, GetNextXPGoal());
     }

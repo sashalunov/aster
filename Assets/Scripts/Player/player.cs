@@ -20,7 +20,6 @@ public class player : MonoBehaviour
     public Transform _guns_container;
 
     public Camera _player_cam;
-    public AudioSource _clip_lvlup;
 
     public event System.Action<float, float, float> OnWeaponStatsChanged;
     public event System.Action<float, float> OnShieldChanged;
@@ -140,15 +139,12 @@ public class player : MonoBehaviour
     private float _tap_time_accum = 0;
     public float _tap_rate = 0.5f;
 
-
-
-    public ParticleSystem _ps_lvlup;
-
-    public UnityEngine.Object shield_fx;
-    public UnityEngine.Object pwrup_fx;
+    private UnityEngine.Object fx_levelup_tip;
+    private UnityEngine.Object fx_shield_damage_tip;
+    private UnityEngine.Object fx_powerup_tip;
 
     public bool _can_play = false;
-    public Collider _out_sphere;
+
 
     private GameObject cross1_marker;
 
@@ -168,7 +164,6 @@ public class player : MonoBehaviour
         if (Progression != null)
         {
             Progression.OnPlayerLevelUp += HandlePlayerLevelUp;
-            Progression.OnWeaponLevelUp += HandleWeaponLevelUp;
         }
     }
 
@@ -177,16 +172,16 @@ public class player : MonoBehaviour
         if (Progression != null)
         {
             Progression.OnPlayerLevelUp -= HandlePlayerLevelUp;
-            Progression.OnWeaponLevelUp -= HandleWeaponLevelUp;
         }
     }
 
     // Use this for initialization
     void Start()
     {
-        shield_fx = PrefabManager.Get(PrefabId.ShieldDamageFx);
-        pwrup_fx = PrefabManager.Get(PrefabId.PowerupDefault);
-     
+        fx_shield_damage_tip = PrefabManager.Get(PrefabId.ShieldDamageFx);
+        fx_powerup_tip = PrefabManager.Get(PrefabId.PowerupDefault);
+        fx_levelup_tip = PrefabManager.Get(PrefabId.PowerupDefault);
+
         PlayerMetaProgression.ApplyTo(this);
 
         UpdateShieldHUD();
@@ -223,7 +218,6 @@ public class player : MonoBehaviour
             AimWeapons(mousepos);
 
             _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
-           // _guns_container.transform.localEulerAngles = new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
 
             _tap_time_accum += Time.deltaTime;
             fire_time_accum += Time.deltaTime;
@@ -232,7 +226,6 @@ public class player : MonoBehaviour
 
             if (Input.GetMouseButton(0)  )
             {
-                
                 if (_tap_time_accum >= _tap_rate && _tap_enabled && _tap_hold == false)
                 {
                     _tap_time_accum = 0;
@@ -357,34 +350,12 @@ public class player : MonoBehaviour
         return 0;
     }
 
-    private void HandleWeaponLevelUp(int level, Vector3 pos)
-    {
-        print("WEAPON UP " + level);
-        if (pwrup_fx != null)
-        {
-            GameObject rndbonus = Instantiate(pwrup_fx, pos, Quaternion.identity) as GameObject;
-            StandardPowerup pup = rndbonus != null ? rndbonus.GetComponent<StandardPowerup>() : null;
-            if (pup != null)
-            {
-                StandardPowerup.StandardType[] choices = {
-                    StandardPowerup.StandardType.SpeedUp,
-                    StandardPowerup.StandardType.DamageUp,
-                    StandardPowerup.StandardType.PowerUp,
-                    StandardPowerup.StandardType.GunKinetic,
-                    StandardPowerup.StandardType.GunPlasma,
-                    StandardPowerup.StandardType.AmmoRefill,
-                    StandardPowerup.StandardType.UpgradePoint
-                };
-                pup.Type = choices[Random.Range(0, choices.Length)];
-            }
-        }
-    }
 
     private void HandlePlayerLevelUp(int level)
     {
         print("LVL UP " + level);
-        if (_ps_lvlup != null) _ps_lvlup.Play();
-        if (_clip_lvlup != null) _clip_lvlup.Play();
+        //if (_ps_lvlup != null) _ps_lvlup.Play();
+        //if (_clip_lvlup != null) _clip_lvlup.Play();
     }
 
 
@@ -411,10 +382,10 @@ public class player : MonoBehaviour
             block0 b0 = col.collider.transform.GetComponent<block0>();
             var dmg = b0 != null ? b0._hits : 1;
 
-            if (shield_fx != null)
+            if (fx_shield_damage_tip != null)
             {
-                GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
-                showup.transform.parent = transform;
+                GameObject showup = Instantiate(fx_shield_damage_tip, transform.position, Quaternion.identity) as GameObject;
+                showup.transform.parent = null;
                 TextMeshPro tmp = showup.GetComponentInChildren<TextMeshPro>();
                 if (tmp != null)
                 {
@@ -608,10 +579,10 @@ public class player : MonoBehaviour
     {
         if (isDead) return;
 
-        if (shield_fx != null)
+        if (fx_shield_damage_tip != null)
         {
-            GameObject showup = Instantiate(shield_fx, transform.position, Quaternion.identity) as GameObject;
-            showup.transform.parent = transform;
+            GameObject showup = Instantiate(fx_shield_damage_tip, transform.position, Quaternion.identity) as GameObject;
+            showup.transform.parent = null;
             TextMeshPro tmp = showup.GetComponentInChildren<TextMeshPro>();
             if (tmp != null)
             {
