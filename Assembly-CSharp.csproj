@@ -83,7 +83,6 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTextMeshPro.cs" />
     <Compile Include="Assets/Scripts/Player/player.cs" />
     <Compile Include="Assets/Scripts/Catalog/PrefabManager.cs" />
-    <Compile Include="Assets/Scripts/Asteroids/block0.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUtils.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUI.cs" />
     <Compile Include="Assets/Scripts/Combat/GunKinetic.cs" />

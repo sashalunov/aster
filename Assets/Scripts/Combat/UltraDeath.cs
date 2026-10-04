@@ -60,7 +60,7 @@ public class UltraDeath : MonoBehaviour
             {
                 foreach (Transform child in col.transform)
                 {
-                    block0 b0 = child.GetComponent<block0>();
+                    BlockBase b0 = child.GetComponent<BlockBase>();
                     if (b0 != null)
                     {
                         b0.EndLife(null);

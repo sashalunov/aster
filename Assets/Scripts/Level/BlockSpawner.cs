@@ -10,10 +10,8 @@ using UnityEngine;
 public class BlockSpawner : MonoBehaviour
 {
     [Header("Prefabs & Hierarchy")]
-    [Tooltip("The block0 prefab to spawn. If not assigned, loads from Resources/block0.")]
     public GameObject blockPrefab;
 
-    [Tooltip("The AsteroidGrid prefab to spawn. If not assigned, loads from Resources/AsteroidGrid.")]
     public GameObject asterPrefab;
 
     [Tooltip("Parent transform to hold spawned blocks and asteroids. Defaults to this transform.")]
@@ -379,7 +377,7 @@ public class BlockSpawner : MonoBehaviour
         GameObject newBlock = Instantiate(blockPrefab, spawnPosition, Quaternion.identity, spawnContainer);
 
         // Configure block attributes
-        block0 b0 = newBlock.GetComponent<block0>();
+        BlockBase b0 = newBlock.GetComponent<BlockBase>();
         if (b0 != null)
         {
             b0._detached = true;
@@ -467,7 +465,7 @@ public class BlockSpawner : MonoBehaviour
             Transform coreT = newAsteroid.transform.Find("core_block");
             if (coreT != null)
             {
-                grid.coreBlock = coreT.GetComponent<block0>();
+                grid.coreBlock = coreT.GetComponent<BlockBase>();
             }
         }
 
@@ -495,7 +493,7 @@ public class BlockSpawner : MonoBehaviour
             if (child.name == "core_block") continue;
             if (child.name == "pfx_core" || child.GetComponent<ParticleSystem>() != null) continue;
 
-            if (child.GetComponent<block0>() != null || child.name.StartsWith("b_"))
+            if (child.GetComponent<BlockBase>() != null || child.name.StartsWith("b_"))
             {
                 extraChildren.Add(child.gameObject);
             }

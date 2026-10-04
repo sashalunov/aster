@@ -483,11 +483,12 @@ public class player : MonoBehaviour
             Vector3 impactImpulse = pushBlockDir * Mathf.Max(relativeSpeed * 1.5f, 2.0f);
 
             // Damage struck block from player kinetic impact
-            // int impactDamage = Mathf.Max(1, Mathf.RoundToInt(relativeSpeed * 0.5f));
-            // if (b0 != null && !b0._dead)
-            // {
-            //     b0.block_receive_hit(transform, null, impactDamage);
-            // }
+            BlockBase struckBlock = col.collider.GetComponent<BlockBase>();
+            int impactDamage = Mathf.Max(1, Mathf.RoundToInt(relativeSpeed * 0.5f));
+            if (struckBlock != null && !struckBlock.IsDead)
+            {
+                struckBlock.block_receive_hit(transform, null, impactDamage);
+            }
 
             // Check for unconnected blocks on the asteroid cluster and detach them with impact force
             if (parentAsteroid != null)
@@ -497,7 +498,7 @@ public class player : MonoBehaviour
         }
         if (col.collider.CompareTag("core"))
         {
-            block0 coreB0 = col.collider.GetComponent<block0>();
+            BlockBase coreBlock = col.collider.GetComponent<BlockBase>();
             AsteroidBase astBase = col.collider.GetComponentInParent<AsteroidBase>();
 
             // Calculate impact energy based on relative speed
@@ -507,10 +508,10 @@ public class player : MonoBehaviour
             // 1. Damage player ship cleanly via TakeDamage
             TakeDamage(playerDamage, col.GetContact(0).normal, col.GetContact(0).point);
 
-            // 2. Damage core block0 cleanly
-            if (coreB0 != null)
+            // 2. Damage core BlockBase cleanly
+            if (coreBlock != null)
             {
-                coreB0.block_receive_hit(transform, null, (int)playerDamage);
+                coreBlock.block_receive_hit(transform, null, (int)playerDamage);
             }
             else if (astBase != null)
             {

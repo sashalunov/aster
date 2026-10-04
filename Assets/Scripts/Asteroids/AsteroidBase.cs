@@ -148,7 +148,7 @@ public class AsteroidBase : MonoBehaviour
 
         foreach (Transform child in transform)
         {
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null)
             {
                 DestroyImmediate(child.gameObject);
@@ -215,7 +215,7 @@ public class AsteroidBase : MonoBehaviour
         Transform[] m = scan_connected(transform);
         foreach (Transform child in transform)
         {
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
 
             if (b0 != null)
             {
@@ -255,7 +255,7 @@ public class AsteroidBase : MonoBehaviour
                     newbox = Instantiate(_block, transform.TransformPoint(n), transform.rotation);
                     newbox.transform.name = "b_" + i.ToString();
                     newbox.transform.parent = transform;
-                    newbox.GetComponent<block0>().SetHits(hit);
+                    newbox.GetComponent<BlockBase>().SetHits(hit);
                     _num_boxes_generated++;
                     shell_go.Add(newbox);
 
@@ -272,7 +272,7 @@ public class AsteroidBase : MonoBehaviour
                 newbox = Instantiate(_block, transform.TransformPoint(n), transform.rotation);
                 newbox.transform.name = "b_" + i.ToString();
                 newbox.transform.parent = transform;
-                newbox.GetComponent<block0>().SetHits(hit);
+                newbox.GetComponent<BlockBase>().SetHits(hit);
 
                 i++;
                 _num_boxes_generated++;
@@ -349,7 +349,7 @@ public class AsteroidBase : MonoBehaviour
         List<Transform> childrenToDetach = new List<Transform>();
         foreach (Transform child in transform)
         {
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null && !b0.isCore)
             {
                 childrenToDetach.Add(child);
@@ -359,7 +359,7 @@ public class AsteroidBase : MonoBehaviour
         foreach (Transform child in childrenToDetach)
         {
             if (child == null) continue;
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null && !b0._dead)
             {
                 reward += (int)b0._hits;
@@ -473,7 +473,7 @@ public class AsteroidBase : MonoBehaviour
             var b = Instantiate(_block, n[rndinx], transform.rotation) as GameObject;
             b.transform.name = "bl_" + (numch + 1);
             b.transform.parent = transform;
-            b.GetComponent<block0>().SetHits(block_hits);
+            b.GetComponent<BlockBase>().SetHits(block_hits);
             _num_boxes_generated++;
 
             return b;
@@ -485,7 +485,7 @@ public class AsteroidBase : MonoBehaviour
 
             foreach (Transform child in transform)
             {
-                block0 b0 = child.GetComponent<block0>();
+                BlockBase b0 = child.GetComponent<BlockBase>();
                 if (b0 != null)
                 {
                     gos.Add(child.gameObject);
@@ -527,7 +527,7 @@ public class AsteroidBase : MonoBehaviour
         int childmass = 0;
         foreach (Transform child in transform)
         {
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null)
             {
                 childmass += (int)b0._hits;
@@ -549,7 +549,7 @@ public class AsteroidBase : MonoBehaviour
         int num_ch = 0;
         foreach (Transform child in transform)
         {
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null)
                 num_ch += 1;
 
@@ -574,8 +574,8 @@ public class AsteroidBase : MonoBehaviour
                 //if (hit.collider.isTrigger) continue;
                 if (hit.collider.transform.parent == transform)
                 {
-                    if (hit.collider.GetComponent<block0>() == null) continue;
-                    if (hit.collider.GetComponent<block0>()._dead) continue;
+                    if (hit.collider.GetComponent<BlockBase>() == null) continue;
+                    if (hit.collider.GetComponent<BlockBase>()._dead) continue;
 
                     if (tres.Contains(hit.collider.transform))continue;
 

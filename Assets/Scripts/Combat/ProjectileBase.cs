@@ -44,6 +44,33 @@ public abstract class ProjectileBase : MonoBehaviour
         set => SetOwner(value != null ? value.gameObject : null);
     }
 
+    /// <summary>
+    /// Backwards compatibility alias for legacy systems referencing _hit_damage.
+    /// </summary>
+    public float _hit_damage
+    {
+        get => damage;
+        set => damage = value;
+    }
+
+    /// <summary>
+    /// Backwards compatibility alias for legacy systems referencing bullet_mass.
+    /// </summary>
+    public float bullet_mass
+    {
+        get => mass;
+        set => Mass = value;
+    }
+
+    /// <summary>
+    /// Backwards compatibility alias for legacy systems referencing isDead.
+    /// </summary>
+    public bool isDead
+    {
+        get => _isDead;
+        set => _isDead = value;
+    }
+
     // Public properties
     public float Damage
     {
@@ -209,23 +236,26 @@ public abstract class ProjectileBase : MonoBehaviour
             return;
         }
         
-        // 2. Check Asteroid Core collision
-        if (other.CompareTag("core"))
+        // 2. Check Asteroid Core / BlockBase collision
+        BlockBase hitBlock = other.GetComponent<BlockBase>();
+        if (hitBlock != null)
         {
-            block0 coreBlock = other.GetComponent<block0>();
-            OnHitCore(coreBlock, other);
+            if (hitBlock.IsCore || other.CompareTag("core"))
+            {
+                OnHitCore(hitBlock, other);
+            }
+            else
+            {
+                OnHitBlock(hitBlock, other);
+            }
             return;
         }
 
-        // 3. Check Asteroid Block collision
-        if (other.CompareTag("block"))
+        // 3. Fallback for core collider without BlockBase component directly on it
+        if (other.CompareTag("core"))
         {
-            block0 block = other.GetComponent<block0>();
-            if (block != null)
-            {
-                OnHitBlock(block, other);
-                return;
-            }
+            OnHitCore(null, other);
+            return;
         }
 
         // 4. Default / Obstacle hit
@@ -234,13 +264,13 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void OnHitPlayer(player target, Vector3 hitDir, float bounceImpulse = 0f)
     {
-        target.TakeDamage(damage,   hitDir, transform.position, bounceImpulse);
+        target.TakeDamage(damage, hitDir, transform.position, bounceImpulse);
         ConsumePenetration();
     }
 
-    protected virtual void OnHitBlock(block0 block, Collider col)
+    protected virtual void OnHitBlock(BlockBase block, Collider col)
     {
-        float remainingDamage = block != null ? block.block_receive_hit(transform, this , damage) : 0;
+        float remainingDamage = block != null ? block.block_receive_hit(transform, this, damage) : 0;
         ApplyImpactImpulse(col, damage + mass);
 
         damage = remainingDamage;
@@ -250,12 +280,12 @@ public abstract class ProjectileBase : MonoBehaviour
         }
     }
 
-    protected virtual void OnHitCore(block0 coreBlock, Collider col)
+    protected virtual void OnHitCore(BlockBase coreBlock, Collider col)
     {
         float remainingDamage = 0;
         if (coreBlock != null)
         {
-            remainingDamage = coreBlock.block_receive_hit(transform, this , damage);
+            remainingDamage = coreBlock.block_receive_hit(transform, this, damage);
         }
         else
         {

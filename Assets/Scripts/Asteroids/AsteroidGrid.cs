@@ -21,7 +21,7 @@ public class AsteroidGrid : AsteroidBase
 
     [Header("Core Reference")]
     [Tooltip("The central block0 acting as the asteroid core.")]
-    public block0 coreBlock;
+    public BlockBase coreBlock;
 
     [Header("Procedural Math & Fractal Settings")]
     [Tooltip("Algorithm used to procedurally sculpt the asteroid block cluster.")]
@@ -165,10 +165,10 @@ public class AsteroidGrid : AsteroidBase
     {
         if (coreBlock != null)
         {
-            coreBlock.OnCoreDestroyed -= HandleCoreBlockDestroyed;
-            coreBlock.OnCoreDestroyed += HandleCoreBlockDestroyed;
-            coreBlock.OnCoreHit -= HandleCoreBlockHit;
-            coreBlock.OnCoreHit += HandleCoreBlockHit;
+            coreBlock.OnDestroyed -= HandleCoreBlockDestroyed;
+            coreBlock.OnDestroyed += HandleCoreBlockDestroyed;
+            coreBlock.OnHit -= HandleCoreBlockHit;
+            coreBlock.OnHit += HandleCoreBlockHit;
         }
     }
 
@@ -176,8 +176,8 @@ public class AsteroidGrid : AsteroidBase
     {
         if (coreBlock != null)
         {
-            coreBlock.OnCoreDestroyed -= HandleCoreBlockDestroyed;
-            coreBlock.OnCoreHit -= HandleCoreBlockHit;
+            coreBlock.OnDestroyed -= HandleCoreBlockDestroyed;
+            coreBlock.OnHit -= HandleCoreBlockHit;
         }
     }
 
@@ -214,7 +214,7 @@ public class AsteroidGrid : AsteroidBase
         if (gridBlocks.TryGetValue(Vector2Int.zero, out GameObject coreGo))
         {
             if (coreGo == null || !coreGo) return true;
-            block0 b0 = coreGo.GetComponent<block0>();
+            BlockBase b0 = coreGo.GetComponent<BlockBase>();
             if (b0 == null || b0._dead || b0._hits <= 0) return true;
         }
 
@@ -315,11 +315,11 @@ public class AsteroidGrid : AsteroidBase
             _block = PrefabManager.Get(PrefabId.Block0);
         }
 
-        // Spawn authoritative central core block0 at (0, 0)
+        // Spawn authoritative central core block at (0, 0)
         GameObject coreObj = SpawnBlockAtCoord(Vector2Int.zero, _core_hits);
         if (coreObj != null)
         {
-            coreBlock = coreObj.GetComponent<block0>();
+            coreBlock = coreObj.GetComponent<BlockBase>();
             if (coreBlock != null)
             {
                 coreBlock.isCore = true;
@@ -363,31 +363,31 @@ public class AsteroidGrid : AsteroidBase
         return UpdateMass();
     }
 
-    private void HandleCoreBlockDestroyed(block0 core, Transform source, ProjectileBase b1)
+    private void HandleCoreBlockDestroyed(BlockBase core, Transform source, ProjectileBase b1)
     {
         core_destruct(b1);
     }
 
-    private void HandleCoreBlockHit(block0 core, Transform source, ProjectileBase b1)
+    private void HandleCoreBlockHit(BlockBase core, Transform source, ProjectileBase b1)
     {
         _core_hits = (int)core._hits;
         UpdateMass();
     }
 
-    private void BindBlockEvents(block0 b0)
+    private void BindBlockEvents(BlockBase b0)
     {
         if (b0 == null || b0.isCore) return;
-        b0.OnBlockDestroyed -= HandleBlockDestroyed;
-        b0.OnBlockDestroyed += HandleBlockDestroyed;
-        b0.OnBlockHit -= HandleBlockHit;
-        b0.OnBlockHit += HandleBlockHit;
+        b0.OnDestroyed -= HandleBlockDestroyed;
+        b0.OnDestroyed += HandleBlockDestroyed;
+        b0.OnHit -= HandleBlockHit;
+        b0.OnHit += HandleBlockHit;
     }
 
-    private void UnbindBlockEvents(block0 b0)
+    private void UnbindBlockEvents(BlockBase b0)
     {
         if (b0 == null) return;
-        b0.OnBlockDestroyed -= HandleBlockDestroyed;
-        b0.OnBlockHit -= HandleBlockHit;
+        b0.OnDestroyed -= HandleBlockDestroyed;
+        b0.OnHit -= HandleBlockHit;
     }
 
     private void BindAllBlockEvents()
@@ -396,7 +396,7 @@ public class AsteroidGrid : AsteroidBase
         {
             if (pair.Value != null && pair.Key != Vector2Int.zero)
             {
-                block0 b0 = pair.Value.GetComponent<block0>();
+                BlockBase b0 = pair.Value.GetComponent<BlockBase>();
                 BindBlockEvents(b0);
             }
         }
@@ -408,13 +408,13 @@ public class AsteroidGrid : AsteroidBase
         {
             if (pair.Value != null && pair.Key != Vector2Int.zero)
             {
-                block0 b0 = pair.Value.GetComponent<block0>();
+                BlockBase b0 = pair.Value.GetComponent<BlockBase>();
                 UnbindBlockEvents(b0);
             }
         }
     }
 
-    private void HandleBlockHit(block0 block, Transform source, ProjectileBase b1)
+    private void HandleBlockHit(BlockBase block, Transform source, ProjectileBase b1)
     {
         if (isSleeping)
         {
@@ -423,7 +423,7 @@ public class AsteroidGrid : AsteroidBase
         UpdateMass();
     }
 
-    private void HandleBlockDestroyed(block0 block, Transform source, ProjectileBase b1)
+    private void HandleBlockDestroyed(BlockBase block, Transform source, ProjectileBase b1)
     {
         if (isDestructing || this == null || !gameObject) return;
 
@@ -576,7 +576,7 @@ public class AsteroidGrid : AsteroidBase
             }
         }
 
-        // Also check any transform children with block0 not indexed in grid
+        // Also check any transform children with BlockBase not indexed in grid
         foreach (Transform child in transform)
         {
             if (child != null)
@@ -584,7 +584,7 @@ public class AsteroidGrid : AsteroidBase
                 if (coreBlock != null && child.gameObject == coreBlock.gameObject) continue;
                 if (child.name == "core_block") continue;
 
-                block0 b0 = child.GetComponent<block0>();
+                BlockBase b0 = child.GetComponent<BlockBase>();
                 if (b0 != null && !b0.isCore && !childrenToDetach.Contains(child.gameObject))
                 {
                     childrenToDetach.Add(child.gameObject);
@@ -604,7 +604,7 @@ public class AsteroidGrid : AsteroidBase
         foreach (GameObject blockObj in childrenToDetach)
         {
             if (blockObj == null) continue;
-            block0 b0 = blockObj.GetComponent<block0>();
+            BlockBase b0 = blockObj.GetComponent<BlockBase>();
             if (b0 != null && !b0._dead)
             {
                 UnbindBlockEvents(b0);
@@ -902,7 +902,7 @@ public class AsteroidGrid : AsteroidBase
             }
         }
 
-        // Also sweep any transform children with block0 not registered in grid or unreachable
+        // Also sweep any transform children with BlockBase not registered in grid or unreachable
         List<GameObject> orphanChildren = new List<GameObject>();
         foreach (Transform child in transform)
         {
@@ -910,7 +910,7 @@ public class AsteroidGrid : AsteroidBase
             if (coreBlock != null && child.gameObject == coreBlock.gameObject) continue;
             if (child.name == "core_block") continue;
 
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null && !b0.isCore && !b0._dead)
             {
                 if (!blockToCoord.TryGetValue(child.gameObject, out Vector2Int c) || !bfsReachable.Contains(c))
@@ -972,7 +972,7 @@ public class AsteroidGrid : AsteroidBase
     {
         if (blockObj == null) return null;
 
-        block0 b0 = blockObj.GetComponent<block0>();
+        BlockBase b0 = blockObj.GetComponent<BlockBase>();
         if (b0 != null)
         {
             UnbindBlockEvents(b0);
@@ -1180,7 +1180,7 @@ public class AsteroidGrid : AsteroidBase
 
         PruneNullGridEntries();
 
-        block0 b0 = blockObj.GetComponent<block0>();
+        BlockBase b0 = blockObj.GetComponent<BlockBase>();
         if (b0 == null || b0._dead) return false;
 
         // Calculate local position relative to asteroid
@@ -1281,7 +1281,7 @@ public class AsteroidGrid : AsteroidBase
             // Prevent multiple colliders on the same GameObject from running in the same frame
             if (!processedAccretionInFrame.Add(targetGo)) continue;
 
-            block0 b0 = col.GetComponent<block0>();
+            BlockBase b0 = col.GetComponent<BlockBase>();
             if (b0 == null || b0._dead) continue;
 
             // Check if standalone: marked detached, or has no AsteroidBase parent
@@ -1327,7 +1327,7 @@ public class AsteroidGrid : AsteroidBase
     {
         if (!allowReattachmentOnCollision) return;
 
-        block0 looseBlock = col.collider.GetComponent<block0>();
+        BlockBase looseBlock = col.collider.GetComponent<BlockBase>();
         if (looseBlock != null && looseBlock._detached && !looseBlock._dead)
         {
             if (col.relativeVelocity.magnitude <= maxReattachImpactVelocity)
@@ -1389,7 +1389,7 @@ public class AsteroidGrid : AsteroidBase
 #endif
         }
 
-        block0 b0 = newBox.GetComponent<block0>();
+        BlockBase b0 = newBox.GetComponent<BlockBase>();
         if (b0 != null)
         {
             b0._detached = false;
@@ -1433,11 +1433,11 @@ public class AsteroidGrid : AsteroidBase
             }
         }
 
-        // Also clean up any extra block0 children attached to transform not indexed in gridBlocks
+        // Also clean up any extra BlockBase children attached to transform not indexed in gridBlocks
         List<GameObject> extraBlocks = new List<GameObject>();
         foreach (Transform child in transform)
         {
-            if (child != null && (child.GetComponent<block0>() != null || child.name == "core_block" || child.name.StartsWith("b_")))
+            if (child != null && (child.GetComponent<BlockBase>() != null || child.name == "core_block" || child.name.StartsWith("b_")))
             {
                 extraBlocks.Add(child.gameObject);
             }
@@ -1486,7 +1486,7 @@ public class AsteroidGrid : AsteroidBase
             {
                 if (pair.Key == Vector2Int.zero) continue;
 
-                block0 b0 = pair.Value.GetComponent<block0>();
+                BlockBase b0 = pair.Value.GetComponent<BlockBase>();
                 if (b0 != null)
                 {
                     childMass += (int)b0._hits;
@@ -1514,7 +1514,7 @@ public class AsteroidGrid : AsteroidBase
             Transform coreT = transform.Find("core_block");
             if (coreT != null)
             {
-                coreBlock = coreT.GetComponent<block0>();
+                coreBlock = coreT.GetComponent<BlockBase>();
             }
         }
 
@@ -1524,7 +1524,7 @@ public class AsteroidGrid : AsteroidBase
             {
                 if (child.name == "core_block" || child.CompareTag("core"))
                 {
-                    coreBlock = child.GetComponent<block0>();
+                    coreBlock = child.GetComponent<BlockBase>();
                     if (coreBlock != null) break;
                 }
             }
@@ -1534,7 +1534,7 @@ public class AsteroidGrid : AsteroidBase
         {
             foreach (Transform child in transform)
             {
-                block0 b0 = child.GetComponent<block0>();
+                BlockBase b0 = child.GetComponent<BlockBase>();
                 if (b0 != null && b0.isCore)
                 {
                     coreBlock = b0;
@@ -1559,7 +1559,7 @@ public class AsteroidGrid : AsteroidBase
             if (coreBlock != null && child.gameObject == coreBlock.gameObject) continue;
             if (child.name == "core_block") continue;
 
-            block0 b0 = child.GetComponent<block0>();
+            BlockBase b0 = child.GetComponent<BlockBase>();
             if (b0 != null && !b0._dead)
             {
                 b0.isCore = false;
@@ -1593,7 +1593,7 @@ public class AsteroidGrid : AsteroidBase
             }
             else
             {
-                block0 b0 = pair.Value.GetComponent<block0>();
+                BlockBase b0 = pair.Value.GetComponent<BlockBase>();
                 if (b0 == null || b0._dead)
                 {
                     if (dead == null) dead = new List<Vector2Int>();
