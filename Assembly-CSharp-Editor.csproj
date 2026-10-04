@@ -53,29 +53,10 @@
     <Analyzer Include="/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/BCLExtensions/TargetingPacks/netstandard2.1/analyzers/dotnet/roslyn4.0/cs/System.Text.Json.SourceGeneration.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets/Editor/Tests/GunPowerupAndUpgradeTests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerProfileTests.cs" />
-    <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenAnimationInspector.cs" />
-    <Compile Include="Assets/Editor/Tests/WaveEnteredPanelTests.cs" />
-    <Compile Include="Assets/Editor/Tests/TurretAITests.cs" />
     <Compile Include="Assets/Editor/PrefabCatalogBuilder.cs" />
-    <Compile Include="Assets/Editor/Tests/WavePowerupDropTests.cs" />
-    <Compile Include="Assets/Editor/Tests/AsteroidGridTests.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenPreviewManager.cs" />
-    <Compile Include="Assets/Editor/Tests/WaveManagerTests.cs" />
-    <Compile Include="Assets/Editor/Tests/PowerupSystemTests.cs" />
-    <Compile Include="Assets/Editor/Tests/MainMenuTests.cs" />
-    <Compile Include="Assets/Editor/Tests/PlayerHUDTests.cs" />
-    <Compile Include="Assets/Editor/Tests/BlockSpawnerTests.cs" />
-    <Compile Include="Assets/Editor/Tests/DeathMenuTests.cs" />
-    <Compile Include="Assets/Editor/Tests/GunSystemTests.cs" />
-    <Compile Include="Assets/Editor/Tests/ProjectileSystemTests.cs" />
-    <Compile Include="Assets/Editor/Tests/AsteroidFieldSpawnerTests.cs" />
-    <Compile Include="Assets/Editor/Tests/GunMigrationTests.cs" />
-    <Compile Include="Assets/Editor/Tests/AsteroidSleepLODTests.cs" />
-    <Compile Include="Assets/Editor/Tests/PrefabCatalogTests.cs" />
-    <Compile Include="Assets/Editor/Tests/PlayerWeaponTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll" />

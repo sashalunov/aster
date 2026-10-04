@@ -61,9 +61,6 @@ public class TurretAI : MonoBehaviour
     [Tooltip("Lifetime of bullets in seconds before auto-destroy")]
     public float bulletLifetime = 5f;
 
-    [Tooltip("Align spawned bullet's Z position with target to guarantee hit detection in 2D plane (only applied if restrictToXYPlane is true)")]
-    public bool alignBulletZWithTarget = false;
-
     [Header("Effects & Audio")]
     public Animator animator;
     public AudioSource audioSource;
@@ -232,8 +229,6 @@ public class TurretAI : MonoBehaviour
 
     /// <summary>
     /// Calculates the target rotation for the turret so its up vector aims along the target direction.
-    /// In 3D (restrictTo2D = false), aims freely in full 3D space.
-    /// In 2D (restrictTo2D = true), restricts aim angle to the XY plane.
     /// </summary>
     public static Quaternion CalculateAimRotation(Vector3 direction, bool restrictTo2D = false)
     {
@@ -254,10 +249,7 @@ public class TurretAI : MonoBehaviour
     public void Shoot()
     {
         Vector3 spawnPos = muzzlePoint != null ? muzzlePoint.position : (turretPart != null ? turretPart.position : transform.position);
-        if (restrictToXYPlane && alignBulletZWithTarget && target != null)
-        {
-            spawnPos.z = target.position.z;
-        }
+      
         Quaternion spawnRot = turretPart != null ? turretPart.rotation : transform.rotation;
 
         // Play recoil animation
