@@ -190,10 +190,10 @@
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/ServerManagementService.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/BridgeControlService.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Helpers/McpLog.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Providers/FalAdapter.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Helpers/StringCaseUtility.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Windows/Components/Resources/McpResourcesSection.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Clients/Configurators/QwenCodeConfigurator.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Services/AssetGen/Providers/FalAdapter.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Security/SecureKeyStore/WindowsCredentialKeyStore.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Cameras/CameraControl.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Editor/Tools/Profiler/Operations/FrameTimingOps.cs" />

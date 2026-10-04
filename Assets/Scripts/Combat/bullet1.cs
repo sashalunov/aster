@@ -16,7 +16,7 @@ public class bullet1 : ProjectileBase
         set => SetOwner(value != null ? value.gameObject : null);
     }
 
-    public int _hit_damage
+    public float _hit_damage
     {
         get => damage;
         set => damage = value;

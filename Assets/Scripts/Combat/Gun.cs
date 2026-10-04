@@ -79,9 +79,8 @@ public class Gun : MonoBehaviour
     public float ForceBonus => bulletForceBonus;
     public int BonusBurstCount => bonusBurstCount;
 
-    public float EffectiveDamage => Mathf.Max(0.1f, (gunData != null ? gunData.bulletDamage : 1f) + damageBonus);
     public float EffectiveFireRate => Mathf.Max(0.1f, (gunData != null ? gunData.fireRate : 1f) + fireRateBonus);
-    public float EffectiveForce => Mathf.Max(0.1f, (gunData != null ? gunData.bulletForce : 1f) + bulletForceBonus);
+    public float EffectiveForce => Mathf.Max(0.1f, (gunData != null ? gunData.fireForce : 1f) + bulletForceBonus);
     public float EffectiveSpread => Mathf.Max(0f, (gunData != null ? gunData.spreadAngle : 0f) - spreadReduction);
     public int EffectiveProjectilesPerShot => Mathf.Max(1, (gunData != null ? gunData.projectilesPerShot : 1) + bonusProjectilesPerShot);
     public int EffectiveBurstCount => Mathf.Max(1, (gunData != null ? gunData.burstCount : 1) + bonusBurstCount);
@@ -387,27 +386,11 @@ public class Gun : MonoBehaviour
         GameObject bulletObj = Instantiate(gunData.bulletPrefab, position, rotation);
         if (bulletObj == null) return;
 
-        // Initialize ProjectileBase (kinetic, plasma, or other modern projectiles)
+        // Initialize ProjectileBase
         ProjectileBase proj = bulletObj.GetComponent<ProjectileBase>();
         if (proj != null)
         {
-            proj.Initialize(Owner, Mathf.Max(1, Mathf.RoundToInt(EffectiveDamage)), EffectiveForce);
-            proj.Lifetime = gunData.bulletLifetime;
-        }
-
-        // Set damage on legacy or generic projectile components if present
-        bullet1 b1 = bulletObj.GetComponent<bullet1>();
-        if (b1 != null)
-        {
-            b1._hit_damage = Mathf.Max(1, Mathf.RoundToInt(EffectiveDamage));
-            if (Owner != null)
-            {
-                player p = Owner.GetComponent<player>() ?? Owner.GetComponentInParent<player>();
-                if (p != null)
-                {
-                    b1._player = p;
-                }
-            }
+            proj.Initialize(Owner);
         }
 
         // Ignore collisions with owner vessel
@@ -430,19 +413,6 @@ public class Gun : MonoBehaviour
             Vector3 inheritVel = OwnerRigidbody != null ? OwnerRigidbody.linearVelocity : Vector3.zero;
             rb.linearVelocity = inheritVel;
             rb.AddForce(bulletObj.transform.up * EffectiveForce, ForceMode.Impulse);
-        }
-
-        // Auto destroy bullet after configured lifetime
-        if (gunData.bulletLifetime > 0f)
-        {
-#if UNITY_EDITOR
-            if (Application.isPlaying)
-            {
-                Destroy(bulletObj, gunData.bulletLifetime);
-            }
-#else
-            Destroy(bulletObj, gunData.bulletLifetime);
-#endif
         }
     }
 

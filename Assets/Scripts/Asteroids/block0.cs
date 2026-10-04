@@ -20,7 +20,7 @@ public class block0 : MonoBehaviour
 
     [Header("Block State")]
     public int _level = 0;
-    public int _hits = 1;
+    public float _hits = 1;
     public bool _dead = false;
     public bool _detached = false;
     public bool _bonus = false;
@@ -78,11 +78,11 @@ public class block0 : MonoBehaviour
     /// <summary>
     /// Receives projectile or impact hit, applies damage, triggers popup FX and XP, and handles destruction.
     /// </summary>
-    public int block_receive_hit(Transform source, bullet1 b1, int customDamage = -1)
+    public float block_receive_hit(Transform source, bullet1 b1, float customDamage = -1)
     {
         if (_dead) return 0;
 
-        int incomingDamage = customDamage >= 0 ? customDamage : (b1 != null ? b1._hit_damage : 1);
+        float incomingDamage = customDamage >= 0 ? customDamage : (b1 != null ? b1._hit_damage : 1);
         var newhits = _hits - incomingDamage;
         var newhitdamage = incomingDamage - _hits;
         if (newhitdamage < 0) newhitdamage = 0;
@@ -121,7 +121,7 @@ public class block0 : MonoBehaviour
 
             if (p != null)
             {
-                p.AddXP(damage, transform);
+                p.AddXP((int)damage, transform);
             }
         }
 
@@ -254,7 +254,7 @@ public class block0 : MonoBehaviour
         }
         else
         {
-            mr.material = _grade_mats[_hits - 1];
+            mr.material = _grade_mats[(int)_hits - 1];
         }
     }
 

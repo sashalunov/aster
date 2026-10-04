@@ -300,7 +300,7 @@ public class AsteroidBase : MonoBehaviour
     }
     public virtual int core_receive_hit(Transform source, bullet1 b1)
     {
-        int b1_dmg = (b1 != null) ? b1._hit_damage : 1;
+        float b1_dmg = (b1 != null) ? b1._hit_damage : 1;
         var newhits = _core_hits - b1_dmg;
         var newhitdamage = b1_dmg - _core_hits;
         if (newhitdamage < 0) newhitdamage = 0;
@@ -313,7 +313,7 @@ public class AsteroidBase : MonoBehaviour
         }
         else
         {
-            damage = b1_dmg;
+            damage = (int)b1_dmg;
         }
 
         if (damage > 0 && newhits > 0)
@@ -335,12 +335,12 @@ public class AsteroidBase : MonoBehaviour
             core_destruct(b1);
         }
 
-        _core_hits = newhits;
+        _core_hits = (int)newhits;
 
         UpdateMats();
         UpdateText();
 
-        return newhitdamage;
+        return (int)newhitdamage;
     }
 
     public virtual int core_destruct(bullet1 b1)
@@ -362,7 +362,7 @@ public class AsteroidBase : MonoBehaviour
             block0 b0 = child.GetComponent<block0>();
             if (b0 != null && !b0._dead)
             {
-                reward += b0._hits;
+                reward += (int)b0._hits;
                 b0.EndLife(transform.parent != null ? transform.parent : null);
                 b0.gameObject.tag = "block";
 
@@ -530,7 +530,7 @@ public class AsteroidBase : MonoBehaviour
             block0 b0 = child.GetComponent<block0>();
             if (b0 != null)
             {
-                childmass += b0._hits;
+                childmass += (int)b0._hits;
             }
         }
         GetComponent<Rigidbody>().mass = childmass + _core_hits;

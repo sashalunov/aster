@@ -370,7 +370,7 @@ public class AsteroidGrid : AsteroidBase
 
     private void HandleCoreBlockHit(block0 core, Transform source, bullet1 b1)
     {
-        _core_hits = core._hits;
+        _core_hits = (int)core._hits;
         UpdateMass();
     }
 
@@ -466,12 +466,12 @@ public class AsteroidGrid : AsteroidBase
 
         if (coreBlock != null && !coreBlock._dead)
         {
-            int remaining = coreBlock.block_receive_hit(source, b1);
+            float remaining = coreBlock.block_receive_hit(source, b1);
             if (coreBlock == null || coreBlock._dead)
             {
                 core_destruct(b1);
             }
-            return remaining;
+            return (int)remaining;
         }
         return base.core_receive_hit(source, b1);
     }
@@ -608,7 +608,7 @@ public class AsteroidGrid : AsteroidBase
             if (b0 != null && !b0._dead)
             {
                 UnbindBlockEvents(b0);
-                reward += b0._hits;
+                reward += (int)b0._hits;
     
                 b0.EndLife(newParent);
                 b0.gameObject.tag = "block";
@@ -1489,7 +1489,7 @@ public class AsteroidGrid : AsteroidBase
                 block0 b0 = pair.Value.GetComponent<block0>();
                 if (b0 != null)
                 {
-                    childMass += b0._hits;
+                    childMass += (int)b0._hits;
                 }
             }
         }

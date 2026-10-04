@@ -45,10 +45,8 @@ public class GunPlasma : Gun
         GunData data = ScriptableObject.CreateInstance<GunData>();
         data.gunId = DEFAULT_GUN_ID;
         data.displayName = DEFAULT_DISPLAY_NAME;
-        data.bulletDamage = 1.0f;
-        data.bulletForce = 1.0f;
+        data.fireForce = 1.0f;
         data.fireRate = 1.5f;
-        data.bulletLifetime = 5.0f;
         data.spreadAngle = 3.5f;
         data.projectilesPerShot = 1;
         data.burstCount = 2;

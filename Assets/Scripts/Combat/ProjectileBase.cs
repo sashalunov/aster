@@ -10,10 +10,10 @@ public abstract class ProjectileBase : MonoBehaviour
 {
     [Header("Base Projectile Specs")]
     [Tooltip("Base damage dealt on impact.")]
-    [SerializeField] protected int damage = 1;
+    [SerializeField] protected float damage = 1;
 
     [Tooltip("Physical mass / kinetic impact factor applied to targets.")]
-    [SerializeField] protected float mass = 1f;
+    [SerializeField] protected float mass = 0.1f;
 
     [Tooltip("Number of target surfaces/blocks this projectile can penetrate before expiring.")]
     [SerializeField] protected int penetration = 1;
@@ -21,15 +21,21 @@ public abstract class ProjectileBase : MonoBehaviour
     [Tooltip("Time in seconds before the projectile self-destructs.")]
     [SerializeField] protected float lifetime = 5f;
 
+     [SerializeField] protected float radius = 0.15f;
+
     [Header("Ownership & Targeting")]
     [Tooltip("The GameObject (ship, tank, turret) that fired this projectile.")]
     [SerializeField] protected GameObject owner;
 
+    [SerializeField] protected bool ricochetEnabled = false;
+    [SerializeField] protected bool subMunitionEnabled = false;
+    [SerializeField] protected GameObject subMunitionPrefab;
+
     [Tooltip("Layer mask filter for valid target collisions.")]
-    [SerializeField] protected LayerMask targetMask = ~0;
+    [SerializeField] protected LayerMask targetMask = 10;
 
     // Public properties
-    public int Damage
+    public float Damage
     {
         get => damage;
         set => damage = value;
@@ -38,7 +44,14 @@ public abstract class ProjectileBase : MonoBehaviour
     public float Mass
     {
         get => mass;
-        set => mass = value;
+        set
+        {
+             mass = value;
+            if (_rb != null)
+            {
+                _rb.mass = mass;
+            } 
+        }
     }
 
     public int Penetration
@@ -53,11 +66,37 @@ public abstract class ProjectileBase : MonoBehaviour
         set => lifetime = value;
     }
 
+    public float Radius
+    {
+        get => radius;
+        set
+        {
+            radius = value;
+            if (_col is SphereCollider sphereCol)
+            {
+                sphereCol.radius = radius;
+            }
+        }
+    }
+
     public GameObject Owner
     {
         get => owner;
         set => SetOwner(value);
     }
+
+    public bool RicochetEnabled
+    {
+        get => ricochetEnabled;
+        set => ricochetEnabled = value;
+    }
+    public bool SubMunitionEnabled
+    {
+        get => subMunitionEnabled;
+        set => subMunitionEnabled = value;
+    }
+    public bool IsSubMunition => subMunitionEnabled;
+    public bool IsRicochet => ricochetEnabled;
 
     public bool IsDead => _isDead;
 
@@ -68,19 +107,31 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void Awake()
     {
-        _rb = GetComponent<Rigidbody>();
-        _col = GetComponent<Collider>();
-
-        if (_rb != null)
-        {
-            // Constrain physics to 2D gameplay plane
-            //_rb.constraints = RigidbodyConstraints.FreezePositionZ |
-            //                 RigidbodyConstraints.FreezeRotationX |
-            //                 RigidbodyConstraints.FreezeRotationY;
-            _rb.useGravity = false;
-        }
+        EnsurePhysicsComponents();
     }
 
+    protected virtual void EnsurePhysicsComponents()
+    {
+        _rb = GetComponent<Rigidbody>();
+        _col = GetComponent<Collider>();
+        if (_rb == null)
+        {
+            _rb = gameObject.AddComponent<Rigidbody>();
+        }
+            _rb.mass = mass;
+            _rb.useGravity = false;
+            _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        
+        if (_col == null)
+        {
+            _col = gameObject.AddComponent<SphereCollider>();
+        }
+            (_col as SphereCollider).radius = radius;
+            _col.isTrigger = true;
+        
+    }
+
+     // Auto destroy bullet after configured lifetime
     protected virtual void Start()
     {
 #if UNITY_EDITOR
@@ -120,11 +171,10 @@ public abstract class ProjectileBase : MonoBehaviour
     /// <summary>
     /// Convenient initialization method called immediately after instantiating.
     /// </summary>
-    public virtual void Initialize(GameObject shooter, int damageAmount, float customMass = 1f)
+    public virtual void Initialize(GameObject shooter)
     {
         SetOwner(shooter);
-        damage = damageAmount;
-        mass = customMass;
+      
     }
 
     protected virtual void OnTriggerEnter(Collider other)
@@ -143,11 +193,12 @@ public abstract class ProjectileBase : MonoBehaviour
                 // Friendly fire against self ignored
                 return;
             }
-
-            OnHitPlayer(hitPlayer);
+            float bounceImpulse = mass * Penetration * Damage; // Example calculation for bounce impulse
+            Vector3 hitDir = (hitPlayer.transform.position - transform.position).normalized;
+            OnHitPlayer(hitPlayer, hitDir, bounceImpulse);
             return;
         }
-
+        
         // 2. Check Asteroid Core collision
         if (other.CompareTag("core"))
         {
@@ -171,15 +222,15 @@ public abstract class ProjectileBase : MonoBehaviour
         OnHitGeneric(other);
     }
 
-    protected virtual void OnHitPlayer(player target)
+    protected virtual void OnHitPlayer(player target, Vector3 hitDir, float bounceImpulse = 0f)
     {
-        target.TakeDamage(damage);
+        target.TakeDamage(damage,   hitDir, transform.position, bounceImpulse);
         ConsumePenetration();
     }
 
     protected virtual void OnHitBlock(block0 block, Collider col)
     {
-        int remainingDamage = block != null ? block.block_receive_hit(transform, this as bullet1, damage) : 0;
+        float remainingDamage = block != null ? block.block_receive_hit(transform, this as bullet1, damage) : 0;
         ApplyImpactImpulse(col, damage + mass);
 
         damage = remainingDamage;
@@ -191,7 +242,7 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void OnHitCore(block0 coreBlock, Collider col)
     {
-        int remainingDamage = 0;
+        float remainingDamage = 0;
         if (coreBlock != null)
         {
             remainingDamage = coreBlock.block_receive_hit(transform, this as bullet1, damage);

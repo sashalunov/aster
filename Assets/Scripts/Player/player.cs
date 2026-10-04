@@ -520,7 +520,7 @@ public class player : MonoBehaviour
             float playerDamage = Mathf.Max(1f, Mathf.Round(relativeSpeed * 0.5f));
 
             // 1. Damage player ship cleanly via TakeDamage
-            TakeDamage(playerDamage);
+            TakeDamage(playerDamage, col.GetContact(0).normal, col.GetContact(0).point);
 
             // 2. Damage core block0 cleanly
             if (coreB0 != null)
@@ -575,7 +575,7 @@ public class player : MonoBehaviour
         }
     }
 
-    public void TakeDamage(float dmg)
+    public void TakeDamage(float dmg, Vector3 direction = default, Vector3 contactPoint = default, float bounceImpulse = 0f)
     {
         if (isDead) return;
 
@@ -614,10 +614,24 @@ public class player : MonoBehaviour
             UpdateHealthHUD();
         }
 
+         // Bounce player ship away
+            Rigidbody playerRb = GetComponent<Rigidbody>();
+            if (playerRb != null)
+            {
+                Vector3 playerVel = playerRb.linearVelocity;
+                if (Vector3.Dot(playerVel, direction) > 0)
+                {
+                    playerRb.linearVelocity -= Vector3.Project(playerVel, direction);
+                }
+                playerRb.AddForceAtPosition(direction * bounceImpulse, contactPoint, ForceMode.Impulse);
+            }
+
         if (health_value <= 0)
         {
             Die();
         }
+
+
     }
 
    
