@@ -8,6 +8,7 @@ public enum PrefabId
     PlayerShip = 1,
     UltraDeath = 2,
     TapMarker = 3,
+    Cross1Marker = 4,
 
     // Asteroids & Environment
     Block0 = 10,

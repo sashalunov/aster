@@ -31,6 +31,7 @@ public static class PrefabCatalogBuilder
         {
             { PrefabId.PlayerShip, "Player_ship" },
             { PrefabId.UltraDeath, "UltraDeath" },
+            { PrefabId.Cross1Marker, "cross1_marker" },
             { PrefabId.TapMarker, "tap_marker" },
             { PrefabId.Block0, "block0" },
             { PrefabId.AsteroidGrid, "AsteroidGrid" },

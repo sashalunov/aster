@@ -307,10 +307,10 @@ public class AsteroidFieldSpawner : MonoBehaviour
         // Define a set of diverse pregenerated variants with varying mass and threat budgets
         var variantConfigs = new[]
         {
-            new { Name = "Light_Harmonic", Algo = AsteroidGrid.GenerationAlgorithm.HarmonicRose, CoreHits = 2, MinMass = 2, MaxMass = 3, Cost = 3, Weight = 40f },
-            new { Name = "Medium_Julia", Algo = AsteroidGrid.GenerationAlgorithm.JuliaFractal, CoreHits = 3, MinMass = 4, MaxMass = 6, Cost = 6, Weight = 35f },
-            new { Name = "Heavy_DLA", Algo = AsteroidGrid.GenerationAlgorithm.DiffusionAggregation, CoreHits = 4, MinMass = 6, MaxMass = 9, Cost = 9, Weight = 20f },
-            new { Name = "Bastion_Shell", Algo = AsteroidGrid.GenerationAlgorithm.ClassicShell, CoreHits = 5, MinMass = 8, MaxMass = 12, Cost = 12, Weight = 10f }
+            new { Name = "Light_Harmonic", Algo = AsteroidGrid.GenerationAlgorithm.HarmonicRose, CoreHits = 2, MinMass = 4, MaxMass = 12, Cost = 3, Weight = 40f },
+            new { Name = "Medium_Julia", Algo = AsteroidGrid.GenerationAlgorithm.JuliaFractal, CoreHits = 3, MinMass = 16, MaxMass = 32, Cost = 6, Weight = 35f },
+            new { Name = "Heavy_DLA", Algo = AsteroidGrid.GenerationAlgorithm.DiffusionAggregation, CoreHits = 4, MinMass = 32, MaxMass = 64, Cost = 9, Weight = 20f },
+            new { Name = "Bastion_Shell", Algo = AsteroidGrid.GenerationAlgorithm.JuliaFractal, CoreHits = 5, MinMass = 64, MaxMass = 128, Cost = 12, Weight = 10f }
         };
 
         for (int i = 0; i < variantConfigs.Length; i++)
