@@ -40,6 +40,7 @@ public static class PrefabCatalogBuilder
             { PrefabId.Box1, "box1" },
             { PrefabId.GunKinetic, "gunKinetic" },
             { PrefabId.GunPlasma, "gunPlasma" },
+            { PrefabId.GunFlak, "gunFlak" },
             { PrefabId.BulletKinetic, "bulletKinetic" },
             { PrefabId.BulletPlasma, "bulletPlasma" },
             { PrefabId.BulletEnemy, "bullet1" },

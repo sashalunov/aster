@@ -53,60 +53,60 @@
     <Analyzer Include="/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/BCLExtensions/TargetingPacks/netstandard2.1/analyzers/dotnet/roslyn4.0/cs/System.Text.Json.SourceGeneration.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets/Scripts/Combat/GunPlasma.cs" />
-    <Compile Include="Assets/Scripts/Level/BlockSpawner.cs" />
-    <Compile Include="Assets/Scripts/UI/MainMenu.cs" />
-    <Compile Include="Assets/Scripts/Combat/UltraDeath.cs" />
-    <Compile Include="Assets/Scripts/UI/WaveEnteredPanel.cs" />
-    <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeUnityExtended.cs" />
-    <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
-    <Compile Include="Assets/Scripts/Level/WaveDefinition.cs" />
-    <Compile Include="Assets/Scripts/Asteroids/AsteroidGrid.cs" />
-    <Compile Include="Assets/Scripts/Catalog/PrefabManager.cs" />
-    <Compile Include="Assets/Scripts/Asteroids/block0.cs" />
-    <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUnityVersion.cs" />
-    <Compile Include="Assets/Scripts/Powerups/PowerupBase.cs" />
-    <Compile Include="Assets/Scripts/Player/PlayerProgression.cs" />
-    <Compile Include="Assets/Scripts/Combat/ProjectileBase.cs" />
-    <Compile Include="Assets/Scripts/Catalog/PrefabId.cs" />
-    <Compile Include="Assets/Scripts/Level/scroller.cs" />
-    <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleAudio.cs" />
-    <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenProShortcuts.cs" />
-    <Compile Include="Assets/Scripts/UI/PlayerHUD.cs" />
-    <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModulePhysics.cs" />
-    <Compile Include="Assets/Scripts/Enemies/TankAI.cs" />
-    <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
-    <Compile Include="Assets/Scripts/Combat/GunSocket.cs" />
-    <Compile Include="Assets/Scripts/Asteroids/SpawnerCollider.cs" />
-    <Compile Include="Assets/Scripts/Player/PlayerProfile.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenAnimation.cs" />
     <Compile Include="Assets/Scripts/Combat/bulletKinetic.cs" />
+    <Compile Include="Assets/Scripts/Combat/GunPlasma.cs" />
     <Compile Include="Assets/Scripts/Combat/HitTerrain.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModulePhysics2D.cs" />
+    <Compile Include="Assets/Scripts/Level/BlockSpawner.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTk2d.cs" />
+    <Compile Include="Assets/Scripts/UI/MainMenu.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeAudio.cs" />
     <Compile Include="Assets/Scripts/Powerups/PowerupManager.cs" />
     <Compile Include="Assets/Scripts/Combat/HitBase.cs" />
+    <Compile Include="Assets/Scripts/Combat/UltraDeath.cs" />
     <Compile Include="Assets/Scripts/Combat/GunData.cs" />
+    <Compile Include="Assets/Scripts/UI/WaveEnteredPanel.cs" />
+    <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeUnityExtended.cs" />
     <Compile Include="Assets/Scripts/UI/WaveClearedPopup.cs" />
+    <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
     <Compile Include="Assets/Scripts/Combat/Gun.cs" />
+    <Compile Include="Assets/Scripts/Level/WaveDefinition.cs" />
     <Compile Include="Assets/Scripts/Enemies/TurretAI.cs" />
     <Compile Include="Assets/Scripts/Combat/GunFlak.cs" />
+    <Compile Include="Assets/Scripts/Asteroids/AsteroidGrid.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleEPOOutline.cs" />
     <Compile Include="Assets/Scripts/Catalog/PrefabCatalog.cs" />
     <Compile Include="Assets/Scripts/Combat/HitBlast.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTextMeshPro.cs" />
     <Compile Include="Assets/Scripts/Player/player.cs" />
+    <Compile Include="Assets/Scripts/Catalog/PrefabManager.cs" />
+    <Compile Include="Assets/Scripts/Asteroids/block0.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUtils.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUI.cs" />
     <Compile Include="Assets/Scripts/Combat/GunKinetic.cs" />
+    <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUnityVersion.cs" />
+    <Compile Include="Assets/Scripts/Powerups/PowerupBase.cs" />
     <Compile Include="Assets/Scripts/Combat/bullet1.cs" />
+    <Compile Include="Assets/Scripts/Player/PlayerProgression.cs" />
+    <Compile Include="Assets/Scripts/Combat/ProjectileBase.cs" />
+    <Compile Include="Assets/Scripts/Catalog/PrefabId.cs" />
+    <Compile Include="Assets/Scripts/Level/scroller.cs" />
+    <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleAudio.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
     <Compile Include="Assets/Scripts/Level/AsteroidFieldSpawner.cs" />
+    <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenProShortcuts.cs" />
     <Compile Include="Assets/Scripts/UI/DeathMenu.cs" />
+    <Compile Include="Assets/Scripts/UI/PlayerHUD.cs" />
+    <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModulePhysics.cs" />
+    <Compile Include="Assets/Scripts/Enemies/TankAI.cs" />
+    <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
     <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
+    <Compile Include="Assets/Scripts/Combat/GunSocket.cs" />
+    <Compile Include="Assets/Scripts/Asteroids/SpawnerCollider.cs" />
     <Compile Include="Assets/Scripts/Combat/bulletPlasma.cs" />
     <Compile Include="Assets/Scripts/Asteroids/AsteroidBase.cs" />
+    <Compile Include="Assets/Scripts/Player/PlayerProfile.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/ThirdParty/TextMesh Pro/Shaders/TMPro.cginc" />
@@ -1304,68 +1304,8 @@
       <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/BCLExtensions/TargetingPacks/netstandard2.1/ref/System.Text.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEditor.UI.Analytics">
-      <HintPath>Library/ScriptAssemblies/UnityEditor.UI.Analytics.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.TextMeshPro">
-      <HintPath>Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.AI.Navigation">
-      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.VSCode.Editor">
-      <HintPath>Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Timeline">
-      <HintPath>Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.AI.Navigation.Updater">
-      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.Updater.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.AI.Navigation.Editor">
-      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Sysroot.Linux_x86_64">
-      <HintPath>Library/ScriptAssemblies/Unity.Sysroot.Linux_x86_64.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Rider.Editor">
-      <HintPath>Library/ScriptAssemblies/Unity.Rider.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Toolchain.Linux-x86_64-Linux">
-      <HintPath>Library/ScriptAssemblies/Unity.Toolchain.Linux-x86_64-Linux.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.AI.Navigation.Editor.ConversionSystem">
-      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.Editor.ConversionSystem.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.TextMeshPro.Editor">
-      <HintPath>Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.VisualStudio.Editor">
-      <HintPath>Library/ScriptAssemblies/Unity.VisualStudio.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Timeline.Editor">
-      <HintPath>Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>Library/ScriptAssemblies/UnityEngine.UI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Unity.Multiplayer.Center.Common">
-      <HintPath>Library/ScriptAssemblies/Unity.Multiplayer.Center.Common.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.InternalAPIEngineBridge.004">
@@ -1376,26 +1316,82 @@
       <HintPath>Library/ScriptAssemblies/Unity.Multiplayer.Center.Editor.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.VSCode.Editor">
+      <HintPath>Library/ScriptAssemblies/Unity.VSCode.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro.Editor">
+      <HintPath>Library/ScriptAssemblies/Unity.TextMeshPro.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Toolchain.Linux-x86_64-Linux">
+      <HintPath>Library/ScriptAssemblies/Unity.Toolchain.Linux-x86_64-Linux.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Unity.SysrootPackage.Editor">
       <HintPath>Library/ScriptAssemblies/Unity.SysrootPackage.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEditor.UI.Analytics">
+      <HintPath>Library/ScriptAssemblies/UnityEditor.UI.Analytics.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>Library/ScriptAssemblies/Unity.TextMeshPro.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.VisualStudio.Editor">
+      <HintPath>Library/ScriptAssemblies/Unity.VisualStudio.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.AI.Navigation">
+      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Unity.Sysroot.Linux_arm64">
       <HintPath>Library/ScriptAssemblies/Unity.Sysroot.Linux_arm64.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.Sysroot.Linux_x86_64">
+      <HintPath>Library/ScriptAssemblies/Unity.Sysroot.Linux_x86_64.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Timeline.Editor">
+      <HintPath>Library/ScriptAssemblies/Unity.Timeline.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Unity.Performance.Profile-Analyzer.Editor">
       <HintPath>Library/ScriptAssemblies/Unity.Performance.Profile-Analyzer.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.AI.Navigation.Editor.ConversionSystem">
+      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.Editor.ConversionSystem.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Multiplayer.Center.Common">
+      <HintPath>Library/ScriptAssemblies/Unity.Multiplayer.Center.Common.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.AI.Navigation.Updater">
+      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.Updater.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Unity.Timeline">
+      <HintPath>Library/ScriptAssemblies/Unity.Timeline.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEditor.UI">
       <HintPath>Library/ScriptAssemblies/UnityEditor.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.AI.Navigation.Editor">
+      <HintPath>Library/ScriptAssemblies/Unity.AI.Navigation.Editor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="MCPForUnity.Runtime.csproj" />
     <ProjectReference Include="MCPForUnity.Editor.csproj" />
+    <ProjectReference Include="MCPForUnity.Runtime.csproj" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
   <ItemGroup>

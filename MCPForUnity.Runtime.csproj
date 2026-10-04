@@ -54,11 +54,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/ScreenshotUtility.cs" />
+    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityAssembliesCompat.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityCompatShims.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/AssemblyInfo.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityFindObjectsCompat.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityObjectIdCompat.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityAssembliesCompat.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityPhysicsCompat.cs" />
     <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Serialization/UnityTypeConverters.cs" />
   </ItemGroup>
@@ -690,10 +690,6 @@
       <HintPath>Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Unity.Collections.LowLevel.ILSupport">
-      <HintPath>Library/PackageCache/com.unity.collections@431b1d558060/Unity.Collections.LowLevel.ILSupport/Unity.Collections.LowLevel.ILSupport.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="DemiLib">
       <HintPath>Assets/ThirdParty/Demigiant/DemiLib/Core/DemiLib.dll</HintPath>
       <Private>False</Private>
@@ -720,10 +716,6 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>Library/PackageCache/com.unity.nuget.newtonsoft-json@4dfd81071c64/Runtime/Newtonsoft.Json.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Mono.Cecil">
-      <HintPath>Library/PackageCache/com.unity.nuget.mono-cecil@ecb9724e46ff/Mono.Cecil.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="netstandard">

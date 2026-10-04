@@ -16,11 +16,11 @@ public enum PrefabId
     AsteroidBase = 12,
     CoreBlock = 13,
     Box1 = 14,
-    BirthSphere = 15,
 
     // Combat & Weapons
-    GunKinetic = 20,
-    GunPlasma = 21,
+    GunKinetic = 19,
+    GunPlasma = 20,
+    GunFlak = 21,
     BulletKinetic = 22,
     BulletPlasma = 23,
     BulletEnemy = 24,
