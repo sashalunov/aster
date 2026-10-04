@@ -297,11 +297,11 @@ public class TurretAI : MonoBehaviour
             }
 
             // Configure bullet damage and shooter reference
-            bullet1 b1 = bulletObj.GetComponent<bullet1>();
+            ProjectileBase b1 = bulletObj.GetComponent<ProjectileBase>();
             if (b1 != null)
             {
-                b1._hit_damage = bulletDamage;
-                b1._player = null; // AI bullet, not fired by player
+                b1.Damage = bulletDamage;
+                b1.Owner = gameObject; // AI bullet, not fired by player
             }
 
             // Apply forward impulse

@@ -298,9 +298,9 @@ public class AsteroidBase : MonoBehaviour
         UpdateMass();
         return shell_go;
     }
-    public virtual int core_receive_hit(Transform source, bullet1 b1)
+    public virtual int core_receive_hit(Transform source, ProjectileBase b1)
     {
-        float b1_dmg = (b1 != null) ? b1._hit_damage : 1;
+        float b1_dmg = (b1 != null) ? b1.Damage : 1;
         var newhits = _core_hits - b1_dmg;
         var newhitdamage = b1_dmg - _core_hits;
         if (newhitdamage < 0) newhitdamage = 0;
@@ -343,7 +343,7 @@ public class AsteroidBase : MonoBehaviour
         return (int)newhitdamage;
     }
 
-    public virtual int core_destruct(bullet1 b1)
+    public virtual int core_destruct(ProjectileBase b1)
     {
         int reward = 0;
         List<Transform> childrenToDetach = new List<Transform>();

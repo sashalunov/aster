@@ -1,10 +1,7 @@
 using UnityEngine;
 
-/// <summary>
-/// Standard kinetic bullet projectile. Inherits from ProjectileBase.
-/// Maintains backwards compatibility with all existing game systems, AsteroidBase, and TurretAI.
-/// </summary>
-public class bullet1 : ProjectileBase
+
+public class bulletAI : ProjectileBase
 {
     [Header("Visual Effects")]
     public ParticleSystem _trail;
@@ -16,7 +13,7 @@ public class bullet1 : ProjectileBase
         set => SetOwner(value != null ? value.gameObject : null);
     }
 
-    public float _hit_damage
+    public float  _hit_damage
     {
         get => damage;
         set => damage = value;

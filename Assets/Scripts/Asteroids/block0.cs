@@ -26,10 +26,10 @@ public class block0 : MonoBehaviour
     public bool _bonus = false;
 
     // Events
-    public event Action<block0, Transform, bullet1> OnCoreHit;
-    public event Action<block0, Transform, bullet1> OnCoreDestroyed;
-    public event Action<block0, Transform, bullet1> OnBlockHit;
-    public event Action<block0, Transform, bullet1> OnBlockDestroyed;
+    public event Action<block0, Transform, ProjectileBase> OnCoreHit;
+    public event Action<block0, Transform, ProjectileBase> OnCoreDestroyed;
+    public event Action<block0, Transform, ProjectileBase> OnBlockHit;
+    public event Action<block0, Transform, ProjectileBase> OnBlockDestroyed;
 
     void Start()
     {
@@ -78,11 +78,11 @@ public class block0 : MonoBehaviour
     /// <summary>
     /// Receives projectile or impact hit, applies damage, triggers popup FX and XP, and handles destruction.
     /// </summary>
-    public float block_receive_hit(Transform source, bullet1 b1, float customDamage = -1)
+    public float block_receive_hit(Transform source, ProjectileBase b1, float customDamage = -1)
     {
         if (_dead) return 0;
 
-        float incomingDamage = customDamage >= 0 ? customDamage : (b1 != null ? b1._hit_damage : 1);
+        float incomingDamage = customDamage >= 0 ? customDamage : (b1 != null ? b1.Damage : 1);
         var newhits = _hits - incomingDamage;
         var newhitdamage = incomingDamage - _hits;
         if (newhitdamage < 0) newhitdamage = 0;
@@ -90,7 +90,7 @@ public class block0 : MonoBehaviour
         var damage = incomingDamage >= _hits ? _hits : incomingDamage;
 
         // Resolve player reference
-        player p = (b1 != null && b1._player != null) ? b1._player : null;
+        player p = null;
         if (p == null && source != null)
         {
             p = source.GetComponent<player>() ?? source.GetComponentInParent<player>();
@@ -199,7 +199,7 @@ public class block0 : MonoBehaviour
 
             if (wasCore && parentAst != null)
             {
-                parentAst.core_destruct(b1);
+                //parentAst.core_destruct(b1);
             }
 
             if (this != null && gameObject != null)

@@ -67,8 +67,10 @@
     <Compile Include="Assets/Scripts/Combat/UltraDeath.cs" />
     <Compile Include="Assets/Scripts/Combat/GunData.cs" />
     <Compile Include="Assets/Scripts/UI/WaveEnteredPanel.cs" />
+    <Compile Include="Assets/Scripts/Combat/bulletAI.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeUnityExtended.cs" />
     <Compile Include="Assets/Scripts/UI/WaveClearedPopup.cs" />
+    <Compile Include="Assets/Scripts/Asteroids/BlockAsteroid.cs" />
     <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
     <Compile Include="Assets/Scripts/Combat/Gun.cs" />
     <Compile Include="Assets/Scripts/Level/WaveDefinition.cs" />
@@ -87,12 +89,12 @@
     <Compile Include="Assets/Scripts/Combat/GunKinetic.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleUnityVersion.cs" />
     <Compile Include="Assets/Scripts/Powerups/PowerupBase.cs" />
-    <Compile Include="Assets/Scripts/Combat/bullet1.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerProgression.cs" />
     <Compile Include="Assets/Scripts/Combat/ProjectileBase.cs" />
     <Compile Include="Assets/Scripts/Catalog/PrefabId.cs" />
     <Compile Include="Assets/Scripts/Level/scroller.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleAudio.cs" />
+    <Compile Include="Assets/Scripts/Asteroids/BlockBase.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
     <Compile Include="Assets/Scripts/Level/AsteroidFieldSpawner.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenProShortcuts.cs" />
@@ -102,6 +104,7 @@
     <Compile Include="Assets/Scripts/Enemies/TankAI.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
     <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
+    <Compile Include="Assets/Scripts/Asteroids/BlockAsteroidCore.cs" />
     <Compile Include="Assets/Scripts/Combat/GunSocket.cs" />
     <Compile Include="Assets/Scripts/Asteroids/SpawnerCollider.cs" />
     <Compile Include="Assets/Scripts/Combat/bulletPlasma.cs" />

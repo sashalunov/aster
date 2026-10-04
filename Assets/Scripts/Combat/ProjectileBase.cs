@@ -34,6 +34,16 @@ public abstract class ProjectileBase : MonoBehaviour
     [Tooltip("Layer mask filter for valid target collisions.")]
     [SerializeField] protected LayerMask targetMask = 10;
 
+    public player Player => owner != null ? (owner.GetComponent<player>() ?? owner.GetComponentInParent<player>()) : null;
+    /// <summary>
+    /// Backwards compatibility alias for legacy systems referencing _player.
+    /// </summary>
+    public player _player
+    {
+        get => Player;
+        set => SetOwner(value != null ? value.gameObject : null);
+    }
+
     // Public properties
     public float Damage
     {
@@ -230,7 +240,7 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void OnHitBlock(block0 block, Collider col)
     {
-        float remainingDamage = block != null ? block.block_receive_hit(transform, this as bullet1, damage) : 0;
+        float remainingDamage = block != null ? block.block_receive_hit(transform, this , damage) : 0;
         ApplyImpactImpulse(col, damage + mass);
 
         damage = remainingDamage;
@@ -245,14 +255,14 @@ public abstract class ProjectileBase : MonoBehaviour
         float remainingDamage = 0;
         if (coreBlock != null)
         {
-            remainingDamage = coreBlock.block_receive_hit(transform, this as bullet1, damage);
+            remainingDamage = coreBlock.block_receive_hit(transform, this , damage);
         }
         else
         {
             AsteroidBase astBase = col.GetComponent<AsteroidBase>() ?? col.GetComponentInParent<AsteroidBase>();
             if (astBase != null)
             {
-                remainingDamage = astBase.core_receive_hit(transform, this as bullet1);
+                remainingDamage = astBase.core_receive_hit(transform, this);
             }
         }
 

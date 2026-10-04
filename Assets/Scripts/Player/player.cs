@@ -379,18 +379,12 @@ public class player : MonoBehaviour
 
         if (col.collider.tag == "block")
         {
-            block0 b0 = col.collider.transform.GetComponent<block0>();
-            var dmg = b0 != null ? b0._hits : 1;
+            var dmg = 1;
 
             if (fx_shield_damage_tip != null)
             {
                 GameObject showup = Instantiate(fx_shield_damage_tip, transform.position, Quaternion.identity) as GameObject;
                 showup.transform.parent = null;
-                TextMeshPro tmp = showup.GetComponentInChildren<TextMeshPro>();
-                if (tmp != null)
-                {
-                    tmp.SetText("-" + dmg.ToString() + " SHIELD! ");
-                }
             }
 
             float blockDmg = dmg;
@@ -430,15 +424,6 @@ public class player : MonoBehaviour
             else
             {
                 otherRb = col.rigidbody != null ? col.rigidbody : col.collider.GetComponent<Rigidbody>();
-                if (otherRb == null)
-                {
-                    otherRb = col.collider.gameObject.AddComponent<Rigidbody>();
-                    otherRb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
-                    otherRb.useGravity = false;
-                    otherRb.linearDamping = 0.5f;
-                    otherRb.angularDamping = 0.5f;
-                    otherRb.mass = dmg;
-                }
             }
 
             // Calculate bounce direction
@@ -498,11 +483,11 @@ public class player : MonoBehaviour
             Vector3 impactImpulse = pushBlockDir * Mathf.Max(relativeSpeed * 1.5f, 2.0f);
 
             // Damage struck block from player kinetic impact
-            int impactDamage = Mathf.Max(1, Mathf.RoundToInt(relativeSpeed * 0.5f));
-            if (b0 != null && !b0._dead)
-            {
-                b0.block_receive_hit(transform, null, impactDamage);
-            }
+            // int impactDamage = Mathf.Max(1, Mathf.RoundToInt(relativeSpeed * 0.5f));
+            // if (b0 != null && !b0._dead)
+            // {
+            //     b0.block_receive_hit(transform, null, impactDamage);
+            // }
 
             // Check for unconnected blocks on the asteroid cluster and detach them with impact force
             if (parentAsteroid != null)

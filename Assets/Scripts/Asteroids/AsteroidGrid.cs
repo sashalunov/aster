@@ -363,12 +363,12 @@ public class AsteroidGrid : AsteroidBase
         return UpdateMass();
     }
 
-    private void HandleCoreBlockDestroyed(block0 core, Transform source, bullet1 b1)
+    private void HandleCoreBlockDestroyed(block0 core, Transform source, ProjectileBase b1)
     {
         core_destruct(b1);
     }
 
-    private void HandleCoreBlockHit(block0 core, Transform source, bullet1 b1)
+    private void HandleCoreBlockHit(block0 core, Transform source, ProjectileBase b1)
     {
         _core_hits = (int)core._hits;
         UpdateMass();
@@ -414,7 +414,7 @@ public class AsteroidGrid : AsteroidBase
         }
     }
 
-    private void HandleBlockHit(block0 block, Transform source, bullet1 b1)
+    private void HandleBlockHit(block0 block, Transform source, ProjectileBase b1)
     {
         if (isSleeping)
         {
@@ -423,7 +423,7 @@ public class AsteroidGrid : AsteroidBase
         UpdateMass();
     }
 
-    private void HandleBlockDestroyed(block0 block, Transform source, bullet1 b1)
+    private void HandleBlockDestroyed(block0 block, Transform source, ProjectileBase b1)
     {
         if (isDestructing || this == null || !gameObject) return;
 
@@ -457,7 +457,7 @@ public class AsteroidGrid : AsteroidBase
         check_for_unconnected(impactImpulse);
     }
 
-    public override int core_receive_hit(Transform source, bullet1 b1)
+    public override int core_receive_hit(Transform source, ProjectileBase b1)
     {
         if (isSleeping)
         {
@@ -476,7 +476,7 @@ public class AsteroidGrid : AsteroidBase
         return base.core_receive_hit(source, b1);
     }
 
-    public override int core_destruct(bullet1 b1)
+    public override int core_destruct(ProjectileBase b1)
     {
         if (isDestructing) return 0;
         isDestructing = true;
