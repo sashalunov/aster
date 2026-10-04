@@ -4,7 +4,7 @@ using UnityEngine;
 /// Data container for weapon archetypes (Blasters, Shotguns, Lasers, Burst Rifles).
 /// Can be authored as ScriptableObject assets or instantiated dynamically at runtime.
 /// </summary>
-[CreateAssetMenu(fileName = "NewGunData", menuName = "Combat/Gun Data")]
+[CreateAssetMenu(fileName = "NewGunData", menuName = "Aster/Gun Data")]
 public class GunData : ScriptableObject
 {
     [Header("Identity & Progression")]

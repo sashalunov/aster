@@ -102,9 +102,10 @@ public class player : MonoBehaviour
             _ship_hull.gameObject.SetActive(false);
         }
 
-        if (game_prefabs.ultra_death != null)
+        GameObject ultraDeath = PrefabManager.Get(PrefabId.UltraDeath);
+        if (ultraDeath != null)
         {
-            Instantiate(game_prefabs.ultra_death, transform.position, Quaternion.identity);
+            Instantiate(ultraDeath, transform.position, Quaternion.identity);
         }
 
         OnDeath?.Invoke();

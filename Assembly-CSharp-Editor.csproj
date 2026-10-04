@@ -67,6 +67,7 @@
     <Compile Include="Assets/Editor/Tests/PlayerWeaponTests.cs" />
     <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
     <Compile Include="Assets/Editor/Tests/WaveEnteredPanelTests.cs" />
+    <Compile Include="Assets/Editor/PrefabCatalogBuilder.cs" />
     <Compile Include="Assets/Editor/Tests/PowerupSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/MainMenuTests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerHUDTests.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="Assets/Editor/Tests/AsteroidFieldSpawnerTests.cs" />
     <Compile Include="Assets/Editor/Tests/GunMigrationTests.cs" />
     <Compile Include="Assets/Editor/Tests/AsteroidSleepLODTests.cs" />
+    <Compile Include="Assets/Editor/Tests/PrefabCatalogTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll" />
