@@ -77,8 +77,8 @@ public abstract class BlockBase : MonoBehaviour
             }
             rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
             rb.useGravity = false;
-            rb.linearDamping = 0.5f;
-            rb.angularDamping = 0.5f;
+            rb.linearDamping = 0.15f;
+            rb.angularDamping = 0.05f;
             rb.mass = _hits > 0 ? _hits : 1f;
         }
     }
