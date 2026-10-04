@@ -45,10 +45,10 @@ public class GunKinetic : Gun
         GunData data = ScriptableObject.CreateInstance<GunData>();
         data.gunId = DEFAULT_GUN_ID;
         data.displayName = DEFAULT_DISPLAY_NAME;
-        data.bulletDamage = 2.0f;
-        data.bulletForce = 12.0f;
+        data.bulletDamage = 1.0f;
+        data.bulletForce = 1.0f;
         data.fireRate = 1.0f;
-        data.bulletLifetime = 4.0f;
+        data.bulletLifetime = 5.0f;
         data.spreadAngle = 1.0f;
         data.projectilesPerShot = 1;
         data.burstCount = 1;

@@ -32,13 +32,13 @@ public class GunData : ScriptableObject
     public AudioClip fireSound;
 
     [Tooltip("Number of shots per second (fire rate frequency).")]
-    public float fireRate = 3.0f;
+    public float fireRate = 1.0f;
 
     [Tooltip("Damage dealt per projectile.")]
     public float bulletDamage = 1.0f;
 
     [Tooltip("Impulse force applied to the projectile.")]
-    public float bulletForce = 8.0f;
+    public float bulletForce = 1.0f;
 
     [Tooltip("Lifetime of spawned bullets in seconds before auto-destroy.")]
     public float bulletLifetime = 5.0f;

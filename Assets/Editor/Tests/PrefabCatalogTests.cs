@@ -274,7 +274,7 @@ public class PrefabCatalogTests
         Assert.IsNotNull(plasmaData.bulletPrefab, "GunPlasma default data must resolve bulletPlasma via PrefabManager");
         Assert.AreEqual("bulletPlasma", plasmaData.bulletPrefab.name);
 
-        GunData flakData = GunFlak.CreateKineticGunData();
+        GunData flakData = GunFlak.CreateFlakGunData();
         Assert.IsNotNull(flakData.bulletPrefab, "GunFlak default data must resolve bulletKinetic via PrefabManager");
         Assert.AreEqual("bulletKinetic", flakData.bulletPrefab.name);
 

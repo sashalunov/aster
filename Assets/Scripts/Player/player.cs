@@ -194,14 +194,6 @@ public class player : MonoBehaviour
         UpdateWeaponHUD();
     }
 
-    void PlaceTapMarker(Vector3 pos)
-    {
-        GameObject tap = PrefabManager.Instantiate(PrefabId.TapMarker, pos, Quaternion.identity);
-        if (tap != null)
-        {
-            Destroy(tap, 3.5f);
-        }
-    }
 
     // Update is called once per frame
     void Update()
@@ -246,7 +238,6 @@ public class player : MonoBehaviour
                     _tap_time_accum = 0;
                     _tap_enabled = false;
                      _tap_hold = true;
-                    PlaceTapMarker(gh.Length > 0 ? gh[0].point : mousepos);
                 }
 
                 FireWeapons();

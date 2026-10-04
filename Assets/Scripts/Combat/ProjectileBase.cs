@@ -129,7 +129,7 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void OnTriggerEnter(Collider other)
     {
-        if (_isDead || other == null || other.isTrigger || other.CompareTag("upgrade"))
+        if (_isDead || other == null || other.isTrigger || other.CompareTag("powerup"))
         {
             return;
         }
