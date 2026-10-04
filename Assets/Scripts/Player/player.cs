@@ -150,6 +150,8 @@ public class player : MonoBehaviour
     public bool _can_play = false;
     public Collider _out_sphere;
 
+    private GameObject cross1_marker;
+
     void Awake()
     {
         Progression = GetComponent<PlayerProgression>();
@@ -157,6 +159,8 @@ public class player : MonoBehaviour
         {
             Progression = gameObject.AddComponent<PlayerProgression>();
         }
+        cross1_marker = Instantiate(PrefabManager.Get(PrefabId.Cross1Marker)) as GameObject;
+        
     }
 
     void OnEnable()
@@ -232,6 +236,7 @@ public class player : MonoBehaviour
             _tap_time_accum += Time.deltaTime;
             fire_time_accum += Time.deltaTime;
            
+           cross1_marker.transform.position = gh.Length > 0 ? gh[0].point : mousepos;
 
             if (Input.GetMouseButton(0)  )
             {
