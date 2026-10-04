@@ -3,26 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Spawns block0 prefabs within a specified radius around a target center.
+/// Spawns block0 prefabs and empty single-core AsteroidGrid prefabs within a specified radius around a target center.
 /// Controls spawn pacing (rate), maximum active limits, block hit scaling,
-/// and optional integration with WaveManager.
+/// and full integration with WaveManager (threat budget, threat registration, wave pacing).
 /// </summary>
 public class BlockSpawner : MonoBehaviour
 {
-    [Header("Prefab & Hierarchy")]
+    [Header("Prefabs & Hierarchy")]
     [Tooltip("The block0 prefab to spawn. If not assigned, loads from Resources/block0.")]
     public GameObject blockPrefab;
+
+    [Tooltip("The AsteroidGrid prefab to spawn. If not assigned, loads from Resources/AsteroidGrid.")]
     public GameObject asterPrefab;
 
-
-    [Tooltip("Parent transform to hold spawned blocks. Defaults to this transform.")]
+    [Tooltip("Parent transform to hold spawned blocks and asteroids. Defaults to this transform.")]
     public Transform spawnContainer;
 
     [Header("Center & Radius")]
     [Tooltip("Center position for spawning. If null, automatically targets player or this transform.")]
     public Transform centerTarget;
 
-    [Tooltip("Maximum radius around the center where blocks can spawn.")]
+    [Tooltip("Maximum radius around the center where blocks and asteroids can spawn.")]
     [Min(0.1f)]
     public float radius = 15f;
 
@@ -30,12 +31,12 @@ public class BlockSpawner : MonoBehaviour
     [Min(0f)]
     public float minRadius = 3f;
 
-    [Header("Spawn Limits & Pacing")]
+    [Header("Block Spawn Limits & Pacing")]
     [Tooltip("Maximum number of concurrently active blocks allowed.")]
     [Min(1)]
     public int max_limit = 20;
 
-    [Tooltip("Time in seconds between spawn attempts.")]
+    [Tooltip("Time in seconds between block spawn attempts.")]
     [Min(0.01f)]
     public float rate = 1.0f;
 
@@ -46,8 +47,39 @@ public class BlockSpawner : MonoBehaviour
     [Tooltip("Initial number of blocks to spawn immediately on start.")]
     public int initialSpawnCount = 0;
 
+    [Header("Asteroid Spawn Limits & Pacing")]
+    [Tooltip("Whether to spawn empty single-core AsteroidGrid instances.")]
+    public bool spawnAsteroids = true;
+
+    [Tooltip("Maximum number of concurrently active asteroids allowed.")]
+    [Min(1)]
+    public int max_asteroids = 5;
+
+    [Tooltip("Time in seconds between asteroid spawn attempts.")]
+    [Min(0.01f)]
+    public float asteroidRate = 3.0f;
+
+    [Tooltip("Number of asteroids to spawn per interval tick.")]
+    [Range(1, 10)]
+    public int asteroidBatchSize = 1;
+
+    [Tooltip("Initial number of asteroids to spawn immediately on start.")]
+    public int initialAsteroidCount = 0;
+
+    [Tooltip("Hit points assigned to the core of spawned asteroids.")]
+    [Min(1)]
+    public int asteroidCoreHits = 3;
+
+    [Tooltip("Threat budget points consumed when spawning an asteroid.")]
+    [Min(1)]
+    public int asteroidThreatCost = 2;
+
+    [Header("General Spawner Settings")]
     [Tooltip("Whether the spawner is actively running.")]
     public bool isSpawning = true;
+
+    [Tooltip("Initial random drift velocity applied to spawned entities.")]
+    public float initialDrift = 1.0f;
 
     [Header("Block Attributes")]
     [Tooltip("Minimum hit points assigned to spawned blocks.")]
@@ -56,15 +88,46 @@ public class BlockSpawner : MonoBehaviour
     [Tooltip("Maximum hit points assigned to spawned blocks.")]
     public int maxHits = 3;
 
-    [Tooltip("Initial random drift velocity applied to spawned blocks.")]
-    public float initialDrift = 1.0f;
-
     [Header("Wave Integration")]
     [Tooltip("Optional explicit reference to WaveManager. If null, resolves via WaveManager.Instance.")]
-    public WaveManager waveManager;
+    [SerializeField] private WaveManager _waveManager;
+    public WaveManager waveManager
+    {
+        get => _waveManager;
+        set
+        {
+            if (_waveManager != value)
+            {
+                UnsubscribeWaveManager();
+                _waveManager = value;
+                EnsureWaveManagerSubscribed();
+            }
+        }
+    }
 
     [Tooltip("If true, coordinates with WaveManager (respects CanSpawn and registers threats).")]
-    public bool syncWithWaveManager = true;
+    [SerializeField] private bool _syncWithWaveManager = true;
+    public bool syncWithWaveManager
+    {
+        get => _syncWithWaveManager;
+        set
+        {
+            if (_syncWithWaveManager != value)
+            {
+                _syncWithWaveManager = value;
+                EnsureWaveManagerSubscribed();
+            }
+        }
+    }
+
+    [Tooltip("If true, adapts block hit points and asteroid core hits based on current wave config.")]
+    public bool adaptWaveDifficulty = true;
+
+    [Tooltip("If true, adapts block and asteroid spawn rates from WaveDefinition.spawnInterval.")]
+    public bool adaptWavePacing = false;
+
+    [Tooltip("If true, clears all active blocks and asteroids when a wave completes.")]
+    public bool clearOnWaveComplete = false;
 
     /// <summary>
     /// Resolves the active WaveManager reference.
@@ -73,11 +136,16 @@ public class BlockSpawner : MonoBehaviour
 
     // Runtime state
     private float spawnTimer = 0f;
+    private float asteroidTimer = 0f;
     private readonly List<GameObject> activeBlocks = new List<GameObject>();
     private readonly List<GameObject> activeAsteroids = new List<GameObject>();
+    private WaveManager subscribedWm;
+
     // Events
     public event Action<GameObject> OnBlockSpawned;
     public event Action<int> OnActiveCountChanged;
+    public event Action<GameObject> OnAsteroidSpawned;
+    public event Action<int> OnActiveAsteroidCountChanged;
 
     /// <summary>
     /// Current count of alive spawned blocks.
@@ -92,9 +160,46 @@ public class BlockSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// True if the active count has reached or exceeded max_limit.
+    /// Explicit alias for ActiveCount (blocks).
+    /// </summary>
+    public int ActiveBlockCount => ActiveCount;
+
+    /// <summary>
+    /// Current count of alive spawned asteroids.
+    /// </summary>
+    public int ActiveAsteroidCount
+    {
+        get
+        {
+            CleanDeadReferences();
+            return activeAsteroids.Count;
+        }
+    }
+
+    /// <summary>
+    /// Combined count of all alive spawned blocks and asteroids.
+    /// </summary>
+    public int TotalActiveCount => ActiveBlockCount + ActiveAsteroidCount;
+
+    /// <summary>
+    /// True if the active block count has reached or exceeded max_limit.
     /// </summary>
     public bool IsAtCapacity => ActiveCount >= max_limit;
+
+    /// <summary>
+    /// True if the active asteroid count has reached or exceeded max_asteroids.
+    /// </summary>
+    public bool IsAsteroidAtCapacity => ActiveAsteroidCount >= max_asteroids;
+
+    /// <summary>
+    /// Read-only collection of active block GameObjects.
+    /// </summary>
+    public IReadOnlyList<GameObject> ActiveBlocks => activeBlocks;
+
+    /// <summary>
+    /// Read-only collection of active asteroid GameObjects.
+    /// </summary>
+    public IReadOnlyList<GameObject> ActiveAsteroids => activeAsteroids;
 
     protected virtual void Awake()
     {
@@ -103,19 +208,49 @@ public class BlockSpawner : MonoBehaviour
             blockPrefab = Resources.Load<GameObject>("block0");
         }
 
+        if (asterPrefab == null)
+        {
+            asterPrefab = Resources.Load<GameObject>("AsteroidGrid");
+            if (asterPrefab == null)
+            {
+                asterPrefab = Resources.Load<GameObject>("AsteroidBase");
+            }
+        }
+
         if (spawnContainer == null)
         {
             spawnContainer = transform;
         }
     }
 
+    protected virtual void OnEnable()
+    {
+        EnsureWaveManagerSubscribed();
+    }
+
+    protected virtual void OnDisable()
+    {
+        UnsubscribeWaveManager();
+    }
+
+    protected virtual void OnDestroy()
+    {
+        UnsubscribeWaveManager();
+    }
+
     protected virtual void Start()
     {
         ResolveCenterTarget();
+        EnsureWaveManagerSubscribed();
 
         if (initialSpawnCount > 0)
         {
             SpawnBurst(initialSpawnCount);
+        }
+
+        if (initialAsteroidCount > 0 && spawnAsteroids)
+        {
+            SpawnAsteroidBurst(initialAsteroidCount);
         }
     }
 
@@ -125,11 +260,13 @@ public class BlockSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates spawner timer and triggers spawns. Exposed for testability.
+    /// Updates spawner timers and triggers spawns. Exposed for testability.
     /// </summary>
     public virtual void Tick(float deltaTime)
     {
         if (!isSpawning || deltaTime <= 0f) return;
+
+        EnsureWaveManagerSubscribed();
 
         // Check WaveManager state if synced
         WaveManager wm = ActiveWaveManager;
@@ -140,21 +277,31 @@ public class BlockSpawner : MonoBehaviour
 
         CleanDeadReferences();
 
-        if (activeBlocks.Count >= max_limit)
+        // 1. Block Spawning Pacing
+        if (activeBlocks.Count < max_limit)
         {
-            return;
+            spawnTimer += deltaTime;
+            if (spawnTimer >= rate)
+            {
+                spawnTimer = 0f;
+                SpawnBurst(spawnBatchSize);
+            }
         }
 
-        spawnTimer += deltaTime;
-        if (spawnTimer >= rate)
+        // 2. Asteroid Spawning Pacing
+        if (spawnAsteroids && activeAsteroids.Count < max_asteroids)
         {
-            spawnTimer = 0f;
-            SpawnBurst(spawnBatchSize);
+            asteroidTimer += deltaTime;
+            if (asteroidTimer >= asteroidRate)
+            {
+                asteroidTimer = 0f;
+                SpawnAsteroidBurst(asteroidBatchSize);
+            }
         }
     }
 
     /// <summary>
-    /// Spawns a burst of blocks up to max_limit.
+    /// Spawns a burst of blocks up to max_limit, coordinating with WaveManager threat budget.
     /// </summary>
     public virtual void SpawnBurst(int count)
     {
@@ -175,7 +322,31 @@ public class BlockSpawner : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Spawns a burst of empty single-core asteroid grids up to max_asteroids, coordinating with WaveManager threat budget.
+    /// </summary>
+    public virtual void SpawnAsteroidBurst(int count)
+    {
+        WaveManager wm = ActiveWaveManager;
+        for (int i = 0; i < count; i++)
+        {
+            if (ActiveAsteroidCount >= max_asteroids) break;
+
+            if (syncWithWaveManager && wm != null)
+            {
+                if (!wm.ConsumeThreatBudget(asteroidThreatCost))
+                {
+                    break;
+                }
+            }
+
+            SpawnSingleAsteroid();
+        }
+    }
+
+    /// <summary>
     /// Spawns one block within the defined radial bounds.
+    /// </summary>
     public virtual GameObject SpawnSingleBlock()
     {
         if (IsAtCapacity) return null;
@@ -237,24 +408,112 @@ public class BlockSpawner : MonoBehaviour
         return newBlock;
     }
 
-    /// Spawns one asteroidgrid within the defined radial bounds.
-
+    /// <summary>
+    /// Spawns one empty AsteroidGrid with only one core within the defined radial bounds.
+    /// </summary>
     public virtual GameObject SpawnSingleAsteroid()
     {
+        if (IsAsteroidAtCapacity) return null;
+
         if (asterPrefab == null)
         {
             asterPrefab = Resources.Load<GameObject>("AsteroidGrid");
             if (asterPrefab == null)
             {
-                Debug.LogWarning("BlockSpawner: Cannot spawn asteroid, asterPrefab is null and Resources/AsteroidGrid could not be loaded.");
-                return null;
+                asterPrefab = Resources.Load<GameObject>("AsteroidBase");
             }
         }
-        Vector3 spawnPosition = CalculateRandomSpawnPosition();
-        GameObject newBlock = Instantiate(asterPrefab, spawnPosition, Quaternion.identity, spawnContainer);
 
-         Rigidbody rb = newBlock.GetComponent<Rigidbody>();
-         // Apply slight random 2D drift
+        Vector3 spawnPosition = CalculateRandomSpawnPosition();
+        GameObject newAsteroid = null;
+
+        if (asterPrefab != null)
+        {
+            newAsteroid = Instantiate(asterPrefab, spawnPosition, Quaternion.identity, spawnContainer);
+        }
+        else
+        {
+            newAsteroid = new GameObject("AsteroidGrid");
+            newAsteroid.transform.position = spawnPosition;
+            newAsteroid.transform.SetParent(spawnContainer);
+        }
+
+        AsteroidGrid grid = newAsteroid.GetComponent<AsteroidGrid>();
+        if (grid == null)
+        {
+            grid = newAsteroid.AddComponent<AsteroidGrid>();
+        }
+
+        // Configure AsteroidGrid: must be empty with only one core
+        grid.targetBlockCount = 0;
+
+        // Clean up any extra attached child blocks to guarantee only the core remains
+        if (grid.coreBlock == null)
+        {
+            Transform coreT = newAsteroid.transform.Find("core_block");
+            if (coreT != null)
+            {
+                grid.coreBlock = coreT.GetComponent<block0>();
+            }
+        }
+
+        // If no core exists yet, generate authoritative core at (0, 0)
+        if (grid.coreBlock == null)
+        {
+            GameObject cPrefab = blockPrefab != null ? blockPrefab : Resources.Load<GameObject>("block0");
+            grid._block = cPrefab;
+            grid.generate_asteroid(coremass: asteroidCoreHits, massmin: 0, massmax: 0);
+        }
+        else
+        {
+            grid.SetHits(asteroidCoreHits);
+            grid.coreBlock.SetHits(asteroidCoreHits);
+            grid.coreBlock.isCore = true;
+            grid.coreBlock.gameObject.tag = "core";
+        }
+
+        // Remove any non-core block0 children to strictly guarantee single-core empty grid
+        List<GameObject> extraChildren = new List<GameObject>();
+        foreach (Transform child in newAsteroid.transform)
+        {
+            if (child == null) continue;
+            if (grid.coreBlock != null && child.gameObject == grid.coreBlock.gameObject) continue;
+            if (child.name == "core_block") continue;
+            if (child.name == "pfx_core" || child.GetComponent<ParticleSystem>() != null) continue;
+
+            if (child.GetComponent<block0>() != null || child.name.StartsWith("b_"))
+            {
+                extraChildren.Add(child.gameObject);
+            }
+        }
+        for (int i = 0; i < extraChildren.Count; i++)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                DestroyImmediate(extraChildren[i]);
+            else
+                Destroy(extraChildren[i]);
+#else
+            Destroy(extraChildren[i]);
+#endif
+        }
+
+        grid.SyncGrid();
+        grid.UpdateMass();
+
+        // Ensure Rigidbody exists for 2D physics simulation
+        Rigidbody rb = newAsteroid.GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = newAsteroid.AddComponent<Rigidbody>();
+            rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
+            rb.useGravity = false;
+            rb.linearDamping = 0.5f;
+            rb.angularDamping = 0.5f;
+            rb.mass = asteroidCoreHits;
+        }
+
+        // Apply slight random 2D drift
         if (rb != null && initialDrift > 0f)
         {
             Vector2 randomDir = UnityEngine.Random.insideUnitCircle.normalized;
@@ -263,19 +522,19 @@ public class BlockSpawner : MonoBehaviour
             rb.linearVelocity = new Vector3(randomDir.x, randomDir.y, 0f) * speed;
         }
 
-         activeAsteroids.Add(newBlock);
+        activeAsteroids.Add(newAsteroid);
 
-        // Register with WaveManager if synced
+        // Register threat with WaveManager
         WaveManager wm = ActiveWaveManager;
         if (syncWithWaveManager && wm != null)
         {
-            wm.RegisterThreat(newBlock);
+            wm.RegisterThreat(newAsteroid);
         }
 
-       // OnBlockSpawned?.Invoke(newBlock);
-        //OnActiveCountChanged?.Invoke(activeBlocks.Count);
+        OnAsteroidSpawned?.Invoke(newAsteroid);
+        OnActiveAsteroidCountChanged?.Invoke(activeAsteroids.Count);
 
-        return newBlock;
+        return newAsteroid;
     }
 
     /// <summary>
@@ -298,21 +557,27 @@ public class BlockSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Removes null/destroyed blocks from the active tracking list.
+    /// Removes null/destroyed blocks and asteroids from the active tracking lists.
     /// </summary>
     public void CleanDeadReferences()
     {
-        int initialCount = activeBlocks.Count;
+        int initialBlockCount = activeBlocks.Count;
         activeBlocks.RemoveAll(b => b == null);
-
-        if (activeBlocks.Count != initialCount)
+        if (activeBlocks.Count != initialBlockCount)
         {
             OnActiveCountChanged?.Invoke(activeBlocks.Count);
+        }
+
+        int initialAsteroidCount = activeAsteroids.Count;
+        activeAsteroids.RemoveAll(a => a == null);
+        if (activeAsteroids.Count != initialAsteroidCount)
+        {
+            OnActiveAsteroidCountChanged?.Invoke(activeAsteroids.Count);
         }
     }
 
     /// <summary>
-    /// Destroys all currently active spawned blocks and resets the spawner tracking.
+    /// Destroys all currently active spawned blocks and asteroids and resets the spawner tracking.
     /// </summary>
     public void ClearAllSpawned()
     {
@@ -337,6 +602,102 @@ public class BlockSpawner : MonoBehaviour
         }
         activeBlocks.Clear();
         OnActiveCountChanged?.Invoke(0);
+
+        for (int i = 0; i < activeAsteroids.Count; i++)
+        {
+            if (activeAsteroids[i] != null)
+            {
+                if (syncWithWaveManager && wm != null)
+                {
+                    wm.UnregisterThreat(activeAsteroids[i]);
+                }
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(activeAsteroids[i]);
+                else
+                    Destroy(activeAsteroids[i]);
+#else
+                Destroy(activeAsteroids[i]);
+#endif
+            }
+        }
+        activeAsteroids.Clear();
+        OnActiveAsteroidCountChanged?.Invoke(0);
+    }
+
+    private void EnsureWaveManagerSubscribed()
+    {
+        WaveManager current = syncWithWaveManager ? ActiveWaveManager : null;
+        if (subscribedWm != current)
+        {
+            UnsubscribeWaveManager();
+            subscribedWm = current;
+            SubscribeWaveManager();
+        }
+    }
+
+    private void SubscribeWaveManager()
+    {
+        if (subscribedWm != null)
+        {
+            subscribedWm.OnWaveStarted -= HandleWaveStarted;
+            subscribedWm.OnWaveStarted += HandleWaveStarted;
+            subscribedWm.OnWaveCompleted -= HandleWaveCompleted;
+            subscribedWm.OnWaveCompleted += HandleWaveCompleted;
+            subscribedWm.OnStateChanged -= HandleWaveStateChanged;
+            subscribedWm.OnStateChanged += HandleWaveStateChanged;
+
+            if (subscribedWm.CurrentWaveConfig != null)
+            {
+                HandleWaveStarted(subscribedWm.CurrentWaveIndex, subscribedWm.CurrentWaveConfig);
+            }
+        }
+    }
+
+    private void UnsubscribeWaveManager()
+    {
+        if (subscribedWm != null)
+        {
+            subscribedWm.OnWaveStarted -= HandleWaveStarted;
+            subscribedWm.OnWaveCompleted -= HandleWaveCompleted;
+            subscribedWm.OnStateChanged -= HandleWaveStateChanged;
+            subscribedWm = null;
+        }
+    }
+
+    private void HandleWaveStarted(int waveIndex, WaveDefinition config)
+    {
+        if (!syncWithWaveManager || config == null) return;
+
+        if (adaptWavePacing && config.spawnInterval > 0f)
+        {
+            rate = Mathf.Max(0.1f, config.spawnInterval);
+            asteroidRate = Mathf.Max(0.5f, config.spawnInterval * 2f);
+        }
+
+        if (adaptWaveDifficulty)
+        {
+            minHits = Mathf.Max(1, config.blockLevel);
+            maxHits = Mathf.Max(minHits, config.shellLevel);
+            asteroidCoreHits = Mathf.Max(1, config.minMass);
+        }
+    }
+
+    private void HandleWaveCompleted(int waveIndex, WaveDefinition config)
+    {
+        if (clearOnWaveComplete)
+        {
+            ClearAllSpawned();
+        }
+    }
+
+    private void HandleWaveStateChanged(WaveManager.WaveState oldState, WaveManager.WaveState newState)
+    {
+        if (newState == WaveManager.WaveState.Combat)
+        {
+            spawnTimer = rate;
+            asteroidTimer = asteroidRate;
+        }
     }
 
     private void ResolveCenterTarget()

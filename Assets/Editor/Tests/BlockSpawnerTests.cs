@@ -165,4 +165,113 @@ public class BlockSpawnerTests
         Assert.IsNotNull(rb, "Spawned block must have Rigidbody immediately");
         Assert.Greater(rb.linearVelocity.magnitude, 0.5f, "Spawned block should have drift velocity applied");
     }
+
+    [Test]
+    public void BlockSpawner_SpawnSingleAsteroid_SpawnsEmptyAsteroidGridWithOnlyOneCore()
+    {
+        spawner.asteroidCoreHits = 5;
+        GameObject astObj = spawner.SpawnSingleAsteroid();
+
+        Assert.IsNotNull(astObj, "SpawnSingleAsteroid should return a valid GameObject");
+        Assert.AreEqual(1, spawner.ActiveAsteroidCount);
+
+        AsteroidGrid grid = astObj.GetComponent<AsteroidGrid>();
+        Assert.IsNotNull(grid, "Spawned asteroid must contain AsteroidGrid component");
+
+        // Verify it contains only the core block
+        Assert.IsNotNull(grid.coreBlock, "AsteroidGrid must have a coreBlock assigned");
+        Assert.IsTrue(grid.coreBlock.isCore, "Core block must have isCore flag true");
+        Assert.AreEqual("core", grid.coreBlock.tag, "Core block must have 'core' tag");
+        Assert.AreEqual(5, grid.coreBlock._hits, "Core block should have configured asteroidCoreHits");
+
+        // Authoritative grid block count: only 1 (the core at (0, 0))
+        Assert.AreEqual(1, grid.CurrentBlockCount, "Empty AsteroidGrid must contain exactly 1 block (the core)");
+
+        // Verify Rigidbody exists
+        Rigidbody rb = astObj.GetComponent<Rigidbody>();
+        Assert.IsNotNull(rb, "Spawned asteroid must have a Rigidbody");
+    }
+
+    [Test]
+    public void BlockSpawner_AsteroidCapacity_EnforcesMaxAsteroidsLimit()
+    {
+        spawner.max_asteroids = 2;
+
+        GameObject ast1 = spawner.SpawnSingleAsteroid();
+        GameObject ast2 = spawner.SpawnSingleAsteroid();
+        Assert.IsNotNull(ast1);
+        Assert.IsNotNull(ast2);
+        Assert.AreEqual(2, spawner.ActiveAsteroidCount);
+        Assert.IsTrue(spawner.IsAsteroidAtCapacity);
+
+        // 3rd attempt returns null
+        GameObject ast3 = spawner.SpawnSingleAsteroid();
+        Assert.IsNull(ast3, "Spawning past capacity should return null");
+
+        // Destroy one and clean
+        Object.DestroyImmediate(ast1);
+        spawner.CleanDeadReferences();
+
+        Assert.AreEqual(1, spawner.ActiveAsteroidCount);
+        Assert.IsFalse(spawner.IsAsteroidAtCapacity);
+
+        GameObject ast4 = spawner.SpawnSingleAsteroid();
+        Assert.IsNotNull(ast4);
+        Assert.AreEqual(2, spawner.ActiveAsteroidCount);
+    }
+
+    [Test]
+    public void BlockSpawner_WaveManager_SyncsAsteroidThreatsAndBudget()
+    {
+        GameObject wmObj = new GameObject("TestWaveManager");
+        WaveManager wm = wmObj.AddComponent<WaveManager>();
+        spawner.waveManager = wm;
+        spawner.syncWithWaveManager = true;
+        spawner.asteroidThreatCost = 3;
+
+        wm.StartRun();
+        wm.TriggerCombatImmediately();
+
+        int initialBudget = wm.RemainingThreatBudget;
+        Assert.GreaterOrEqual(initialBudget, 3);
+        int initialThreats = wm.ActiveThreatCount;
+
+        // Spawn asteroid burst of 1
+        spawner.SpawnAsteroidBurst(1);
+
+        Assert.AreEqual(1, spawner.ActiveAsteroidCount);
+        Assert.AreEqual(initialThreats + 1, wm.ActiveThreatCount, "WaveManager should have 1 additional active threat");
+        Assert.AreEqual(initialBudget - 3, wm.RemainingThreatBudget, "WaveManager should consume threat budget for asteroid");
+
+        // Clearing spawner unregisters threats
+        spawner.ClearAllSpawned();
+        Assert.AreEqual(0, spawner.ActiveAsteroidCount);
+        Assert.AreEqual(initialThreats, wm.ActiveThreatCount, "Threat should be unregistered after ClearAllSpawned");
+
+        Object.DestroyImmediate(wmObj);
+    }
+
+    [Test]
+    public void BlockSpawner_WaveManager_AdaptsDifficultyOnWaveStarted()
+    {
+        GameObject wmObj = new GameObject("TestWaveManager");
+        WaveManager wm = wmObj.AddComponent<WaveManager>();
+        spawner.waveManager = wm;
+        spawner.syncWithWaveManager = true;
+        spawner.adaptWaveDifficulty = true;
+
+        WaveDefinition def = WaveDefinition.Create(minMass: 7, blockLevel: 4, shellLevel: 6);
+        wm.authoredWaves.Clear();
+        wm.authoredWaves.Add(def);
+
+        wm.StartRun();
+        wm.TriggerCombatImmediately();
+
+        Assert.AreEqual(7, spawner.asteroidCoreHits, "Asteroid core hits should adapt from WaveDefinition.minMass");
+        Assert.AreEqual(4, spawner.minHits, "Min hits should adapt from WaveDefinition.blockLevel");
+        Assert.AreEqual(6, spawner.maxHits, "Max hits should adapt from WaveDefinition.shellLevel");
+
+        Object.DestroyImmediate(wmObj);
+    }
 }
+

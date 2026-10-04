@@ -20,43 +20,6 @@ public class WaveManager : MonoBehaviour
         GameOver        // Player died or session ended
     }
 
-    [System.Serializable]
-    public class WaveDefinition
-    {
-        public int waveNumber = 1;
-        public string waveTitle = "Wave 1";
-        
-        [Header("Objectives & Scaling")]
-        [Tooltip("Target XP required to clear this wave. If 0 or negative, resolves automatically from PlayerProgression.waveGoals.")]
-        public ulong targetXPGoal = 0;
-
-        [Tooltip("Max combat duration in seconds (optional fallback if useWaveTimer is enabled).")]
-        public float duration = 30f;
-        
-        [Tooltip("Total threat points/budget to spawn during this wave.")]
-        public int threatBudget = 10;
-
-        [Header("Pacing")]
-        [Tooltip("Target interval in seconds between spawning threats.")]
-        public float spawnInterval = 2.0f;
-
-        [Header("Asteroid Scaling")]
-        public int minMass = 2;
-        public int maxMass = 4;
-        public int shellLevel = 1;
-        public int blockLevel = 1;
-
-        [Header("Rewards")]
-        public int rewardCredits = 25;
-        public int rewardXP = 50;
-        public bool grantExtraGun = false;      // Grants an additional turret/socket
-
-        public WaveDefinition Clone()
-        {
-            return (WaveDefinition)MemberwiseClone();
-        }
-    }
-
     [Header("Current Status")]
     [SerializeField] private WaveState currentState = WaveState.Idle;
     [SerializeField] private int currentWaveIndex = 0;
@@ -570,72 +533,78 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     public virtual WaveDefinition GenerateProceduralWave(int waveNumber)
     {
-        WaveDefinition def = new WaveDefinition();
-        def.waveNumber = waveNumber;
-        def.waveTitle = $"Sector Zone {waveNumber}";
+        float duration = Mathf.Min(60f, 25f + waveNumber * 3f);
+        int threatBudget = Mathf.RoundToInt(10 + Mathf.Pow(waveNumber, 1.25f) * 3f);
+        float spawnInterval = Mathf.Max(0.6f, 2.2f - (waveNumber * 0.08f));
+        int minMass = Mathf.Min(8, 2 + (waveNumber / 3));
+        int maxMass = Mathf.Min(16, 4 + (waveNumber / 2));
+        int shellLevel = 1 + (waveNumber / 4);
+        int blockLevel = 1 + (waveNumber / 5);
+        int rewardCredits = 25 + waveNumber * 10;
+        int rewardXP = 50 + waveNumber * 25;
 
-        // Duration scales gradually, capped at 60s
-        def.duration = Mathf.Min(60f, 25f + waveNumber * 3f);
-
-        // Exponential-linear threat budget curve
-        def.threatBudget = Mathf.RoundToInt(10 + Mathf.Pow(waveNumber, 1.25f) * 3f);
-
-        // Spawns speed up slightly as waves progress, min 0.6s
-        def.spawnInterval = Mathf.Max(0.6f, 2.2f - (waveNumber * 0.08f));
-
-        // Asteroid hardness scales with waves
-        def.minMass = Mathf.Min(8, 2 + (waveNumber / 3));
-        def.maxMass = Mathf.Min(16, 4 + (waveNumber / 2));
-        def.shellLevel = 1 + (waveNumber / 4);
-        def.blockLevel = 1 + (waveNumber / 5);
-
-        // Reward progression
-        def.rewardCredits = 25 + waveNumber * 10;
-        def.rewardXP = 50 + waveNumber * 25;
-
-        return def;
+        return WaveDefinition.Create(
+            waveNumber: waveNumber,
+            waveTitle: $"Sector Zone {waveNumber}",
+            duration: duration,
+            threatBudget: threatBudget,
+            spawnInterval: spawnInterval,
+            minMass: minMass,
+            maxMass: maxMass,
+            rewardCredits: rewardCredits,
+            rewardXP: rewardXP,
+            shellLevel: shellLevel,
+            blockLevel: blockLevel
+        );
     }
 
     private void PopulateDefaultWaves()
     {
+        WaveDefinition[] loaded = Resources.LoadAll<WaveDefinition>("Waves");
+        if (loaded != null && loaded.Length > 0)
+        {
+            var sorted = new List<WaveDefinition>(loaded);
+            sorted.Sort((a, b) => a.waveNumber.CompareTo(b.waveNumber));
+            authoredWaves = sorted;
+            return;
+        }
+
         authoredWaves = new List<WaveDefinition>
         {
-            new WaveDefinition
-            {
-                waveNumber = 1,
-                waveTitle = "First Contact: Scout Asteroids",
-                duration = 20f,
-                threatBudget = 8,
-                spawnInterval = 2.5f,
-                minMass = 2,
-                maxMass = 3,
-                rewardCredits = 20,
-                rewardXP = 40
-            },
-            new WaveDefinition
-            {
-                waveNumber = 2,
-                waveTitle = "Asteroid Cluster",
-                duration = 25f,
-                threatBudget = 14,
-                spawnInterval = 2.0f,
-                minMass = 2,
-                maxMass = 5,
-                rewardCredits = 35,
-                rewardXP = 75
-            },
-            new WaveDefinition
-            {
-                waveNumber = 3,
-                waveTitle = "Dense Debris Field",
-                duration = 30f,
-                threatBudget = 20,
-                spawnInterval = 1.7f,
-                minMass = 3,
-                maxMass = 6,
-                rewardCredits = 50,
-                rewardXP = 120
-            }
+            WaveDefinition.Create(
+                waveNumber: 1,
+                waveTitle: "First Contact: Just Asteroids",
+                duration: 20f,
+                threatBudget: 8,
+                spawnInterval: 2.5f,
+                minMass: 2,
+                maxMass: 3,
+                rewardCredits: 20,
+                rewardXP: 40
+            ),
+            WaveDefinition.Create(
+                waveNumber: 2,
+                waveTitle: "Second wave: Asteroid Clusters",
+                duration: 25f,
+                threatBudget: 14,
+                spawnInterval: 2.0f,
+                minMass: 2,
+                maxMass: 5,
+                rewardCredits: 35,
+                rewardXP: 75
+            ),
+            WaveDefinition.Create(
+                waveNumber: 3,
+                waveTitle: "Third wave: Dense Debris Field, Can you hold it?",
+                duration: 30f,
+                threatBudget: 20,
+                spawnInterval: 1.7f,
+                minMass: 3,
+                maxMass: 6,
+                rewardCredits: 50,
+                rewardXP: 120,
+                grantExtraGun: true
+            )
         };
     }
 

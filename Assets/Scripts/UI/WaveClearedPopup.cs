@@ -30,7 +30,7 @@ public class WaveClearedPopup : MonoBehaviour
             }
         }
    
-        private void ShowPopup(int waveNumber, WaveManager.WaveDefinition config)
+        private void ShowPopup(int waveNumber, WaveDefinition config)
         {
             if (panel == null) return;
    

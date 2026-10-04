@@ -65,6 +65,7 @@
     <Compile Include="Assets/Editor/Tests/ProjectileSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerWeaponTests.cs" />
     <Compile Include="Assets/Editor/Tests/TankAITests.cs" />
+    <Compile Include="Assets/Editor/Tests/WaveEnteredPanelTests.cs" />
     <Compile Include="Assets/Editor/Tests/PowerupSystemTests.cs" />
     <Compile Include="Assets/Editor/Tests/MainMenuTests.cs" />
     <Compile Include="Assets/Editor/Tests/PlayerHUDTests.cs" />

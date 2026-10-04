@@ -178,7 +178,7 @@ public class WaveManagerTests
     public void WaveManager_ProceduralWave_ScalesBeyondAuthoredWaves()
     {
         int beyondWaveIndex = 99;
-        WaveManager.WaveDefinition procWave = waveManager.GetWaveDefinition(beyondWaveIndex);
+        WaveDefinition procWave = waveManager.GetWaveDefinition(beyondWaveIndex);
 
         Assert.IsNotNull(procWave);
         Assert.AreEqual(beyondWaveIndex, procWave.waveNumber);

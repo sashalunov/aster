@@ -1424,8 +1424,21 @@ public class AsteroidGrid : AsteroidBase
         _num_boxes_generated = 0;
     }
 
+    /// <summary>
+    /// Synchronizes in-memory grid tracking with child GameObjects attached to this transform.
+    /// </summary>
+    public void SyncGrid()
+    {
+        RegisterExistingChildrenIntoGrid();
+    }
+
     public override int UpdateMass()
     {
+        if (gridBlocks.Count == 0 && transform.childCount > 0)
+        {
+            RegisterExistingChildrenIntoGrid();
+        }
+
         PruneNullGridEntries();
 
         int childMass = 0;
