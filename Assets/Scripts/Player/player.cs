@@ -119,7 +119,6 @@ public class player : MonoBehaviour
 
     private Vector3 moveDirection = Vector3.zero;
 
-    public Transform bullet;
     public ParticleSystem ps_thruster;
 
 

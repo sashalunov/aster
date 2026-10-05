@@ -460,14 +460,6 @@ public class WaveManager : MonoBehaviour
             {
                 p._cred_value += (ulong)CurrentWaveConfig.rewardCredits;
             }
-            if (CurrentWaveConfig.grantExtraGun)
-            {
-                if (PowerupManager.Instance != null)
-                {
-                    PowerupManager.Instance.ApplyExtraGun(p);
-                }
-            }
-
             if (PowerupManager.Instance != null)
             {
                 PowerupManager.Instance.CollectAllRemaining(p);
@@ -619,7 +611,6 @@ public class WaveManager : MonoBehaviour
                 rewardCredits: 20,
                 rewardXP: 40,
                 blockDropChance: 0.12f,
-                coreDropChance: 1.0f,
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 60f),
@@ -641,7 +632,6 @@ public class WaveManager : MonoBehaviour
                 rewardCredits: 35,
                 rewardXP: 75,
                 blockDropChance: 0.15f,
-                coreDropChance: 1.0f,
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 50f),
@@ -666,7 +656,9 @@ public class WaveManager : MonoBehaviour
                 rewardXP: 120,
                 grantExtraGun: true,
                 blockDropChance: 0.18f,
-                coreDropChance: 1.0f,
+                blockGuaranteedPrefab: null,
+                useGuaranteedType: false,
+                blockGuaranteedType: StandardPowerup.StandardType.ShieldUp,
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 40f),

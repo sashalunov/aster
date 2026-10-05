@@ -128,25 +128,18 @@ public class WaveDefinition : ScriptableObject
     [Header("Rewards")]
     public int rewardCredits = 25;
     public int rewardXP = 50;
-    public bool grantExtraGun = false;
+   
 
     [Header("Powerup Drops - General")]
     [Tooltip("Probability [0, 1] of a regular (non-core) block dropping a powerup upon destruction.")]
     [Range(0f, 1f)]
     public float blockDropChance = 0.15f;
 
-    [Tooltip("Probability [0, 1] of an asteroid core dropping a powerup upon destruction.")]
-    [Range(0f, 1f)]
-    public float coreDropChance = 1.0f;
+    public GameObject blockGuaranteedPrefab;
 
-    [Tooltip("Guaranteed powerup prefab dropped by cores. If null, core drops roll from dropTable.")]
-    public GameObject coreGuaranteedPrefab;
+    public bool useGuaranteedType = false;
 
-    [Tooltip("If true, core will drop a powerup of coreGuaranteedType when coreGuaranteedPrefab is null.")]
-    public bool useCoreGuaranteedType = false;
-
-    [Tooltip("Powerup type guaranteed for cores if useCoreGuaranteedType is true and coreGuaranteedPrefab is null.")]
-    public StandardPowerup.StandardType coreGuaranteedType = StandardPowerup.StandardType.ShieldUp;
+    public StandardPowerup.StandardType blockGuaranteedType = StandardPowerup.StandardType.ShieldUp;
 
     [Header("Powerup Drops - Weighted Table")]
     [Tooltip("Weighted drop table for this wave. If empty, falls back to PowerupManager default drop table.")]
@@ -191,13 +184,11 @@ public class WaveDefinition : ScriptableObject
         clone.blockLevel = this.blockLevel;
         clone.rewardCredits = this.rewardCredits;
         clone.rewardXP = this.rewardXP;
-        clone.grantExtraGun = this.grantExtraGun;
 
         clone.blockDropChance = this.blockDropChance;
-        clone.coreDropChance = this.coreDropChance;
-        clone.coreGuaranteedPrefab = this.coreGuaranteedPrefab;
-        clone.useCoreGuaranteedType = this.useCoreGuaranteedType;
-        clone.coreGuaranteedType = this.coreGuaranteedType;
+        clone.blockGuaranteedPrefab = this.blockGuaranteedPrefab;
+        clone.useGuaranteedType = this.useGuaranteedType;
+        clone.blockGuaranteedType = this.blockGuaranteedType;
 
         if (this.dropTable != null)
         {
@@ -238,10 +229,9 @@ public class WaveDefinition : ScriptableObject
         int shellLevel = 1,
         int blockLevel = 1,
         float blockDropChance = 0.15f,
-        float coreDropChance = 1.0f,
-        GameObject coreGuaranteedPrefab = null,
-        bool useCoreGuaranteedType = false,
-        StandardPowerup.StandardType coreGuaranteedType = StandardPowerup.StandardType.ShieldUp,
+        GameObject blockGuaranteedPrefab = null,
+        bool useGuaranteedType = false,
+        StandardPowerup.StandardType blockGuaranteedType = StandardPowerup.StandardType.ShieldUp,
         List<WaveDropEntry> dropTable = null,
         List<WaveXPDropEntry> xpThresholdDrops = null)
     {
@@ -255,16 +245,15 @@ public class WaveDefinition : ScriptableObject
         def.maxMass = maxMass;
         def.rewardCredits = rewardCredits;
         def.rewardXP = rewardXP;
-        def.grantExtraGun = grantExtraGun;
         def.targetXPGoal = targetXPGoal;
         def.shellLevel = shellLevel;
         def.blockLevel = blockLevel;
 
         def.blockDropChance = blockDropChance;
-        def.coreDropChance = coreDropChance;
-        def.coreGuaranteedPrefab = coreGuaranteedPrefab;
-        def.useCoreGuaranteedType = useCoreGuaranteedType;
-        def.coreGuaranteedType = coreGuaranteedType;
+
+        def.blockGuaranteedPrefab = blockGuaranteedPrefab;
+        def.useGuaranteedType = useGuaranteedType;
+        def.blockGuaranteedType = blockGuaranteedType;
         def.dropTable = dropTable != null ? new List<WaveDropEntry>(dropTable) : new List<WaveDropEntry>();
         def.xpThresholdDrops = xpThresholdDrops != null ? new List<WaveXPDropEntry>(xpThresholdDrops) : new List<WaveXPDropEntry>();
 

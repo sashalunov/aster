@@ -403,28 +403,7 @@ public class PowerupManager : MonoBehaviour
             }
         }
 
-        // 2. Core drop handling
-        if (isCore)
-        {
-            float coreChance = wave != null ? wave.coreDropChance : 1f;
-            if (forceDrop || UnityEngine.Random.value <= coreChance)
-            {
-                if (wave != null && wave.coreGuaranteedPrefab != null)
-                {
-                    return SpawnPowerupFromPrefab(wave.coreGuaranteedPrefab, position);
-                }
-                if (wave != null && wave.useCoreGuaranteedType)
-                {
-                    return SpawnDropEntry(null, wave.coreGuaranteedType, position);
-                }
-                if (wave != null && wave.dropTable != null && wave.dropTable.Count > 0)
-                {
-                    return SpawnFromWaveDropTable(wave.dropTable, position);
-                }
-                return SpawnDefaultCoreDrop(position);
-            }
-            return null;
-        }
+        
 
         // 3. Regular block drop handling
         float blockChance = wave != null ? wave.blockDropChance : 0.15f;

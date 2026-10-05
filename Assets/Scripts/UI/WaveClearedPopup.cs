@@ -42,7 +42,7 @@ public class WaveClearedPopup : MonoBehaviour
    
             if (statsText != null)
             {
-                string gunReward = config != null && config.grantExtraGun ? "\n+ NEW TURRET UNLOCKED!" : "";
+                //string gunReward = config != null && config.grantExtraGun ? "\n+ NEW TURRET UNLOCKED!" : "";
                 int xpReward = config != null ? config.rewardXP : 0;
                 int credReward = config != null ? config.rewardCredits : 0;
    
@@ -51,7 +51,7 @@ public class WaveClearedPopup : MonoBehaviour
                     ? $"\n\nPower: {p._bullet_force} | Rate: {p._fire_hz:0.#}Hz | Dmg: {p._bullet_dmg}" 
                     : "";
    
-                statsText.SetText($"+{xpReward} XP   +{credReward} Credits{gunReward}{shipStats}");
+                statsText.SetText($"+{xpReward} XP   +{credReward} Credits{shipStats}");
             }
    
             // 2. Open Panel with Fade/Punch Animation

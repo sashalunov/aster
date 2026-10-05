@@ -38,12 +38,9 @@ public abstract class PowerupBase : MonoBehaviour
     [Tooltip("Speed in units/second at which powerup flies towards player.")]
     [SerializeField] protected float magnetSpeed = 8.0f;
 
-    [Header("Hover & Rotation Animation")]
+    [Header("Hover Animation")]
     [Tooltip("Enable subtle floating hover and rotation.")]
     [SerializeField] protected bool enableIdleAnimation = true;
-
-    [Tooltip("Rotation speed in degrees per second.")]
-    [SerializeField] protected float rotationSpeed = 60.0f;
 
     [Tooltip("Bobbing frequency (oscillations per second).")]
     [SerializeField] protected float bobFrequency = 2.0f;
@@ -158,10 +155,9 @@ public abstract class PowerupBase : MonoBehaviour
             }
         }
 
-        // Idle hover & spin animation
+        // Idle hover  animation
         if (enableIdleAnimation)
         {
-            transform.Rotate(0f, 0f, rotationSpeed * dt, Space.Self);
 
             float bobOffset = Mathf.Sin(_age * bobFrequency * Mathf.PI * 2f) * bobAmplitude * dt;
             transform.position += new Vector3(0f, bobOffset, 0f);
@@ -255,12 +251,7 @@ public abstract class PowerupBase : MonoBehaviour
     /// </summary>
     public virtual void UpdateVisuals()
     {
-        TextMeshPro tmp = GetComponentInChildren<TextMeshPro>();
-        if (tmp != null)
-        {
-            tmp.SetText(displayName);
-            tmp.color = themeColor;
-        }
+        
     }
 
     protected void ResolvePlayerReference()
