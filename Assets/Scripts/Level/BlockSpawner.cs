@@ -465,7 +465,11 @@ public class BlockSpawner : MonoBehaviour
             Transform coreT = newAsteroid.transform.Find("core_block");
             if (coreT != null)
             {
-                grid.coreBlock = coreT.GetComponent<BlockBase>();
+                grid.coreBlock = coreT.GetComponent<BlockAsteroidCore>();
+            }
+            if (grid.coreBlock == null)
+            {
+                grid.EnsureCoreBlock();
             }
         }
 
@@ -473,7 +477,7 @@ public class BlockSpawner : MonoBehaviour
         if (grid.coreBlock == null)
         {
             GameObject cPrefab = blockPrefab != null ? blockPrefab : PrefabManager.Get(PrefabId.Block0);
-            grid._block = cPrefab;
+            grid._blockPrefab = cPrefab;
             grid.generate_asteroid(coremass: asteroidCoreHits, massmin: 0, massmax: 0);
         }
         else
