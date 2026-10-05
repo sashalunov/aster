@@ -110,6 +110,12 @@ public abstract class BlockBase : MonoBehaviour
             {
                 p.AddXP((int)damage, transform);
             }
+
+            // Play block impact/collision sound
+            if (AudioManager.HasInstance)
+            {
+                AudioManager.Instance.PlayCollision(transform.position, Mathf.Max(damage * 3f, 2f));
+            }
         }
 
         // Destruction Check
@@ -231,6 +237,7 @@ public abstract class BlockBase : MonoBehaviour
         {
             Instantiate(destroyFx, deathPos, Quaternion.identity);
         }
+       
     }
 
     /// <summary>

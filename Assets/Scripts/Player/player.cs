@@ -106,6 +106,10 @@ public class player : MonoBehaviour
         {
             Instantiate(ultraDeath, transform.position, Quaternion.identity);
         }
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayExplosion(transform.position, 1f, true);
+        }
 
         OnDeath?.Invoke();
     }
@@ -376,38 +380,9 @@ public class player : MonoBehaviour
             }
         }
 
-        if (col.collider.tag == "block")
+        bool isBlock = col.collider.CompareTag("block") || col.collider.GetComponent<BlockBase>() != null;
+        if (isBlock)
         {
-            var dmg = 1;
-
-            if (fx_shield_damage_tip != null)
-            {
-                GameObject showup = Instantiate(fx_shield_damage_tip, transform.position, Quaternion.identity) as GameObject;
-                showup.transform.parent = null;
-            }
-
-            float blockDmg = dmg;
-            if (shield_value > 0f)
-            {
-                if (blockDmg <= shield_value)
-                {
-                    shield_value -= blockDmg;
-                    blockDmg = 0f;
-                }
-                else
-                {
-                    blockDmg -= shield_value;
-                    shield_value = 0f;
-                }
-                UpdateShieldHUD();
-            }
-            if (blockDmg > 0f)
-            {
-                health_value -= blockDmg;
-                if (health_value < 0f) health_value = 0f;
-                UpdateHealthHUD();
-            }
-
             // Resolve target Rigidbody: if block is attached to an asteroid, apply impulse to whole asteroid
             AsteroidBase parentAsteroid = col.collider.GetComponentInParent<AsteroidBase>();
             Rigidbody otherRb = null;
@@ -454,17 +429,15 @@ public class player : MonoBehaviour
             float bounceImpulse = Mathf.Max(relativeSpeed * 0.25f, 1f);
             Vector3 contactPoint = col.contactCount > 0 ? col.GetContact(0).point : col.collider.bounds.center;
 
-            // Bounce player ship away
-            Rigidbody playerRb = GetComponent<Rigidbody>();
-            if (playerRb != null)
+            // 1. Play physical collision impact sound at contact point
+            if (AudioManager.HasInstance)
             {
-                Vector3 playerVel = playerRb.linearVelocity;
-                if (Vector3.Dot(playerVel, pushBlockDir) > 0)
-                {
-                    playerRb.linearVelocity -= Vector3.Project(playerVel, pushBlockDir);
-                }
-                playerRb.AddForceAtPosition(pushPlayerDir * bounceImpulse, contactPoint, ForceMode.Impulse);
+                AudioManager.Instance.PlayCollision(contactPoint, relativeSpeed);
             }
+
+            // 2. Damage player ship cleanly via TakeDamage (which triggers shield / hull damage audio & HUD)
+            var dmg = 1f;
+            TakeDamage(dmg, pushPlayerDir, contactPoint, bounceImpulse);
 
             // Bounce block or whole asteroid away
             if (otherRb != null)
@@ -582,11 +555,13 @@ public class player : MonoBehaviour
             {
                 shield_value -= dmg;
                 dmg = 0f;
+                if (AudioManager.HasInstance) AudioManager.Instance.PlayShieldHit(transform.position, 1f, isPlayer: true);
             }
             else
             {
                 dmg -= shield_value;
                 shield_value = 0f;
+                if (AudioManager.HasInstance) AudioManager.Instance.PlayShieldBreak(transform.position, 1f, isPlayer: true);
             }
             UpdateShieldHUD();
         }
@@ -596,6 +571,7 @@ public class player : MonoBehaviour
         {
             health_value -= dmg;
             if (health_value < 0f) health_value = 0f;
+            if (AudioManager.HasInstance) AudioManager.Instance.PlayCollision(transform.position, bounceImpulse > 0f ? bounceImpulse : 5f);
             UpdateHealthHUD();
         }
 
