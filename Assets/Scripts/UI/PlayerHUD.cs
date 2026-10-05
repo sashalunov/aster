@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using DG.Tweening;
 
 public class PlayerHUD : MonoBehaviour
 {
@@ -16,6 +17,9 @@ public class PlayerHUD : MonoBehaviour
     public TMP_Text timerText;
     public Image xpProgress;
     public Image xpProgressFill;
+
+[SerializeField] private DOTweenAnimation shieldBarAnim;
+[SerializeField] private DOTweenAnimation healthBarAnim;
 
     [Header("Weapon UI")]
     public TMP_Text wpnPowerText;
@@ -139,6 +143,8 @@ public class PlayerHUD : MonoBehaviour
         }
         _isSubscribed = false;
     }
+    private float _lastShield = -1f;
+    private float _lastHealth = -1f;
 
     public void RefreshAllDisplays()
     {
@@ -152,6 +158,9 @@ public class PlayerHUD : MonoBehaviour
         if (_player != null)
         {
             UpdateWeaponDisplay(_player._bullet_force, _player._fire_rate, _player._bullet_dmg);
+             _lastShield = _player.shield_value;
+             _lastHealth = _player.health_value;
+
             UpdateShieldDisplay(_player.shield_value, _player.shield_max_value);
             UpdateHealthDisplay(_player.health_value, _player.health_max_value);
             UpdateUpgradePointsDisplay(_player.UpgradePoints);
@@ -209,6 +218,11 @@ public class PlayerHUD : MonoBehaviour
         {
             shieldProgress.fillAmount = Mathf.Clamp01(currentShield / maxShield);
         }
+        if (currentShield != _lastShield)
+        {
+            if (shieldBarAnim != null) shieldBarAnim.DORestart();
+        }
+       
     }
 
     public void UpdateHealthDisplay(float currentHealth, float maxHealth)
@@ -231,6 +245,10 @@ public class PlayerHUD : MonoBehaviour
             {
                 healthProgress.color = Color.Lerp(new Color(0.9f, 0.2f, 0.2f), new Color(1f, 0.8f, 0.2f), fill * 2f);
             }
+        }
+        if (currentHealth != _lastHealth)
+        {
+            if (healthBarAnim != null) healthBarAnim.DORestart();
         }
     }
 }
