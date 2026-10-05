@@ -80,6 +80,7 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleEPOOutline.cs" />
     <Compile Include="Assets/Scripts/Catalog/PrefabCatalog.cs" />
     <Compile Include="Assets/Scripts/Combat/HitBlast.cs" />
+    <Compile Include="Assets/Scripts/Player/PlayerShield.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTextMeshPro.cs" />
     <Compile Include="Assets/Scripts/Player/player.cs" />
     <Compile Include="Assets/Scripts/Catalog/PrefabManager.cs" />

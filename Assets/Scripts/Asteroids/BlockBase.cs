@@ -104,11 +104,12 @@ public abstract class BlockBase : MonoBehaviour
         // Damage FX & XP Awarding
         if (damage > 0)
         {
-            SpawnHitPopup(damage);
+           
 
             if (p != null)
             {
                 p.AddXP((int)damage, transform);
+                 SpawnHitPopup(damage);
             }
 
             // Play block impact/collision sound

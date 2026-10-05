@@ -633,13 +633,14 @@ public class AsteroidBase : MonoBehaviour
             if (b1 != null && b1._player != null)
             {
                 b1._player.AddXP(damage, transform);
-            }
-            UpdateMass();
-            var bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
+                 var bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
             if (bonus != null)
             {
                 bonus.GetComponentInChildren<TextMeshPro>()?.SetText("+" + damage.ToString());
             }
+            }
+            UpdateMass();
+          
         }
         if (newhits < 1)
         {
@@ -665,8 +666,7 @@ public class AsteroidBase : MonoBehaviour
 
         int reward = DetachChildrenOnDestruction();
         int totalXp = reward + _core_hits;
-
-        player p = (b1 != null && b1._player != null) ? b1._player : FindAnyObjectByType<player>();
+        player p = (b1 != null && b1._player != null) ? b1._player : null;
         if (p != null)
         {
             p.AddXP(totalXp, transform);

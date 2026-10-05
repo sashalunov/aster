@@ -23,6 +23,7 @@ public class player : MonoBehaviour
 
     public event System.Action<float, float, float> OnWeaponStatsChanged;
     public event System.Action<float, float> OnShieldChanged;
+    public event System.Action<float, Vector3> OnShieldHit;
     public event System.Action<float, float> OnHealthChanged;
     public event System.Action<int> OnUpgradePointsChanged;
     public event System.Action OnDeath;
@@ -490,7 +491,7 @@ public class player : MonoBehaviour
         // Shield absorbs damage first
         if (shield_value > 0f)
         {
-            if (dmg <= shield_value)
+            if (dmg < shield_value)
             {
                 shieldDmg = dmg;
                 shield_value -= dmg;
@@ -504,6 +505,7 @@ public class player : MonoBehaviour
                 shield_value = 0f;
                 if (AudioManager.HasInstance) AudioManager.Instance.PlayShieldBreak(transform.position, 1f, isPlayer: true);
             }
+            OnShieldHit?.Invoke(shieldDmg, contactPoint);
             UpdateShieldHUD();
         }
 

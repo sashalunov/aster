@@ -58,6 +58,7 @@
     <Compile Include="Assets/Editor/PrefabCatalogBuilder.cs" />
     <Compile Include="Assets/Editor/Tests/WavePowerupDropTests.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenPreviewManager.cs" />
+    <Compile Include="Assets/Editor/Tests/PlayerShieldTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets/ThirdParty/Demigiant/DemiLib/Core/Editor/DemiEditor.dll" />
