@@ -371,6 +371,8 @@ public class PowerupManager : MonoBehaviour
         if (wave != null && wave.xpThresholdDrops != null && wave.xpThresholdDrops.Count > 0)
         {
             List<PowerupBase> milestoneDrops = null;
+            bool anyMilestoneTriggered = false;
+
             for (int i = 0; i < wave.xpThresholdDrops.Count; i++)
             {
                 var xpDrop = wave.xpThresholdDrops[i];
@@ -381,6 +383,7 @@ public class PowerupManager : MonoBehaviour
                 if (xpToCheck >= xpDrop.xpThreshold)
                 {
                     xpDrop.hasDropped = true;
+                    anyMilestoneTriggered = true;
                     if (milestoneDrops == null) milestoneDrops = new List<PowerupBase>();
 
                     Vector3 spawnPos = position;
@@ -401,13 +404,18 @@ public class PowerupManager : MonoBehaviour
             {
                 return milestoneDrops[0];
             }
+            if (anyMilestoneTriggered)
+            {
+                return null;
+            }
         }
 
-        
+        // 2. Core vs Regular Block drop handling
+        float dropChance = isCore
+            ? (wave != null ? wave.coreDropChance : 0.65f)
+            : (wave != null ? wave.blockDropChance : 0.15f);
 
-        // 3. Regular block drop handling
-        float blockChance = wave != null ? wave.blockDropChance : 0.15f;
-        if (forceDrop || UnityEngine.Random.value <= blockChance)
+        if (forceDrop || UnityEngine.Random.value <= dropChance)
         {
             if (wave != null && wave.dropTable != null && wave.dropTable.Count > 0)
             {
@@ -417,7 +425,7 @@ public class PowerupManager : MonoBehaviour
             {
                 return SpawnRandomPowerup(position);
             }
-            return SpawnDefaultBlockDrop(position);
+            return isCore ? SpawnDefaultCoreDrop(position) : SpawnDefaultBlockDrop(position);
         }
 
         return null;
@@ -425,39 +433,81 @@ public class PowerupManager : MonoBehaviour
 
     /// <summary>
     /// Spawns a powerup from a specified prefab or assigns powerupType onto a newly instantiated standard powerup.
+    /// Supports both custom prefabs and standard type prefabs from PrefabManager.
     /// </summary>
     public PowerupBase SpawnDropEntry(GameObject prefab, StandardPowerup.StandardType powerupType, Vector3 position)
     {
         if (prefab != null)
         {
-            return SpawnPowerupFromPrefab(prefab, position);
+            GameObject instance = Instantiate(prefab, position, Quaternion.identity);
+            StandardPowerup customSp = instance.GetComponentInChildren<StandardPowerup>();
+            if (customSp != null && prefab == PrefabManager.Get(PrefabId.PowerupDefault))
+            {
+                customSp.Type = powerupType;
+            }
+
+            PowerupBase pu = instance.GetComponentInChildren<PowerupBase>();
+            if (pu != null)
+            {
+                Register(pu);
+            }
+            return pu;
         }
 
-        GameObject template = PrefabManager.Get(PrefabId.PowerupDefault);
-        GameObject instance = null;
+        GameObject template = GetPrefabForStandardType(powerupType);
+        if (template == null)
+        {
+            template = PrefabManager.Get(PrefabId.PowerupDefault);
+        }
+
+        GameObject spawnedObj = null;
         if (template != null)
         {
-            instance = Instantiate(template, position, Quaternion.identity);
+            spawnedObj = Instantiate(template, position, Quaternion.identity);
         }
         else
         {
-            instance = new GameObject("Powerup_" + powerupType);
-            instance.transform.position = position;
-            instance.AddComponent<StandardPowerup>();
+            spawnedObj = new GameObject("Powerup_" + powerupType);
+            spawnedObj.transform.position = position;
+            spawnedObj.AddComponent<StandardPowerup>();
         }
 
-        StandardPowerup sp = instance.GetComponent<StandardPowerup>();
+        StandardPowerup sp = spawnedObj.GetComponentInChildren<StandardPowerup>();
         if (sp != null)
         {
             sp.Type = powerupType;
         }
 
-        PowerupBase pb = instance.GetComponent<PowerupBase>();
+        PowerupBase pb = spawnedObj.GetComponentInChildren<PowerupBase>();
         if (pb != null)
         {
             Register(pb);
         }
         return pb;
+    }
+
+    /// <summary>
+    /// Resolves the dedicated prefab for a standard powerup type from PrefabManager if available.
+    /// </summary>
+    public static GameObject GetPrefabForStandardType(StandardPowerup.StandardType powerupType)
+    {
+        switch (powerupType)
+        {
+            case StandardPowerup.StandardType.GunKinetic:
+                return PrefabManager.Get(PrefabId.PowerupGunKinetic);
+            case StandardPowerup.StandardType.GunPlasma:
+                return PrefabManager.Get(PrefabId.PowerupGunPlasma);
+            case StandardPowerup.StandardType.ShieldUp:
+                return PrefabManager.Get(PrefabId.PowerupShield) ?? PrefabManager.Get("pwpShieldUp");
+            case StandardPowerup.StandardType.AmmoRefill:
+                return PrefabManager.Get(PrefabId.PowerupAmmo);
+            case StandardPowerup.StandardType.UpgradePoint:
+                return PrefabManager.Get(PrefabId.PowerupUpgradePoint);
+            case StandardPowerup.StandardType.XpUp:
+                return PrefabManager.Get(PrefabId.PowerupXP);
+            default:
+                return PrefabManager.Get(PrefabId.PowerupDefault);
+        }
     }
 
     /// <summary>
@@ -468,7 +518,7 @@ public class PowerupManager : MonoBehaviour
         if (prefab == null) return null;
 
         GameObject instance = Instantiate(prefab, position, Quaternion.identity);
-        PowerupBase pu = instance.GetComponent<PowerupBase>();
+        PowerupBase pu = instance.GetComponentInChildren<PowerupBase>();
         if (pu != null)
         {
             Register(pu);

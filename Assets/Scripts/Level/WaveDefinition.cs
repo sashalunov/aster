@@ -134,12 +134,8 @@ public class WaveDefinition : ScriptableObject
     [Tooltip("Probability [0, 1] of a regular (non-core) block dropping a powerup upon destruction.")]
     [Range(0f, 1f)]
     public float blockDropChance = 0.15f;
-
-    public GameObject blockGuaranteedPrefab;
-
-    public bool useGuaranteedType = false;
-
-    public StandardPowerup.StandardType blockGuaranteedType = StandardPowerup.StandardType.ShieldUp;
+    [Range(0f, 1f)]
+    public float coreDropChance = 0.65f;
 
     [Header("Powerup Drops - Weighted Table")]
     [Tooltip("Weighted drop table for this wave. If empty, falls back to PowerupManager default drop table.")]
@@ -184,11 +180,8 @@ public class WaveDefinition : ScriptableObject
         clone.blockLevel = this.blockLevel;
         clone.rewardCredits = this.rewardCredits;
         clone.rewardXP = this.rewardXP;
-
+        clone.coreDropChance = this.coreDropChance;
         clone.blockDropChance = this.blockDropChance;
-        clone.blockGuaranteedPrefab = this.blockGuaranteedPrefab;
-        clone.useGuaranteedType = this.useGuaranteedType;
-        clone.blockGuaranteedType = this.blockGuaranteedType;
 
         if (this.dropTable != null)
         {
@@ -229,9 +222,8 @@ public class WaveDefinition : ScriptableObject
         int shellLevel = 1,
         int blockLevel = 1,
         float blockDropChance = 0.15f,
-        GameObject blockGuaranteedPrefab = null,
-        bool useGuaranteedType = false,
-        StandardPowerup.StandardType blockGuaranteedType = StandardPowerup.StandardType.ShieldUp,
+        float coreDropChance = 0.65f,
+  
         List<WaveDropEntry> dropTable = null,
         List<WaveXPDropEntry> xpThresholdDrops = null)
     {
@@ -248,12 +240,8 @@ public class WaveDefinition : ScriptableObject
         def.targetXPGoal = targetXPGoal;
         def.shellLevel = shellLevel;
         def.blockLevel = blockLevel;
-
         def.blockDropChance = blockDropChance;
-
-        def.blockGuaranteedPrefab = blockGuaranteedPrefab;
-        def.useGuaranteedType = useGuaranteedType;
-        def.blockGuaranteedType = blockGuaranteedType;
+        def.coreDropChance = coreDropChance;
         def.dropTable = dropTable != null ? new List<WaveDropEntry>(dropTable) : new List<WaveDropEntry>();
         def.xpThresholdDrops = xpThresholdDrops != null ? new List<WaveXPDropEntry>(xpThresholdDrops) : new List<WaveXPDropEntry>();
 

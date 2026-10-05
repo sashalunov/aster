@@ -656,9 +656,6 @@ public class WaveManager : MonoBehaviour
                 rewardXP: 120,
                 grantExtraGun: true,
                 blockDropChance: 0.18f,
-                blockGuaranteedPrefab: null,
-                useGuaranteedType: false,
-                blockGuaranteedType: StandardPowerup.StandardType.ShieldUp,
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 40f),

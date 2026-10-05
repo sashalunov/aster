@@ -54,7 +54,7 @@ public static class PrefabCatalogBuilder
             { PrefabId.ShowUpgradeFx, "show_upgrade" },
             { PrefabId.ShieldUpgradeFx, "shield_upgrade" },
             { PrefabId.PowerupDefault, "powerup" },
-            { PrefabId.PowerupShield, "powerup_shield" },
+            { PrefabId.PowerupShield, "pwpShieldUp" },
             { PrefabId.PowerupAmmo, "pwpAmmo" },
             { PrefabId.PowerupUpgradePoint, "pwpUpgradePoint" },
             { PrefabId.PowerupBulletSpeed, "pup_bullet_speed1" },
