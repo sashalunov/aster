@@ -51,6 +51,7 @@ public class MainMenu : MonoBehaviour
     public bool allowEscapeKey = true;
 
     // Runtime state
+    public static MainMenu Instance { get; private set; }
     public bool IsOpen { get; private set; }
     public bool HasGameStarted { get; private set; }
 
@@ -63,11 +64,29 @@ public class MainMenu : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else if (Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         ResolvePlayer();
         ResolveNameInput();
         ResolveResetProgressButton();
         BindButtons();
         BindNameInput();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     private void OnEnable()

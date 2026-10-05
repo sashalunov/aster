@@ -197,12 +197,22 @@ public class player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (cross1_marker != null)
+        {
+            cross1_marker.SetActive(_can_play);
+        }
+
+        if (!_can_play) return;
+
+        Camera activeCam = _player_cam != null ? _player_cam : Camera.main;
+        if (activeCam == null) return;
+
         Vector3 mousepos = Vector3.zero;
         Vector3 playerpos = Vector3.zero;
-        playerpos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
+        playerpos = activeCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -activeCam.transform.position.z));
         playerpos.y = 0;
 
-        mousepos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
+        mousepos = activeCam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -activeCam.transform.position.z));
         Ray mousegndray = new Ray(mousepos,Vector3.forward);
         RaycastHit[] gh = Physics.RaycastAll(mousegndray, 512f, LayerMask.GetMask("Terrain"));
         //groundmousepos = new Vector3(mousepos.x, 0, mousepos.z);
@@ -217,99 +227,96 @@ public class player : MonoBehaviour
         Vector3 a = transform.position;
         Vector3 b = mousepos;
 
-        if (_can_play)
+        AimWeapons(mousepos);
+
+        _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
+
+        _tap_time_accum += Time.deltaTime;
+        fire_time_accum += Time.deltaTime;
+       
+        cross1_marker.transform.position = gh.Length > 0 ? gh[0].point : mousepos;
+
+        if (Input.GetMouseButton(0)  )
         {
-            AimWeapons(mousepos);
-
-            _ship_hull.localEulerAngles = new Vector3(0, 0,Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f);
-
-            _tap_time_accum += Time.deltaTime;
-            fire_time_accum += Time.deltaTime;
-           
-           cross1_marker.transform.position = gh.Length > 0 ? gh[0].point : mousepos;
-
-            if (Input.GetMouseButton(0)  )
+            if (_tap_time_accum >= _tap_rate && _tap_enabled && _tap_hold == false)
             {
-                if (_tap_time_accum >= _tap_rate && _tap_enabled && _tap_hold == false)
-                {
-                    _tap_time_accum = 0;
-                    _tap_enabled = false;
-                     _tap_hold = true;
-                }
-
-                FireWeapons();
-            }
-            if(Input.GetMouseButtonUp(0))
-            {
-                _tap_hold = false;
-                _tap_enabled = true;
+                _tap_time_accum = 0;
+                _tap_enabled = false;
+                 _tap_hold = true;
             }
 
-            if (Input.GetMouseButton(1))
-            {
-                GetComponent<Rigidbody>().AddForce(dir * _thrust_force * Time.deltaTime, ForceMode.Impulse);
-                //transform.rotation = Quaternion.Euler(new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f));
-                ps_thruster.Play();
-            }
-            else
-            {
-                ps_thruster.Stop();
-            }
-
-            if (Input.GetKey("space"))
-            {   
-            }
-
-            if (_can_play && _upgradePoints > 0)
-            {
-                if (Input.GetKeyDown(KeyCode.Alpha1))
-                {
-                    UpgradeDamageWithPoints(1);
-                }
-                else if (Input.GetKeyDown(KeyCode.Alpha2))
-                {
-                    UpgradeForceWithPoints(1);
-                }
-                else if (Input.GetKeyDown(KeyCode.Alpha3))
-                {
-                    UpgradeFireRateWithPoints(1);
-                }
-            }
-
-            if (Input.GetKey("left"))
-            {
-                //transform.position = transform.position - new Vector3(speed * Time.deltaTime,0,0);
-                //GetComponent<Rigidbody>().AddForce(new Vector3(-1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
-
-
-            }
-            if (Input.GetKey("right"))
-            {
-                //transform.position = transform.position + new Vector3(speed * Time.deltaTime, 0, 0);
-                //GetComponent<Rigidbody>().AddForce(new Vector3(1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
-            }
-
-            //float dist = (transform.position.x - mousepos.x);
+            FireWeapons();
         }
+        if(Input.GetMouseButtonUp(0))
+        {
+            _tap_hold = false;
+            _tap_enabled = true;
+        }
+
+        if (Input.GetMouseButton(1))
+        {
+            GetComponent<Rigidbody>().AddForce(dir * _thrust_force * Time.deltaTime, ForceMode.Impulse);
+            //transform.rotation = Quaternion.Euler(new Vector3(0, 0, Mathf.Rad2Deg * Mathf.Atan2(b.y - a.y, b.x - a.x) - 90f));
+            ps_thruster.Play();
+        }
+        else
+        {
+            ps_thruster.Stop();
+        }
+
+        if (Input.GetKey("space"))
+        {   
+        }
+
+        if (_upgradePoints > 0)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                UpgradeDamageWithPoints(1);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha2))
+            {
+                UpgradeForceWithPoints(1);
+            }
+            else if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+                UpgradeFireRateWithPoints(1);
+            }
+        }
+
+        if (Input.GetKey("left"))
+        {
+            //transform.position = transform.position - new Vector3(speed * Time.deltaTime,0,0);
+            //GetComponent<Rigidbody>().AddForce(new Vector3(-1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
+
+
+        }
+        if (Input.GetKey("right"))
+        {
+            //transform.position = transform.position + new Vector3(speed * Time.deltaTime, 0, 0);
+            //GetComponent<Rigidbody>().AddForce(new Vector3(1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
+        }
+
+        //float dist = (transform.position.x - mousepos.x);
         
-        
-        Vector3 campos = _player_cam.transform.localPosition;
-       // float z = campos.z;
-        if (Input.GetAxis("Mouse ScrollWheel") < 0 ) 
+        if (_player_cam != null)
         {
-            campos.z -=2f;
-            zoom_lastTime = Time.time;
-            _player_cam.transform.localPosition = campos;
+            Vector3 campos = _player_cam.transform.localPosition;
+            if (Input.GetAxis("Mouse ScrollWheel") < 0 ) 
+            {
+                campos.z -=2f;
+                zoom_lastTime = Time.time;
+                _player_cam.transform.localPosition = campos;
+            }
+            if (Input.GetAxis("Mouse ScrollWheel") > 0 ) 
+            {
+                campos.z +=2f;
+                zoom_lastTime = Time.time;
+                _player_cam.transform.localPosition = campos;
+            }
         }
-        if (Input.GetAxis("Mouse ScrollWheel") > 0 ) 
-        {
-            campos.z +=2f;
-            zoom_lastTime = Time.time;
-            _player_cam.transform.localPosition = campos;
-
-        }
-
     }
+
     /// It is recommended that you make only one call to Move or SimpleMove per frame.	
 
     public void HandleTriggerExit(Collider col)

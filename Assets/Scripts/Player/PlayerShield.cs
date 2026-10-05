@@ -18,7 +18,7 @@ public class PlayerShield : MonoBehaviour
         FadeIn,
         FadeOut
     }
-
+     [SerializeField] private bool _useUnscaledTime = true;
     [Header("Material & Texture")]
     [Tooltip("Source material template. If null, will use the attached Renderer's material/sharedMaterial.")]
     public Material _mat;
@@ -409,7 +409,8 @@ public class PlayerShield : MonoBehaviour
 
     private void Update()
     {
-        UpdateShield(Time.deltaTime);
+        float dt = _useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
+          UpdateShield(dt);
     }
 
     /// <summary>

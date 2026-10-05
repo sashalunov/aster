@@ -103,6 +103,7 @@
     <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModulePhysics.cs" />
     <Compile Include="Assets/Scripts/Enemies/TankAI.cs" />
     <Compile Include="Assets/Scripts/Audio/ShipEngineAudio.cs" />
+    <Compile Include="Assets/Scripts/Player/PlayerCameraController.cs" />
     <Compile Include="Assets/Scripts/Audio/AudioManager.cs" />
     <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
     <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
