@@ -198,4 +198,101 @@ public class AsteroidCoreIntegrationTests
         Assert.IsNull(ast.coreBlock, "coreBlock should be null after Clear().");
         Assert.AreEqual(0, ast.CurrentBlockCount, "CurrentBlockCount should be 0 after Clear().");
     }
+
+    [Test]
+    public void Player_TakeDamage_ShieldAbsorbsDamageFirst()
+    {
+        var playerObj = new GameObject("TestPlayer");
+        cleanupList.Add(playerObj);
+        var p = playerObj.AddComponent<player>();
+        p.shield_value = 10f;
+        p.health_value = 10f;
+
+        p.TakeDamage(4f);
+
+        Assert.AreEqual(6f, p.shield_value, 0.001f, "Shield should absorb the initial damage.");
+        Assert.AreEqual(10f, p.health_value, 0.001f, "Health should remain intact when shield absorbs all damage.");
+    }
+
+    [Test]
+    public void Player_TakeDamage_ShieldBreakOverflowsToHealth()
+    {
+        var playerObj = new GameObject("TestPlayer");
+        cleanupList.Add(playerObj);
+        var p = playerObj.AddComponent<player>();
+        p.shield_value = 5f;
+        p.health_value = 10f;
+
+        p.TakeDamage(8f);
+
+        Assert.AreEqual(0f, p.shield_value, 0.001f, "Shield should be depleted to 0.");
+        Assert.AreEqual(7f, p.health_value, 0.001f, "Remaining damage should reduce health.");
+    }
+
+    [Test]
+    public void Player_TakeDamage_ZeroBounceImpulse_PreservesLinearVelocity()
+    {
+        var playerObj = new GameObject("TestPlayer");
+        cleanupList.Add(playerObj);
+        var rb = playerObj.AddComponent<Rigidbody>();
+        rb.useGravity = false;
+        var p = playerObj.AddComponent<player>();
+
+        Vector3 initialVelocity = new Vector3(5f, 0f, 0f);
+        rb.linearVelocity = initialVelocity;
+
+        p.TakeDamage(2f, direction: Vector3.right, contactPoint: default, bounceImpulse: 0f);
+
+        Assert.AreEqual(initialVelocity.x, rb.linearVelocity.x, 0.001f, "Velocity should not be cancelled when bounceImpulse is 0.");
+        Assert.AreEqual(initialVelocity.y, rb.linearVelocity.y, 0.001f);
+        Assert.AreEqual(initialVelocity.z, rb.linearVelocity.z, 0.001f);
+    }
+
+    [Test]
+    public void Player_TakeDamage_PositiveBounceImpulse_DampsIncomingVelocityAndAppliesForce()
+    {
+        var playerObj = new GameObject("TestPlayer");
+        cleanupList.Add(playerObj);
+        var rb = playerObj.AddComponent<Rigidbody>();
+        rb.useGravity = false;
+        rb.mass = 1f;
+        var p = playerObj.AddComponent<player>();
+
+        rb.linearVelocity = new Vector3(4f, 0f, 0f);
+        p.TakeDamage(1f, direction: Vector3.right, contactPoint: default, bounceImpulse: 2f);
+
+        // Linear velocity cancellation happens immediately
+        Assert.AreEqual(0f, rb.linearVelocity.x, 0.001f, "Incoming velocity along push direction is immediately zeroed.");
+
+        // Simulate physics step to integrate buffered AddForce impulse into velocity
+        var prevMode = Physics.simulationMode;
+        try
+        {
+            Physics.simulationMode = SimulationMode.Script;
+            Physics.Simulate(0.02f);
+            Assert.AreEqual(2f, rb.linearVelocity.x, 0.001f, "After physics simulation step, impulse gives 2 m/s to 1 kg Rigidbody.");
+        }
+        finally
+        {
+            Physics.simulationMode = prevMode;
+        }
+    }
+
+    [Test]
+    public void Player_TakeDamage_FatalDamage_TriggersDie()
+    {
+        var playerObj = new GameObject("TestPlayer");
+        cleanupList.Add(playerObj);
+        var p = playerObj.AddComponent<player>();
+        p.shield_value = 0f;
+        p.health_value = 5f;
+
+        bool deathTriggered = false;
+        p.OnDeath += () => deathTriggered = true;
+
+        p.TakeDamage(10f);
+
+        Assert.IsTrue(p.isDead, "Player should be marked dead after lethal damage.");
+        Assert.IsTrue(deathTriggered, "OnDeath event should be fired on fatal damage.");
+    }
 }
