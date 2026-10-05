@@ -60,7 +60,7 @@ public class AudioManager : MonoBehaviour
     [Header("Default Audio Clips (Optional Presets)")]
     [Tooltip("Default background music to start playing automatically.")]
     [SerializeField] private AudioClip defaultMusic;
-    [SerializeField] private bool autoPlayMusic = true;
+
 
     [Tooltip("Ship explosion sound (e.g. ship_explode.ogg).")]
     [SerializeField] private AudioClip shipExplosionClip;
@@ -185,10 +185,7 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        if (autoPlayMusic && defaultMusic != null && _currentMusicClip == null)
-        {
-            PlayMusic(defaultMusic, 1.2f, true);
-        }
+       
     }
 
     private void InitializeComponents()
@@ -218,7 +215,11 @@ public class AudioManager : MonoBehaviour
         GameObject sfxObj = sfxChannel != null ? sfxChannel.gameObject : new GameObject("2D_SFX");
         sfxObj.transform.SetParent(transform);
 
-        _sfx2DSource = sfxObj.GetComponent<AudioSource>() ?? sfxObj.AddComponent<AudioSource>();
+        _sfx2DSource = sfxObj.GetComponent<AudioSource>();
+        if (_sfx2DSource == null)
+        {
+            _sfx2DSource = sfxObj.AddComponent<AudioSource>();
+        }
         _sfx2DSource.spatialBlend = 0f;
         _sfx2DSource.loop = false;
         _sfx2DSource.playOnAwake = false;
@@ -319,10 +320,17 @@ public class AudioManager : MonoBehaviour
 
     #region Music (BGM) Control
 
+public void PlayBGM()
+    {
+        if (defaultMusic != null && _currentMusicClip == null)
+        {
+            PlayMusic(defaultMusic, 0, false);
+        }
+    }
     /// <summary>
     /// Plays background music with a smooth crossfade from any currently playing track.
     /// </summary>
-    public void PlayMusic(AudioClip clip, float fadeDuration = 1.0f, bool loop = true)
+    public void PlayMusic(AudioClip clip, float fadeDuration = 0.0f, bool loop = false)
     {
         if (_musicSourceA == null || _musicSourceB == null)
         {
@@ -572,6 +580,8 @@ public class AudioManager : MonoBehaviour
             InitializeComponents();
         }
 
+        if (_sfx2DSource == null) return;
+
         float finalVol = Mathf.Clamp01(volume) * SFXEffectiveVolume;
         if (pitchVariance > 0f)
         {
@@ -616,30 +626,24 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Plays a shield impact sound effect. If isPlayer is true, plays in 2D stereo for direct feedback.
+    /// Plays a shield impact sound effect at world position.
     /// </summary>
     public void PlayShieldHit(Vector3 position, float volume = 1f, bool isPlayer = false)
     {
         if (shieldHitClip != null)
         {
-            if (isPlayer)
-                Play2D(shieldHitClip, volume, 0.04f);
-            else
-                Play3D(shieldHitClip, position, volume, defaultMinDistance, defaultMaxDistance, 0.06f);
+            Play3D(shieldHitClip, position, volume, defaultMinDistance, defaultMaxDistance, 0.06f);
         }
     }
 
     /// <summary>
-    /// Plays a shield broken / lost sound effect. If isPlayer is true, plays in 2D stereo for direct feedback.
+    /// Plays a shield broken / lost sound effect at world position.
     /// </summary>
     public void PlayShieldBreak(Vector3 position, float volume = 1f, bool isPlayer = false)
     {
         if (shieldBreakClip != null)
         {
-            if (isPlayer)
-                Play2D(shieldBreakClip, volume, 0.02f);
-            else
-                Play3D(shieldBreakClip, position, volume, defaultMinDistance, defaultMaxDistance, 0.04f);
+            Play3D(shieldBreakClip, position, volume, defaultMinDistance, defaultMaxDistance, 0.04f);
         }
     }
 
@@ -665,27 +669,4 @@ public class AudioManager : MonoBehaviour
 
     #endregion
 
-    #region Static Helper Shortcuts
-
-    public static void Play3DSound(AudioClip clip, Vector3 position, float volume = 1f)
-    {
-        Instance.Play3D(clip, position, volume);
-    }
-
-    public static void PlayOneShot(AudioClip clip, float volume = 1f)
-    {
-        Instance.Play2D(clip, volume);
-    }
-
-    public static void PlayBGM(AudioClip musicClip, float fadeDuration = 1.0f)
-    {
-        Instance.PlayMusic(musicClip, fadeDuration);
-    }
-
-    public static void StopBGM(float fadeDuration = 1.0f)
-    {
-        Instance.StopMusic(fadeDuration);
-    }
-
-    #endregion
 }

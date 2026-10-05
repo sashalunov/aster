@@ -14,8 +14,8 @@ public enum PrefabId
     Block0 = 10,
     AsteroidGrid = 11,
     AsteroidBase = 12,
-    CoreBlock = 13,
-    Box1 = 14,
+    BlockAsteroid = 13,
+    BlockAsteroidCore = 14,
 
     // Combat & Weapons
     GunKinetic = 19,

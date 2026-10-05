@@ -380,7 +380,10 @@ public class player : MonoBehaviour
             }
         }
 
-        bool isBlock = col.collider.CompareTag("block") || col.collider.GetComponent<BlockBase>() != null;
+        BlockBase struckBlock = col.collider.GetComponent<BlockBase>();
+        if (struckBlock == null) struckBlock = col.collider.GetComponentInParent<BlockBase>();
+
+        bool isBlock = (col.collider.CompareTag("block") || struckBlock != null) && !col.collider.CompareTag("core");
         if (isBlock)
         {
             // Resolve target Rigidbody: if block is attached to an asteroid, apply impulse to whole asteroid
@@ -455,7 +458,6 @@ public class player : MonoBehaviour
             Vector3 impactImpulse = pushBlockDir * Mathf.Max(relativeSpeed * 1.5f, 2.0f);
 
             // Damage struck block from player kinetic impact
-            BlockBase struckBlock = col.collider.GetComponent<BlockBase>();
             int impactDamage = Mathf.Max(1, Mathf.RoundToInt(relativeSpeed * 0.5f));
             if (struckBlock != null && !struckBlock.IsDead)
             {
@@ -468,17 +470,21 @@ public class player : MonoBehaviour
                 parentAsteroid.check_for_unconnected(impactImpulse);
             }
         }
-        if (col.collider.CompareTag("core"))
+        else if (col.collider.CompareTag("core"))
         {
             BlockBase coreBlock = col.collider.GetComponent<BlockBase>();
+            if (coreBlock == null) coreBlock = col.collider.GetComponentInParent<BlockBase>();
             AsteroidBase astBase = col.collider.GetComponentInParent<AsteroidBase>();
 
             // Calculate impact energy based on relative speed
             float relativeSpeed = col.relativeVelocity.magnitude;
             float playerDamage = Mathf.Max(1f, Mathf.Round(relativeSpeed * 0.5f));
 
+            Vector3 contactNormal = col.contactCount > 0 ? col.GetContact(0).normal : transform.up;
+            Vector3 contactPoint = col.contactCount > 0 ? col.GetContact(0).point : col.collider.bounds.center;
+
             // 1. Damage player ship cleanly via TakeDamage
-            TakeDamage(playerDamage, col.GetContact(0).normal, col.GetContact(0).point);
+            TakeDamage(playerDamage, contactNormal, contactPoint);
 
             // 2. Damage core BlockBase cleanly
             if (coreBlock != null)

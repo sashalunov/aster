@@ -347,7 +347,11 @@ public class MainMenu : MonoBehaviour
              WaveManager.Instance.StartRun();
          }
     
-  
+          // Play block impact/collision sound
+            if (AudioManager.HasInstance)
+            {
+                AudioManager.Instance.PlayBGM();
+            }
 
         OnGameStarted?.Invoke();
     }
