@@ -574,10 +574,6 @@ public class WaveManager : MonoBehaviour
             {
                 p.AddXP(CurrentWaveConfig.rewardXP, p.transform);
             }
-            if (CurrentWaveConfig.rewardCredits > 0)
-            {
-                p._cred_value += (ulong)CurrentWaveConfig.rewardCredits;
-            }
             if (PowerupManager.Instance != null)
             {
                 PowerupManager.Instance.CollectAllRemaining(p);
@@ -670,7 +666,7 @@ public class WaveManager : MonoBehaviour
         int maxMass = Mathf.Min(16, 4 + (waveNumber / 2));
         int shellLevel = 1 + (waveNumber / 4);
         int blockLevel = 1 + (waveNumber / 5);
-        int rewardCredits = 25 + waveNumber * 10;
+
         int rewardXP = 50 + waveNumber * 25;
 
         return WaveDefinition.Create(
@@ -681,7 +677,7 @@ public class WaveManager : MonoBehaviour
             spawnInterval: spawnInterval,
             minMass: minMass,
             maxMass: maxMass,
-            rewardCredits: rewardCredits,
+
             rewardXP: rewardXP,
             shellLevel: shellLevel,
             blockLevel: blockLevel
@@ -726,7 +722,7 @@ public class WaveManager : MonoBehaviour
                 spawnInterval: 2.5f,
                 minMass: 2,
                 maxMass: 3,
-                rewardCredits: 20,
+
                 rewardXP: 40,
                 blockDropChance: 0.12f,
                 dropTable: new List<WaveDropEntry>
@@ -747,7 +743,7 @@ public class WaveManager : MonoBehaviour
                 spawnInterval: 2.0f,
                 minMass: 2,
                 maxMass: 5,
-                rewardCredits: 35,
+
                 rewardXP: 75,
                 blockDropChance: 0.15f,
                 dropTable: new List<WaveDropEntry>
@@ -770,7 +766,7 @@ public class WaveManager : MonoBehaviour
                 spawnInterval: 1.7f,
                 minMass: 3,
                 maxMass: 6,
-                rewardCredits: 50,
+  
                 rewardXP: 120,
                 grantExtraGun: true,
                 blockDropChance: 0.18f,

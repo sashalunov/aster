@@ -88,14 +88,14 @@ public class WaveClearedPopup : MonoBehaviour
         if (statsText != null)
         {
             int xpReward = config != null ? config.rewardXP : 0;
-            int credReward = config != null ? config.rewardCredits : 0;
+           
 
             player p = FindAnyObjectByType<player>();
             string shipStats = p != null 
                 ? $"\n\nPower: {p._bullet_force} | Rate: {p._fire_hz:0.#}Hz | Dmg: {p._bullet_dmg}" 
                 : "";
 
-            statsText.SetText($"+{xpReward} XP   +{credReward} Credits{shipStats}");
+            statsText.SetText($"+{xpReward} XP   Credits{shipStats}");
         }
 
         // 2. Open Panel with Fade Animation

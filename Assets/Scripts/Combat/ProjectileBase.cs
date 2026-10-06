@@ -18,6 +18,9 @@ public abstract class ProjectileBase : MonoBehaviour
     [Tooltip("Number of target surfaces/blocks this projectile can penetrate before expiring.")]
     [SerializeField] protected int penetration = 1;
 
+    [Tooltip("Multiplier applied to kinetic bounce/impact impulse across all targets.")]
+    [SerializeField] protected float impulseMultiplier = 1f;
+
     [Tooltip("Time in seconds before the projectile self-destructs.")]
     [SerializeField] protected float lifetime = 5f;
 
@@ -120,6 +123,21 @@ public abstract class ProjectileBase : MonoBehaviour
     {
         get => owner;
         set => SetOwner(value);
+    }
+
+    public float ImpulseMultiplier
+    {
+        get => impulseMultiplier;
+        set => impulseMultiplier = value;
+    }
+
+    /// <summary>
+    /// Calculates the kinetic impact impulse delivered to targets (players, blocks, asteroids) upon collision.
+    /// Formula: (mass + penetration + damage) * impulseMultiplier
+    /// </summary>
+    public virtual float CalculateBounceImpulse()
+    {
+        return (mass + penetration + damage) * impulseMultiplier;
     }
 
     public bool RicochetEnabled
@@ -230,7 +248,7 @@ public abstract class ProjectileBase : MonoBehaviour
                 // Friendly fire against self ignored
                 return;
             }
-            float bounceImpulse = mass * Penetration * Damage; // Example calculation for bounce impulse
+            float bounceImpulse = CalculateBounceImpulse();
             Vector3 hitDir = (hitPlayer.transform.position - transform.position).normalized;
             OnHitPlayer(hitPlayer, hitDir, bounceImpulse);
             return;
@@ -270,8 +288,9 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void OnHitBlock(BlockBase block, Collider col)
     {
+        float impulse = CalculateBounceImpulse();
         float remainingDamage = block != null ? block.block_receive_hit(transform, this, damage) : 0;
-        ApplyImpactImpulse(col, damage + mass);
+        ApplyImpactImpulse(col, impulse);
 
         damage = remainingDamage;
         if (remainingDamage <= 0)
@@ -282,6 +301,7 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void OnHitCore(BlockBase coreBlock, Collider col)
     {
+        float impulse = CalculateBounceImpulse();
         float remainingDamage = 0;
         if (coreBlock != null)
         {
@@ -296,7 +316,7 @@ public abstract class ProjectileBase : MonoBehaviour
             }
         }
 
-        ApplyImpactImpulse(col, damage);
+        ApplyImpactImpulse(col, impulse);
         damage = remainingDamage;
 
         if (remainingDamage <= 0)
@@ -312,7 +332,16 @@ public abstract class ProjectileBase : MonoBehaviour
 
     protected virtual void ApplyImpactImpulse(Collider col, float impulseMagnitude)
     {
-        Rigidbody targetRb = col.GetComponent<Rigidbody>() ?? col.GetComponentInParent<Rigidbody>();
+        Rigidbody targetRb = col.attachedRigidbody;
+        if (targetRb == null)
+        {
+            targetRb = col.GetComponent<Rigidbody>();
+        }
+        if (targetRb == null)
+        {
+            targetRb = col.GetComponentInParent<Rigidbody>();
+        }
+
         if (targetRb != null)
         {
             targetRb.AddForceAtPosition(transform.up * impulseMagnitude, transform.position, ForceMode.Impulse);

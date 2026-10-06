@@ -126,7 +126,7 @@ public class WaveDefinition : ScriptableObject
     public int blockLevel = 1;
 
     [Header("Rewards")]
-    public int rewardCredits = 25;
+
     public int rewardXP = 50;
    
 
@@ -178,7 +178,7 @@ public class WaveDefinition : ScriptableObject
         clone.maxMass = this.maxMass;
         clone.shellLevel = this.shellLevel;
         clone.blockLevel = this.blockLevel;
-        clone.rewardCredits = this.rewardCredits;
+
         clone.rewardXP = this.rewardXP;
         clone.coreDropChance = this.coreDropChance;
         clone.blockDropChance = this.blockDropChance;
@@ -215,7 +215,7 @@ public class WaveDefinition : ScriptableObject
         float spawnInterval = 2.0f,
         int minMass = 2,
         int maxMass = 4,
-        int rewardCredits = 25,
+   
         int rewardXP = 50,
         bool grantExtraGun = false,
         ulong targetXPGoal = 0,
@@ -235,7 +235,7 @@ public class WaveDefinition : ScriptableObject
         def.spawnInterval = spawnInterval;
         def.minMass = minMass;
         def.maxMass = maxMass;
-        def.rewardCredits = rewardCredits;
+
         def.rewardXP = rewardXP;
         def.targetXPGoal = targetXPGoal;
         def.shellLevel = shellLevel;

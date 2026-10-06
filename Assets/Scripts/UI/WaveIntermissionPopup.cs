@@ -422,8 +422,8 @@ public class WaveIntermissionPopup : MonoBehaviour
         if (statsText != null)
         {
             int xpReward = config != null ? config.rewardXP : 0;
-            int credReward = config != null ? config.rewardCredits : 0;
-            statsText.SetText($"+{xpReward} XP   +{credReward} Credits");
+           
+            statsText.SetText($"+{xpReward} XP  ");
         }
 
         // 2. Open Panel with Fade Animation

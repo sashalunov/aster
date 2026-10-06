@@ -217,7 +217,7 @@ public abstract class BlockBase : MonoBehaviour
                 bulletDir = b1Rb.linearVelocity.normalized;
             }
             bulletDir.z = 0f;
-            impactImpulse = bulletDir * Mathf.Max(b1.Damage, 1f);
+            impactImpulse = bulletDir * Mathf.Max(b1.CalculateBounceImpulse(), 1f);
         }
         else if (source != null)
         {
