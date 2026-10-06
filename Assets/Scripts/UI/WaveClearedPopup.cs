@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using DG.Tweening; // Using DOTween already in your project
+using DG.Tweening;
 
 public class WaveClearedPopup : MonoBehaviour
 {
@@ -72,6 +72,9 @@ public class WaveClearedPopup : MonoBehaviour
 
     private void ShowPopup(int waveNumber, WaveDefinition config)
     {
+        // If WaveIntermissionPopup exists in the scene and handles intermission, suppress this duplicate cleared popup
+        if (FindFirstObjectByType<WaveIntermissionPopup>() != null) return;
+
         if (panel == null) return;
 
         ResolveStartButton();
@@ -84,7 +87,6 @@ public class WaveClearedPopup : MonoBehaviour
 
         if (statsText != null)
         {
-            //string gunReward = config != null && config.grantExtraGun ? "\n+ NEW TURRET UNLOCKED!" : "";
             int xpReward = config != null ? config.rewardXP : 0;
             int credReward = config != null ? config.rewardCredits : 0;
 
@@ -96,36 +98,38 @@ public class WaveClearedPopup : MonoBehaviour
             statsText.SetText($"+{xpReward} XP   +{credReward} Credits{shipStats}");
         }
 
-        // 2. Open Panel with Fade/Punch Animation
+        // 2. Open Panel with Fade Animation
         panel.SetActive(true);
         if (canvasGroup != null)
         {
             canvasGroup.alpha = 0f;
             canvasGroup.DOFade(1f, 0.25f);
         }
-        //panel.transform.DOPunchScale(Vector3.one * 0.1f, 0.3f);
     }
-   
-        private void HandleStateChanged(WaveManager.WaveState prevState, WaveManager.WaveState newState)
+
+    private void HandleStateChanged(WaveManager.WaveState prevState, WaveManager.WaveState newState)
+    {
+        // Automatically close when exiting Intermission or when transitioning into Intermission
+        if (newState == WaveManager.WaveState.Intermission || (prevState == WaveManager.WaveState.Intermission && newState != WaveManager.WaveState.Intermission))
         {
-            // Automatically close when exiting Intermission
-            if (prevState == WaveManager.WaveState.Intermission && newState != WaveManager.WaveState.Intermission)
-            {
-                ClosePopup();
-            }
+            ClosePopup();
         }
-   
-        private void ClosePopup()
+    }
+
+    private void ClosePopup()
+    {
+        if (panel == null || !panel.activeSelf) return;
+
+        if (canvasGroup != null)
         {
-            if (panel == null || !panel.activeSelf) return;
-   
-            if (canvasGroup != null)
+            canvasGroup.DOFade(0f, 0.2f).OnComplete(() =>
             {
-                canvasGroup.DOFade(0f, 0.2f).OnComplete(() => panel.SetActive(false));
-           }
-            else
-            {
-                panel.SetActive(false);
-            }
-       }
+                if (panel != null) panel.SetActive(false);
+            });
+        }
+        else
+        {
+            panel.SetActive(false);
+        }
+    }
 }

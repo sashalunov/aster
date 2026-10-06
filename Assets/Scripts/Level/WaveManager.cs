@@ -8,7 +8,19 @@ using UnityEngine;
 /// </summary>
 public class WaveManager : MonoBehaviour
 {
-    public static WaveManager Instance { get; set; }
+    private static WaveManager _instance;
+    public static WaveManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindAnyObjectByType<WaveManager>();
+            }
+            return _instance;
+        }
+        set => _instance = value;
+    }
 
     public enum WaveState
     {
@@ -41,8 +53,14 @@ public class WaveManager : MonoBehaviour
     [Tooltip("Countdown duration before combat begins")]
     public float countdownDuration = 3f;
 
+    [Tooltip("Delay in seconds during WaveCleared state before transitioning to Intermission.")]
+    public float waveClearedDelay = 3f;
+
     [Tooltip("Default intermission time if auto-advancing (0 = waits for player input)")]
     public float intermissionDuration = 0f;
+
+    [Tooltip("If true, intermission will always wait for player input (Next Wave button) rather than auto-advancing.")]
+    public bool waitForPlayerInputInIntermission = true;
 
     [Header("Wave Progression Config")]
     [Tooltip("Pre-configured waves. If current wave exceeds this list, procedural waves are generated.")]
@@ -134,6 +152,11 @@ public class WaveManager : MonoBehaviour
         }
     }
 
+    protected virtual void Start()
+    {
+        SubscribeProgression();
+    }
+
     protected virtual void OnEnable()
     {
         SubscribeProgression();
@@ -179,7 +202,7 @@ public class WaveManager : MonoBehaviour
         if (currentState == WaveState.Combat && completeOnXPGoal)
         {
             ulong targetGoal = GetTargetXPGoal(currentWaveIndex);
-            if (currentXP >= targetGoal)
+            if (currentXP >= targetGoal && targetGoal > 0)
             {
                 CompleteWave();
             }
@@ -188,9 +211,17 @@ public class WaveManager : MonoBehaviour
 
     private void HandleProgressionWaveCompleted(int completedWaveLevel)
     {
-        if (currentState == WaveState.Combat && completeOnXPGoal)
+        if (currentState == WaveState.Combat)
         {
             CompleteWave();
+        }
+        else if (currentState == WaveState.Idle)
+        {
+            // If progression completed a wave while WaveManager was Idle (e.g. direct play in scene without MainMenu),
+            // initialize wave state and transition to cleared / intermission
+            currentWaveIndex = Mathf.Max(1, completedWaveLevel);
+            CurrentWaveConfig = GetWaveDefinition(currentWaveIndex);
+            CompleteWaveInternal();
         }
     }
 
@@ -222,6 +253,10 @@ public class WaveManager : MonoBehaviour
 
     protected virtual void Update()
     {
+        if (playerProgression == null && ActiveProgression != null)
+        {
+            SubscribeProgression();
+        }
         Tick(Time.deltaTime);
     }
 
@@ -240,6 +275,10 @@ public class WaveManager : MonoBehaviour
 
             case WaveState.Combat:
                 ProcessCombat(deltaTime);
+                break;
+
+            case WaveState.WaveCleared:
+                ProcessWaveCleared(deltaTime);
                 break;
 
             case WaveState.Intermission:
@@ -282,6 +321,7 @@ public class WaveManager : MonoBehaviour
                 break;
 
             case WaveState.WaveCleared:
+                stateTimer = waveClearedDelay;
                 DistributeWaveRewards();
                 break;
 
@@ -304,6 +344,7 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     public virtual void StartRun()
     {
+        SubscribeProgression();
         currentWaveIndex = 0;
         activeThreats.Clear();
         StartNextWave();
@@ -340,13 +381,26 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     public virtual void CompleteWave()
     {
-        if (currentState != WaveState.Combat) return;
+        if (currentState != WaveState.Combat && currentState != WaveState.Idle) return;
 
+        if (currentState == WaveState.Idle && currentWaveIndex < 1)
+        {
+            currentWaveIndex = 1;
+            CurrentWaveConfig = GetWaveDefinition(currentWaveIndex);
+        }
+
+        CompleteWaveInternal();
+    }
+
+    private void CompleteWaveInternal()
+    {
         SetState(WaveState.WaveCleared);
         OnWaveCompleted?.Invoke(currentWaveIndex, CurrentWaveConfig);
 
-        // Move to intermission for player upgrades / shop
-        SetState(WaveState.Intermission);
+        if (waveClearedDelay <= 0f)
+        {
+            SetState(WaveState.Intermission);
+        }
     }
 
     /// <summary>
@@ -361,6 +415,22 @@ public class WaveManager : MonoBehaviour
 
     #region Pacing & Timers
 
+    protected virtual void ProcessWaveCleared(float deltaTime)
+    {
+        if (stateTimer > 0f)
+        {
+            stateTimer -= deltaTime;
+            if (stateTimer <= 0f)
+            {
+                SetState(WaveState.Intermission);
+            }
+        }
+        else
+        {
+            SetState(WaveState.Intermission);
+        }
+    }
+
     protected virtual void ProcessCountdown(float deltaTime)
     {
         stateTimer -= deltaTime;
@@ -374,6 +444,12 @@ public class WaveManager : MonoBehaviour
 
     protected virtual void ProcessIntermission(float deltaTime)
     {
+        if (waitForPlayerInputInIntermission)
+        {
+            // Do not auto-advance; wait until player finishes upgrades and clicks Next Wave
+            return;
+        }
+
         // If intermissionDuration > 0, auto-advance after time expires
         if (intermissionDuration > 0f)
         {

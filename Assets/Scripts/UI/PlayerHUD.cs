@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -18,8 +19,8 @@ public class PlayerHUD : MonoBehaviour
     public Image xpProgress;
     public Image xpProgressFill;
 
-[SerializeField] private DOTweenAnimation shieldBarAnim;
-[SerializeField] private DOTweenAnimation healthBarAnim;
+    [SerializeField] private DOTweenAnimation shieldBarAnim;
+    [SerializeField] private DOTweenAnimation healthBarAnim;
 
     [Header("Weapon UI")]
     public TMP_Text wpnPowerText;
@@ -37,7 +38,35 @@ public class PlayerHUD : MonoBehaviour
     [Header("Upgrade Points UI")]
     public TMP_Text upgradePointsText;
 
+    [Header("Wave Status UI")]
+    [Tooltip("The main container GameObject for the wave status notification.")]
+    public GameObject waveStatusPanel;
+
+    [Tooltip("Text field displaying the wave title/number or cleared title.")]
+    public TMP_Text waveStatusTitleText;
+
+    [Tooltip("Text field displaying wave subtitle, objective, and countdown or cleared status.")]
+    public TMP_Text waveStatusSubtitleText;
+
+    [Tooltip("CanvasGroup controlling fade-in and fade-out transitions.")]
+    public CanvasGroup waveStatusCanvasGroup;
+
+    [Header("Wave Status Animation Settings")]
+    public float waveStatusFadeInDuration = 0.25f;
+    public float waveStatusFadeOutDuration = 0.2f;
+    public float waveStatusClearedDisplayDuration = 2.5f;
+
+    [Header("Wave Manager Connection")]
+    [SerializeField] private WaveManager _waveManager;
+    public WaveManager ActiveWaveManager => _waveManager != null ? _waveManager : WaveManager.Instance;
+
     private bool _isSubscribed = false;
+    private bool _isWaveManagerSubscribed = false;
+    private int _currentWaveNumber = 1;
+    private WaveDefinition _currentWaveConfig;
+    private Coroutine _waveClearedRoutine;
+    private float _lastShield = -1f;
+    private float _lastHealth = -1f;
 
     private void Awake()
     {
@@ -47,6 +76,10 @@ public class PlayerHUD : MonoBehaviour
     private void Start()
     {
         ResolveReferences();
+        if (waveStatusPanel != null && (ActiveWaveManager == null || (ActiveWaveManager.State != WaveManager.WaveState.Countdown && ActiveWaveManager.State != WaveManager.WaveState.WaveCleared)))
+        {
+            waveStatusPanel.SetActive(false);
+        }
         Subscribe();
         RefreshAllDisplays();
     }
@@ -63,6 +96,15 @@ public class PlayerHUD : MonoBehaviour
         Unsubscribe();
     }
 
+    private void OnDestroy()
+    {
+        Unsubscribe();
+        if (waveStatusCanvasGroup != null)
+        {
+            waveStatusCanvasGroup.DOKill();
+        }
+    }
+
     private void Update()
     {
         if (!_isSubscribed)
@@ -73,6 +115,10 @@ public class PlayerHUD : MonoBehaviour
                 Subscribe();
                 RefreshAllDisplays();
             }
+        }
+        else if (!_isWaveManagerSubscribed && WaveManager.Instance != null)
+        {
+            SubscribeWaveManager();
         }
     }
 
@@ -90,15 +136,55 @@ public class PlayerHUD : MonoBehaviour
                 if (_isSubscribed && _progression != null)
                 {
                     _progression.OnXPChanged -= UpdateXPDisplay;
-                    _progression.OnWaveCompleted -= UpdateWaveDisplay;
+                    _progression.OnWaveCompleted -= HandleProgressionWaveCompleted;
                 }
                 _progression = activeProg;
                 if (_isSubscribed && _progression != null)
                 {
                     _progression.OnXPChanged += UpdateXPDisplay;
-                    _progression.OnWaveCompleted += UpdateWaveDisplay;
+                    _progression.OnWaveCompleted += HandleProgressionWaveCompleted;
                 }
             }
+        }
+
+        if (waveStatusPanel == null)
+        {
+            Transform ws = transform.Find("HUD/WaveStatus");
+            if (ws == null) ws = transform.Find("WaveStatus");
+            if (ws != null)
+            {
+                Transform p = ws.Find("WaveStatusPanel");
+                if (p == null) p = ws.Find("WaveStatusdPanel");
+                if (p == null) p = ws.Find("WaveEnteredPanel");
+                if (p == null && ws.childCount > 0) p = ws.GetChild(0);
+
+                if (p != null) waveStatusPanel = p.gameObject;
+                else waveStatusPanel = ws.gameObject;
+            }
+        }
+
+        if (waveStatusCanvasGroup == null && waveStatusPanel != null)
+        {
+            waveStatusCanvasGroup = waveStatusPanel.GetComponent<CanvasGroup>();
+        }
+
+        if (waveStatusTitleText == null && waveStatusPanel != null)
+        {
+            Transform t = waveStatusPanel.transform.Find("Card/WaveTitle");
+            if (t == null) t = waveStatusPanel.transform.Find("WaveTitle");
+            if (t != null) waveStatusTitleText = t.GetComponent<TMP_Text>();
+        }
+
+        if (waveStatusSubtitleText == null && waveStatusPanel != null)
+        {
+            Transform s = waveStatusPanel.transform.Find("Card/Subtitle");
+            if (s == null) s = waveStatusPanel.transform.Find("Subtitle");
+            if (s != null) waveStatusSubtitleText = s.GetComponent<TMP_Text>();
+        }
+
+        if (_waveManager == null)
+        {
+            _waveManager = WaveManager.Instance;
         }
     }
 
@@ -111,7 +197,7 @@ public class PlayerHUD : MonoBehaviour
         if (_progression != null)
         {
             _progression.OnXPChanged += UpdateXPDisplay;
-            _progression.OnWaveCompleted += UpdateWaveDisplay;
+            _progression.OnWaveCompleted += HandleProgressionWaveCompleted;
         }
         if (_player != null)
         {
@@ -121,30 +207,251 @@ public class PlayerHUD : MonoBehaviour
             _player.OnUpgradePointsChanged += UpdateUpgradePointsDisplay;
             _isSubscribed = true;
         }
+
+        SubscribeWaveManager();
+    }
+
+    public void SubscribeWaveManager()
+    {
+        WaveManager wm = ActiveWaveManager;
+        if (wm != null && !_isWaveManagerSubscribed)
+        {
+            wm.OnStateChanged -= HandleWaveStateChanged;
+            wm.OnStateChanged += HandleWaveStateChanged;
+            wm.OnCountdownTick -= HandleWaveCountdownTick;
+            wm.OnCountdownTick += HandleWaveCountdownTick;
+            wm.OnWaveCompleted -= HandleWaveCompleted;
+            wm.OnWaveCompleted += HandleWaveCompleted;
+            _isWaveManagerSubscribed = true;
+
+            if (wm.State == WaveManager.WaveState.Countdown)
+            {
+                ShowWaveEnteredStatus(wm.CurrentWaveIndex, wm.CurrentWaveConfig, wm.StateTimer);
+            }
+            else if (wm.State == WaveManager.WaveState.WaveCleared)
+            {
+                ShowWaveClearedStatus(wm.CurrentWaveIndex, wm.CurrentWaveConfig);
+            }
+        }
     }
 
     public void Unsubscribe()
     {
-        if (!_isSubscribed) return;
-
-        PlayerProfile.OnPlayerNameChanged -= UpdatePlayerNameDisplay;
-
-        if (_progression != null)
+        if (_isSubscribed)
         {
-            _progression.OnXPChanged -= UpdateXPDisplay;
-            _progression.OnWaveCompleted -= UpdateWaveDisplay;
+            PlayerProfile.OnPlayerNameChanged -= UpdatePlayerNameDisplay;
+
+            if (_progression != null)
+            {
+                _progression.OnXPChanged -= UpdateXPDisplay;
+                _progression.OnWaveCompleted -= HandleProgressionWaveCompleted;
+            }
+            if (_player != null)
+            {
+                _player.OnWeaponStatsChanged -= UpdateWeaponDisplay;
+                _player.OnShieldChanged -= UpdateShieldDisplay;
+                _player.OnHealthChanged -= UpdateHealthDisplay;
+                _player.OnUpgradePointsChanged -= UpdateUpgradePointsDisplay;
+            }
+            _isSubscribed = false;
         }
-        if (_player != null)
+
+        WaveManager wm = ActiveWaveManager;
+        if (wm != null && _isWaveManagerSubscribed)
         {
-            _player.OnWeaponStatsChanged -= UpdateWeaponDisplay;
-            _player.OnShieldChanged -= UpdateShieldDisplay;
-            _player.OnHealthChanged -= UpdateHealthDisplay;
-            _player.OnUpgradePointsChanged -= UpdateUpgradePointsDisplay;
+            wm.OnStateChanged -= HandleWaveStateChanged;
+            wm.OnCountdownTick -= HandleWaveCountdownTick;
+            wm.OnWaveCompleted -= HandleWaveCompleted;
+            _isWaveManagerSubscribed = false;
         }
-        _isSubscribed = false;
+
+        if (_waveClearedRoutine != null)
+        {
+            StopCoroutine(_waveClearedRoutine);
+            _waveClearedRoutine = null;
+        }
     }
-    private float _lastShield = -1f;
-    private float _lastHealth = -1f;
+
+    private void HandleWaveStateChanged(WaveManager.WaveState prevState, WaveManager.WaveState newState)
+    {
+        if (newState == WaveManager.WaveState.Countdown)
+        {
+            WaveManager wm = ActiveWaveManager;
+            int waveNum = wm != null ? wm.CurrentWaveIndex : 1;
+            WaveDefinition config = wm != null ? wm.CurrentWaveConfig : null;
+            float countdownTime = wm != null ? wm.StateTimer : 3f;
+            ShowWaveEnteredStatus(waveNum, config, countdownTime);
+        }
+        else if (prevState == WaveManager.WaveState.Countdown && newState != WaveManager.WaveState.Countdown)
+        {
+            HideWaveStatusPanel();
+        }
+        else if (newState == WaveManager.WaveState.WaveCleared)
+        {
+            WaveManager wm = ActiveWaveManager;
+            int waveNum = wm != null ? wm.CurrentWaveIndex : 1;
+            WaveDefinition config = wm != null ? wm.CurrentWaveConfig : null;
+            ShowWaveClearedStatus(waveNum, config);
+        }
+        else if (newState == WaveManager.WaveState.GameOver)
+        {
+            HideWaveStatusPanel();
+        }
+    }
+
+    private void HandleWaveCountdownTick(float remainingSeconds)
+    {
+        if (waveStatusPanel != null && waveStatusPanel.activeSelf)
+        {
+            UpdateWaveCountdownDisplay(remainingSeconds);
+        }
+    }
+
+    private void HandleWaveCompleted(int waveNumber, WaveDefinition config)
+    {
+        ShowWaveClearedStatus(waveNumber, config);
+    }
+
+    public void ShowWaveEnteredStatus(int waveNumber, WaveDefinition config, float remainingSeconds)
+    {
+        if (waveStatusPanel == null) return;
+
+        if (_waveClearedRoutine != null)
+        {
+            StopCoroutine(_waveClearedRoutine);
+            _waveClearedRoutine = null;
+        }
+
+        _currentWaveNumber = waveNumber;
+        _currentWaveConfig = config;
+
+        // 1. Populate Title
+        if (waveStatusTitleText != null)
+        {
+            string title = (config != null && !string.IsNullOrEmpty(config.waveTitle))
+                ? config.waveTitle
+                : $"WAVE {waveNumber}";
+            waveStatusTitleText.SetText(title);
+        }
+
+        // 2. Populate Countdown
+        UpdateWaveCountdownDisplay(remainingSeconds);
+
+        // 3. Show and Fade in
+        waveStatusPanel.SetActive(true);
+        if (waveStatusCanvasGroup != null)
+        {
+            waveStatusCanvasGroup.DOKill();
+            if (waveStatusFadeInDuration > 0f && Application.isPlaying)
+            {
+                waveStatusCanvasGroup.alpha = 0f;
+                waveStatusCanvasGroup.DOFade(1f, waveStatusFadeInDuration);
+            }
+            else
+            {
+                waveStatusCanvasGroup.alpha = 1f;
+            }
+        }
+    }
+
+    public void UpdateWaveCountdownDisplay(float remainingSeconds)
+    {
+        if (waveStatusSubtitleText == null) return;
+
+        int seconds = Mathf.Max(1, Mathf.CeilToInt(remainingSeconds));
+        string targetText = (_currentWaveConfig != null && _currentWaveConfig.targetXPGoal > 0)
+            ? $"OBJECTIVE: {_currentWaveConfig.targetXPGoal} XP\n"
+            : "";
+
+        waveStatusSubtitleText.SetText($"{targetText}STARTING IN {seconds}...");
+    }
+
+    public void ShowWaveClearedStatus(int waveNumber, WaveDefinition config)
+    {
+        if (waveStatusPanel == null) return;
+
+        if (_waveClearedRoutine != null)
+        {
+            StopCoroutine(_waveClearedRoutine);
+            _waveClearedRoutine = null;
+        }
+
+        _currentWaveNumber = waveNumber;
+        _currentWaveConfig = config;
+
+        // 1. Populate Title
+        if (waveStatusTitleText != null)
+        {
+            string title = (config != null && !string.IsNullOrEmpty(config.waveTitle))
+                ? $"{config.waveTitle} CLEARED!"
+                : $"WAVE {waveNumber} CLEARED!";
+            waveStatusTitleText.SetText(title);
+        }
+
+        // 2. Populate Subtitle as Wave Finished
+        if (waveStatusSubtitleText != null)
+        {
+            waveStatusSubtitleText.SetText("WAVE FINISHED");
+        }
+
+        // 3. Show and Fade in
+        waveStatusPanel.SetActive(true);
+        if (waveStatusCanvasGroup != null)
+        {
+            waveStatusCanvasGroup.DOKill();
+            if (waveStatusFadeInDuration > 0f && Application.isPlaying)
+            {
+                waveStatusCanvasGroup.alpha = 0f;
+                waveStatusCanvasGroup.DOFade(1f, waveStatusFadeInDuration);
+            }
+            else
+            {
+                waveStatusCanvasGroup.alpha = 1f;
+            }
+        }
+
+        // 4. Auto-hide after duration if playing
+        if (gameObject.activeInHierarchy && waveStatusClearedDisplayDuration > 0f && Application.isPlaying)
+        {
+            _waveClearedRoutine = StartCoroutine(DismissWaveClearedStatusAfterDelay(waveStatusClearedDisplayDuration));
+        }
+    }
+
+    private IEnumerator DismissWaveClearedStatusAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        HideWaveStatusPanel();
+        _waveClearedRoutine = null;
+    }
+
+    public void HideWaveStatusPanel()
+    {
+        if (waveStatusPanel == null || !waveStatusPanel.activeSelf) return;
+
+        if (_waveClearedRoutine != null)
+        {
+            StopCoroutine(_waveClearedRoutine);
+            _waveClearedRoutine = null;
+        }
+
+        if (waveStatusCanvasGroup != null && waveStatusFadeOutDuration > 0f && Application.isPlaying)
+        {
+            waveStatusCanvasGroup.DOKill();
+            waveStatusCanvasGroup.DOFade(0f, waveStatusFadeOutDuration).OnComplete(() =>
+            {
+                if (waveStatusPanel != null) waveStatusPanel.SetActive(false);
+            });
+        }
+        else
+        {
+            if (waveStatusCanvasGroup != null)
+            {
+                waveStatusCanvasGroup.DOKill();
+                waveStatusCanvasGroup.alpha = 0f;
+            }
+            if (waveStatusPanel != null) waveStatusPanel.SetActive(false);
+        }
+    }
 
     public void RefreshAllDisplays()
     {
@@ -158,8 +465,8 @@ public class PlayerHUD : MonoBehaviour
         if (_player != null)
         {
             UpdateWeaponDisplay(_player._bullet_force, _player._fire_rate, _player._bullet_dmg);
-             _lastShield = _player.shield_value;
-             _lastHealth = _player.health_value;
+            _lastShield = _player.shield_value;
+            _lastHealth = _player.health_value;
 
             UpdateShieldDisplay(_player.shield_value, _player.shield_max_value);
             UpdateHealthDisplay(_player.health_value, _player.health_max_value);
@@ -180,7 +487,7 @@ public class PlayerHUD : MonoBehaviour
     {
         if (playerNameText != null)
         {
-            playerNameText.SetText( name);
+            playerNameText.SetText(name);
         }
     }
 
@@ -190,15 +497,29 @@ public class PlayerHUD : MonoBehaviour
         if (xpNextText != null) xpNextText.SetText("Next: " + nextGoalXP);
         if (waveText != null && _progression != null) waveText.SetText("Wave: " + _progression.WaveLevel);
 
-                xpProgressFill.fillAmount = _progression != null && _progression.GetNextXPGoal() > 0 ? Mathf.Clamp01((float)_progression.CurrentXP / (float)_progression.GetNextXPGoal()) : 0f;
-        if (xpProgressFill != null) xpProgressFill.gameObject.SetActive(_progression != null && _progression.GetNextXPGoal() > 0);
+        if (xpProgressFill != null)
+        {
+            xpProgressFill.fillAmount = _progression != null && _progression.GetNextXPGoal() > 0 ? Mathf.Clamp01((float)_progression.CurrentXP / (float)_progression.GetNextXPGoal()) : 0f;
+            xpProgressFill.gameObject.SetActive(_progression != null && _progression.GetNextXPGoal() > 0);
+        }
+    }
 
+    private void HandleProgressionWaveCompleted(int completedWaveLevel)
+    {
+        UpdateWaveDisplay(completedWaveLevel);
+
+        WaveManager wm = ActiveWaveManager;
+        // If WaveManager has not already entered WaveCleared or Intermission, ensure wave status displays the cleared state
+        if (wm == null || (wm.State != WaveManager.WaveState.WaveCleared && wm.State != WaveManager.WaveState.Intermission))
+        {
+            WaveDefinition config = wm != null ? wm.CurrentWaveConfig : null;
+            ShowWaveClearedStatus(completedWaveLevel, config);
+        }
     }
 
     public void UpdateWaveDisplay(int wave)
     {
         if (waveText != null) waveText.SetText("Wave: " + wave);
-
     }
 
     public void UpdateWeaponDisplay(float power, float rate, float damage)
@@ -222,7 +543,6 @@ public class PlayerHUD : MonoBehaviour
         {
             if (shieldBarAnim != null) shieldBarAnim.DORestart();
         }
-       
     }
 
     public void UpdateHealthDisplay(float currentHealth, float maxHealth)

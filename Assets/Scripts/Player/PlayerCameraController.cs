@@ -128,15 +128,14 @@ public class PlayerCameraController : MonoBehaviour
             _isMenuOpen = true;
         }
 
-        // Check if wave is already in cleared/intermission state
+        // Check if wave is already in intermission state
         if (WaveManager.Instance != null &&
-            (WaveManager.Instance.State == WaveManager.WaveState.WaveCleared ||
-             WaveManager.Instance.State == WaveManager.WaveState.Intermission))
+            WaveManager.Instance.State == WaveManager.WaveState.Intermission)
         {
             _isWaveCleared = true;
         }
 
-        // On game startup, if in menu or wave cleared, immediately snap to Briefing camera without transition
+        // On game startup, if in menu or intermission, immediately snap to Briefing camera without transition
         bool shouldBeBriefing = _isMenuOpen || _isWaveCleared;
         SetCameraMode(shouldBeBriefing ? CameraMode.Briefing : CameraMode.TopDown, smooth: false);
 
@@ -506,20 +505,19 @@ public class PlayerCameraController : MonoBehaviour
 
     private void HandleWaveCompleted(int waveIndex, WaveDefinition config)
     {
-        _isWaveCleared = true;
-        ClampShipDrift();
-        EvaluateTargetCamera(smooth: true);
+        // Keep camera in TopDown mode so the player can clearly read the Wave Cleared Status banner!
     }
 
     private void HandleWaveStateChanged(WaveManager.WaveState prevState, WaveManager.WaveState newState)
     {
-        if (newState == WaveManager.WaveState.WaveCleared || newState == WaveManager.WaveState.Intermission)
+        // Only switch camera to Briefing when Intermission state kicks in
+        if (newState == WaveManager.WaveState.Intermission)
         {
             _isWaveCleared = true;
             ClampShipDrift();
             EvaluateTargetCamera(smooth: true);
         }
-        else if (newState == WaveManager.WaveState.Countdown || newState == WaveManager.WaveState.Combat)
+        else if (newState == WaveManager.WaveState.Countdown || newState == WaveManager.WaveState.Combat || newState == WaveManager.WaveState.WaveCleared)
         {
             _isWaveCleared = false;
             EvaluateTargetCamera(smooth: true);

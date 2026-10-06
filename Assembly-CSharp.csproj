@@ -69,6 +69,7 @@
     <Compile Include="Assets/Scripts/UI/WaveEnteredPanel.cs" />
     <Compile Include="Assets/Scripts/Combat/bulletAI.cs" />
     <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenDeUnityExtended.cs" />
+    <Compile Include="Assets/Scripts/UI/WaveIntermissionPopup.cs" />
     <Compile Include="Assets/Scripts/UI/WaveClearedPopup.cs" />
     <Compile Include="Assets/Scripts/Asteroids/BlockAsteroid.cs" />
     <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
