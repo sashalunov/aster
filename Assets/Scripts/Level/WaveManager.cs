@@ -56,19 +56,29 @@ public class WaveManager : MonoBehaviour
     [Tooltip("Delay in seconds during WaveCleared state before transitioning to Intermission.")]
     public float waveClearedDelay = 3f;
 
-    [Tooltip("Default intermission time if auto-advancing (0 = waits for player input)")]
-    public float intermissionDuration = 0f;
-
-    [Tooltip("If true, intermission will always wait for player input (Next Wave button) rather than auto-advancing.")]
-    public bool waitForPlayerInputInIntermission = true;
-
     [Header("Wave Progression Config")]
     [Tooltip("Pre-configured waves. If current wave exceeds this list, procedural waves are generated.")]
     public List<WaveDefinition> authoredWaves = new List<WaveDefinition>();
 
-    [Header("Progression Link")]
+    [Header("Player & Progression Links")]
+    [Tooltip("Optional explicit reference to the player. Resolves automatically if null.")]
+    [SerializeField] private player playerRef;
+
     [Tooltip("Optional explicit reference to the player's progression. Resolves automatically if null.")]
     [SerializeField] private PlayerProgression playerProgression;
+
+    public player ActivePlayer
+    {
+        get
+        {
+            if (playerRef == null)
+            {
+                playerRef = FindAnyObjectByType<player>();
+            }
+            return playerRef;
+        }
+        set => playerRef = value;
+    }
 
     [Header("Runtime Active Threats")]
     private readonly HashSet<GameObject> activeThreats = new HashSet<GameObject>();
@@ -110,7 +120,7 @@ public class WaveManager : MonoBehaviour
         {
             if (playerProgression == null)
             {
-                player p = FindAnyObjectByType<player>();
+                player p = ActivePlayer;
                 if (p != null)
                 {
                     playerProgression = p.Progression ?? p.GetComponent<PlayerProgression>();
@@ -162,14 +172,22 @@ public class WaveManager : MonoBehaviour
         SubscribeProgression();
     }
 
-    protected virtual void OnDisable()
+    public virtual void OnDisable()
     {
         UnsubscribeProgression();
+        if (currentState == WaveState.Intermission)
+        {
+            Time.timeScale = 1f;
+        }
     }
 
-    protected virtual void OnDestroy()
+    public virtual void OnDestroy()
     {
         UnsubscribeProgression();
+        if (currentState == WaveState.Intermission)
+        {
+            Time.timeScale = 1f;
+        }
         if (Instance == this)
         {
             Instance = null;
@@ -308,7 +326,18 @@ public class WaveManager : MonoBehaviour
         switch (state)
         {
             case WaveState.Intermission:
-                stateTimer = intermissionDuration;
+                stateTimer = 0f;
+                Time.timeScale = 0f;
+                SetPlayerCanPlay(false);
+                if (ActivePlayer != null)
+                {
+                    Rigidbody rb = ActivePlayer.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                        rb.angularVelocity = Vector3.zero;
+                    }
+                }
                 break;
 
             case WaveState.Countdown:
@@ -333,6 +362,33 @@ public class WaveManager : MonoBehaviour
 
     protected virtual void OnStateExit(WaveState state)
     {
+        switch (state)
+        {
+            case WaveState.Intermission:
+                Time.timeScale = 1f;
+                SetPlayerCanPlay(true);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Updates player's playable state, taking dead status and pause menu into account.
+    /// </summary>
+    public virtual void SetPlayerCanPlay(bool canPlay)
+    {
+        player p = ActivePlayer;
+        if (p != null)
+        {
+            if (!canPlay)
+            {
+                p._can_play = false;
+            }
+            else
+            {
+                bool isPaused = MainMenu.Instance != null && MainMenu.Instance.IsOpen;
+                p._can_play = !p.isDead && !isPaused;
+            }
+        }
     }
 
     #endregion
@@ -444,21 +500,7 @@ public class WaveManager : MonoBehaviour
 
     protected virtual void ProcessIntermission(float deltaTime)
     {
-        if (waitForPlayerInputInIntermission)
-        {
-            // Do not auto-advance; wait until player finishes upgrades and clicks Next Wave
-            return;
-        }
-
-        // If intermissionDuration > 0, auto-advance after time expires
-        if (intermissionDuration > 0f)
-        {
-            stateTimer -= deltaTime;
-            if (stateTimer <= 0f)
-            {
-                StartNextWave();
-            }
-        }
+        // Intermission always waits for player input via the intermission popup confirmation
     }
 
     protected virtual void ProcessCombat(float deltaTime)

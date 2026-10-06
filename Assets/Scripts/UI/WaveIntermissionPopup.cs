@@ -434,7 +434,7 @@ public class WaveIntermissionPopup : MonoBehaviour
             if (fadeInDuration > 0f && Application.isPlaying)
             {
                 canvasGroup.alpha = 0f;
-                canvasGroup.DOFade(1f, fadeInDuration);
+                canvasGroup.DOFade(1f, fadeInDuration).SetUpdate(true);
             }
             else
             {
@@ -450,7 +450,7 @@ public class WaveIntermissionPopup : MonoBehaviour
         if (canvasGroup != null && fadeOutDuration > 0f && Application.isPlaying)
         {
             canvasGroup.DOKill();
-            canvasGroup.DOFade(0f, fadeOutDuration).OnComplete(() =>
+            canvasGroup.DOFade(0f, fadeOutDuration).SetUpdate(true).OnComplete(() =>
             {
                 if (panel != null) panel.SetActive(false);
             });

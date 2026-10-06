@@ -325,6 +325,8 @@ public class MainMenu : MonoBehaviour
     {
         IsOpen = true;
 
+        transform.SetAsLastSibling();
+
         if (_menuRe_ != null)
         {
             _menuRe_.SetActive(true);
@@ -446,14 +448,16 @@ public class MainMenu : MonoBehaviour
 
     private void ApplyPauseState(bool paused)
     {
+        bool inIntermission = WaveManager.Instance != null && WaveManager.Instance.State == WaveManager.WaveState.Intermission;
+
         if (pauseTimeWhenOpen)
         {
-            Time.timeScale = paused ? 0f : 1f;
+            Time.timeScale = (paused || inIntermission) ? 0f : 1f;
         }
 
         if (_player != null)
         {
-            _player._can_play = !paused && !_player.isDead;
+            _player._can_play = !paused && !_player.isDead && !inIntermission;
         }
     }
 }

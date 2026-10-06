@@ -103,7 +103,7 @@ public class WaveClearedPopup : MonoBehaviour
         if (canvasGroup != null)
         {
             canvasGroup.alpha = 0f;
-            canvasGroup.DOFade(1f, 0.25f);
+            canvasGroup.DOFade(1f, 0.25f).SetUpdate(true);
         }
     }
 
@@ -122,7 +122,7 @@ public class WaveClearedPopup : MonoBehaviour
 
         if (canvasGroup != null)
         {
-            canvasGroup.DOFade(0f, 0.2f).OnComplete(() =>
+            canvasGroup.DOFade(0f, 0.2f).SetUpdate(true).OnComplete(() =>
             {
                 if (panel != null) panel.SetActive(false);
             });
