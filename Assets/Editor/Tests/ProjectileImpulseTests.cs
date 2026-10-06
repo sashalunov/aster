@@ -72,9 +72,12 @@ public class ProjectileImpulseTests
     [Test]
     public void ApplyImpactImpulse_AppliesCalculatedImpulseToCompoundRigidbody()
     {
+        Vector3 testOrigin = new Vector3(5000f, 5000f, 0f);
+
         // Root compound asteroid Rigidbody
         var parentGo = new GameObject("ParentAsteroidBody");
         cleanupList.Add(parentGo);
+        parentGo.transform.position = testOrigin;
         var parentRb = parentGo.AddComponent<Rigidbody>();
         parentRb.mass = 4f;
         parentRb.useGravity = false;
@@ -85,12 +88,13 @@ public class ProjectileImpulseTests
         // Child block with collider
         var childGo = new GameObject("ChildBlock");
         childGo.transform.SetParent(parentGo.transform);
+        childGo.transform.localPosition = Vector3.zero;
         var childCol = childGo.AddComponent<BoxCollider>();
 
         // Projectile positioned below target
         var projGo = new GameObject("TestBulletCompound");
         cleanupList.Add(projGo);
-        projGo.transform.position = new Vector3(0f, -5f, 0f);
+        projGo.transform.position = testOrigin + new Vector3(0f, -5f, 0f);
         projGo.transform.rotation = Quaternion.identity; // up is (0, 1, 0)
         var proj = projGo.AddComponent<bulletKinetic>();
         proj.Mass = 0.5f;
@@ -120,8 +124,11 @@ public class ProjectileImpulseTests
     [Test]
     public void ApplyImpactImpulse_AppliesCalculatedImpulseToDirectRigidbody()
     {
+        Vector3 testOrigin = new Vector3(6000f, 5000f, 0f);
+
         var targetGo = new GameObject("DirectTargetBody");
         cleanupList.Add(targetGo);
+        targetGo.transform.position = testOrigin;
         var targetRb = targetGo.AddComponent<Rigidbody>();
         targetRb.mass = 5f;
         targetRb.useGravity = false;
@@ -132,7 +139,7 @@ public class ProjectileImpulseTests
 
         var projGo = new GameObject("TestBulletDirect");
         cleanupList.Add(projGo);
-        projGo.transform.position = new Vector3(0f, -5f, 0f);
+        projGo.transform.position = testOrigin + new Vector3(0f, -5f, 0f);
         projGo.transform.rotation = Quaternion.identity;
         var proj = projGo.AddComponent<bulletKinetic>();
         proj.Mass = 1f;

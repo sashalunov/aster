@@ -14,8 +14,9 @@ public abstract class BlockBase : MonoBehaviour
     public bool isCore = false;
 
     [Header("Block State")]
-    public int _level = 0;
+    public int _level = 1;
     public float _hits = 1f;
+    public float _initialHits = 1f;
     public bool _dead = false;
     public bool _detached = false;
     public bool _bonus = false;
@@ -23,17 +24,37 @@ public abstract class BlockBase : MonoBehaviour
     // Encapsulated Properties
     public virtual bool IsCore => isCore;
     public float Hits => _hits;
+    public float InitialHits => _initialHits;
     public bool IsDead => _dead;
     public bool IsDetached { get => _detached; set => _detached = value; }
     public bool HasBonus { get => _bonus; set => _bonus = value; }
-    public int Level => _level;
+    public int Level
+    {
+        get => _level > 0 ? _level : 1;
+        set => _level = Mathf.Max(1, value);
+    }
 
     // Polymorphic Block Events
     public event Action<BlockBase, Transform, ProjectileBase> OnHit;
     public event Action<BlockBase, Transform, ProjectileBase> OnDestroyed;
 
+    /// <summary>
+    /// Fast epsilon threshold for float-based zero health checks.
+    /// Optimized for high-throughput evaluation across thousands of blocks.
+    /// </summary>
+    public const float HEALTH_EPSILON = 0.0001f;
+
     protected virtual void Start()
     {
+        if (_initialHits < _hits)
+        {
+            _initialHits = _hits;
+        }
+        if (_level < 1)
+        {
+            _level = 1;
+        }
+
         ConfigurePhysics();
         UpdateVisuals();
 
@@ -90,27 +111,21 @@ public abstract class BlockBase : MonoBehaviour
     /// <param name="b1">Optional bullet component for projectile metadata.</param>
     /// <param name="customDamage">Optional override damage amount. If negative, defaults to projectile damage or 1.</param>
     /// <returns>Excess remaining damage from penetrating impacts.</returns>
-    public virtual float block_receive_hit(Transform source, ProjectileBase b1, float customDamage = -1)
+    public virtual float block_receive_hit(Transform source, ProjectileBase b1, float customDamage = -1f)
     {
         if (_dead) return 0f;
 
-        float incomingDamage = customDamage >= 0 ? customDamage : (b1 != null ? b1.Damage : 1f);
+        float incomingDamage = customDamage >= 0f ? customDamage : (b1 != null ? b1.Damage : 1f);
         float newhits = _hits - incomingDamage;
         float newhitdamage = Mathf.Max(0f, incomingDamage - _hits);
         float damage = incomingDamage >= _hits ? _hits : incomingDamage;
 
         player p = ResolvePlayer(source, b1);
 
-        // Damage FX & XP Awarding
-        if (damage > 0)
+        // Damage FX & Feedback
+        if (damage > 0f)
         {
-           
-
-            if (p != null)
-            {
-                p.AddXP((int)damage, transform);
-                 SpawnHitPopup(damage);
-            }
+            //SpawnHitPopup(damage);
 
             // Play block impact/collision sound
             if (AudioManager.HasInstance)
@@ -119,8 +134,8 @@ public abstract class BlockBase : MonoBehaviour
             }
         }
 
-        // Destruction Check
-        if (newhits < 1f)
+        // Fast float-based destruction check optimized for thousands of blocks
+        if (newhits <= HEALTH_EPSILON)
         {
             _dead = true;
             Vector3 deathPos = transform.position;
@@ -172,7 +187,24 @@ public abstract class BlockBase : MonoBehaviour
             if (popup != null)
             {
                 TextMeshPro tmp = popup.GetComponentInChildren<TextMeshPro>();
-                if (tmp != null) tmp.SetText("+" + damage.ToString());
+                if (tmp != null) tmp.SetText(damage.ToString("0.#"));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Spawns floating XP text popup at the block position upon destruction.
+    /// </summary>
+    protected virtual void SpawnXpPopup(int xp)
+    {
+        GameObject hitFx = PrefabManager.Get(IsCore ? PrefabId.CoreHitFx : PrefabId.BlockHitFx);
+        if (hitFx != null)
+        {
+            GameObject popup = Instantiate(hitFx, transform.position, Quaternion.identity);
+            if (popup != null)
+            {
+                TextMeshPro tmp = popup.GetComponentInChildren<TextMeshPro>();
+                if (tmp != null) tmp.SetText("+" + xp + " XP");
             }
         }
     }
@@ -186,18 +218,28 @@ public abstract class BlockBase : MonoBehaviour
         InvokeDestroyedEvent(source, b1);
 
         SpawnDestroyFx(deathPos);
+
+        // Award Kill XP strictly after block destruction (based on mass * level)
+        if (p != null)
+        {
+            float massHits = _initialHits > 0f ? _initialHits : Mathf.Max(1f, _hits);
+            int killXP = Mathf.Max(1, Mathf.RoundToInt(massHits * Level));
+            p.AddXP(killXP, transform);
+            SpawnXpPopup(killXP);
+        }
+
         HandleDrop(deathPos, parentAst, p);
 
         if (parentAst != null)
         {
-            if (IsCore)
+            Vector3 impactImpulse = CalculateImpactImpulse(source, b1, deathPos);
+            parentAst.check_for_unconnected(impactImpulse);
+        }
+        else
+        {
+            if (WaveManager.Instance != null)
             {
-                parentAst.core_destruct(b1);
-            }
-            else
-            {
-                Vector3 impactImpulse = CalculateImpactImpulse(source, b1, deathPos);
-                parentAst.check_for_unconnected(impactImpulse);
+                WaveManager.Instance.UnregisterThreat(gameObject);
             }
         }
     }
@@ -278,25 +320,36 @@ public abstract class BlockBase : MonoBehaviour
     /// </summary>
     protected virtual void DestroyBlockObject()
     {
-        if (this != null && gameObject != null)
+        if (this != null)
         {
+            try
+            {
+                if (gameObject != null)
+                {
 #if UNITY_EDITOR
-            if (!Application.isPlaying)
-                DestroyImmediate(gameObject);
-            else
-                Destroy(gameObject);
+                    if (!Application.isPlaying)
+                        DestroyImmediate(gameObject);
+                    else
+                        Destroy(gameObject);
 #else
-            Destroy(gameObject);
+                    Destroy(gameObject);
 #endif
+                }
+            }
+            catch (MissingReferenceException)
+            {
+                // Ignored: already destroyed as part of parent hierarchy (e.g. core collapse)
+            }
         }
     }
 
     /// <summary>
     /// Sets hit points and updates visuals.
     /// </summary>
-    public virtual void SetHits(int newhits)
+    public virtual void SetHits(float newhits)
     {
         _hits = newhits;
+        _initialHits = newhits;
         UpdateVisuals();
     }
 
@@ -316,17 +369,20 @@ public abstract class BlockBase : MonoBehaviour
 
     /// <summary>
     /// Detaches the block from an asteroid compound body, reparenting it and restoring its standalone Rigidbody.
+    /// Strictly enforces unit Vector3.one scale to prevent scale distortion upon detachment.
     /// </summary>
     public virtual void EndLife(Transform newparent)
     {
         try
         {
-            transform.parent = newparent;
+            transform.SetParent(newparent, true);
         }
         catch (Exception)
         {
-            transform.parent = null;
+            transform.SetParent(null, true);
         }
+
+        transform.localScale = Vector3.one;
 
         Rigidbody rb = gameObject.GetComponent<Rigidbody>();
         if (rb == null)
@@ -334,7 +390,7 @@ public abstract class BlockBase : MonoBehaviour
             rb = gameObject.AddComponent<Rigidbody>();
         }
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezePositionZ;
-        rb.mass = _hits > 0 ? _hits : 1f;
+        rb.mass = _hits > 0f ? _hits : 1f;
         rb.useGravity = false;
         rb.linearDamping = 0.5f;
         rb.angularDamping = 0.5f;
@@ -376,6 +432,10 @@ public abstract class BlockBase : MonoBehaviour
                 {
                     parentAst.check_for_unconnected(Vector3.zero);
                 }
+            }
+            else if (!IsCore && WaveManager.Instance != null)
+            {
+                WaveManager.Instance.UnregisterThreat(gameObject);
             }
         }
     }

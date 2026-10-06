@@ -75,16 +75,17 @@ public class BlockAsteroid : BlockBase
 
         if (_tmp_lvl != null)
         {
-            _tmp_lvl.SetText(_hits.ToString());
+            _tmp_lvl.SetText(_hits.ToString("0.#"));
         }
     }
 
     /// <summary>
     /// Updates the mesh material to match the grade corresponding to current hits.
+    /// Fast float evaluation and CeilToInt mapping for fractional damage states.
     /// </summary>
     protected virtual void UpdateMats()
     {
-        if (_hits < 1 || _grade_mats == null || _grade_mats.Length == 0) return;
+        if (_hits <= HEALTH_EPSILON || _grade_mats == null || _grade_mats.Length == 0) return;
 
         if (_meshRenderer == null)
         {
@@ -93,7 +94,7 @@ public class BlockAsteroid : BlockBase
 
         if (_meshRenderer == null) return;
 
-        int matIndex = (int)_hits - 1;
+        int matIndex = Mathf.CeilToInt(_hits) - 1;
         if (_hits > _grade_mats.Length)
         {
             _meshRenderer.material = _grade_mats[_grade_mats.Length - 1];

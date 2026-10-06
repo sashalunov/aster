@@ -56,6 +56,8 @@ public class BlockAsteroidCore : BlockBase
     {
         isCore = true;
         _hits = 3f;
+        _initialHits = 3f;
+        _level = 1;
     }
 
     protected virtual void Awake()
@@ -116,16 +118,17 @@ public class BlockAsteroidCore : BlockBase
 
         if (_tmp_lvl != null)
         {
-            _tmp_lvl.SetText(_hits.ToString());
+            _tmp_lvl.SetText(_hits.ToString("0.#"));
         }
     }
 
     /// <summary>
     /// Updates the mesh material to match the grade corresponding to current hits.
+    /// Fast float evaluation and CeilToInt mapping for fractional damage states.
     /// </summary>
     protected virtual void UpdateMats()
     {
-        if (_hits < 1 || _grade_mats == null || _grade_mats.Length == 0) return;
+        if (_hits <= HEALTH_EPSILON || _grade_mats == null || _grade_mats.Length == 0) return;
 
         if (_meshRenderer == null)
         {
@@ -134,7 +137,7 @@ public class BlockAsteroidCore : BlockBase
 
         if (_meshRenderer == null) return;
 
-        int matIndex = (int)_hits - 1;
+        int matIndex = Mathf.CeilToInt(_hits) - 1;
         if (_hits > _grade_mats.Length)
         {
             _meshRenderer.material = _grade_mats[_grade_mats.Length - 1];
@@ -142,6 +145,56 @@ public class BlockAsteroidCore : BlockBase
         else if (matIndex >= 0 && matIndex < _grade_mats.Length)
         {
             _meshRenderer.material = _grade_mats[matIndex];
+        }
+    }
+
+    /// <summary>
+    /// Handles authoritative destruction of the central core block.
+    /// Calculates core kill XP (mass * level) plus reward from all attached child blocks,
+    /// notifies the parent asteroid, and ensures unified cleanup.
+    /// </summary>
+    protected override void HandleDestruction(Transform source, ProjectileBase b1, Vector3 deathPos, AsteroidBase parentAst, player p)
+    {
+        bool hasParentAst = parentAst != null;
+
+        // 1. Calculate Core kill XP + Child Blocks reward if attached to an asteroid
+        int coreXp = Mathf.Max(1, Mathf.RoundToInt(InitialHits * Level));
+        int childReward = 0;
+        if (hasParentAst)
+        {
+            childReward = parentAst.DetachChildrenOnDestruction();
+        }
+        int totalXp = coreXp + childReward;
+
+        // 2. Award unified XP to player
+        if (p != null)
+        {
+            p.AddXP(totalXp, transform);
+            SpawnXpPopup(totalXp);
+        }
+
+        SpawnDestroyFx(deathPos);
+        HandleDrop(deathPos, parentAst, p);
+
+        InvokeDestroyedEvent(source, b1);
+
+        if (hasParentAst)
+        {
+            if (parentAst != null && !parentAst.isDestructing)
+            {
+                parentAst.core_destruct(b1);
+            }
+        }
+        else
+        {
+            if (WaveManager.Instance != null && this != null)
+            {
+                try
+                {
+                    WaveManager.Instance.UnregisterThreat(gameObject);
+                }
+                catch (MissingReferenceException) { }
+            }
         }
     }
 }

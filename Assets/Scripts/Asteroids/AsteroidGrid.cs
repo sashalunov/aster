@@ -386,7 +386,7 @@ public class AsteroidGrid : AsteroidBase
                 bulletDir = b1Rb.linearVelocity.normalized;
             }
             bulletDir.z = 0f;
-            impactImpulse = bulletDir * Mathf.Max(b1.Damage, 1f);
+            impactImpulse = bulletDir * Mathf.Max(b1.CalculateBounceImpulse(), 1f);
         }
         else if (source != null && block != null)
         {
@@ -434,7 +434,7 @@ public class AsteroidGrid : AsteroidBase
         return base.core_destruct(b1);
     }
 
-    protected override int DetachChildrenOnDestruction()
+    public override int DetachChildrenOnDestruction()
     {
         return DetachAllChildrenOnDestruction();
     }
@@ -1093,10 +1093,11 @@ public class AsteroidGrid : AsteroidBase
 #endif
         }
 
-        // Re-parent to asteroid
-        blockObj.transform.parent = transform;
+        // Re-parent to asteroid with explicit non-scaled parent assignment
+        blockObj.transform.SetParent(transform, false);
         blockObj.transform.localPosition = new Vector3(targetCoord.x, targetCoord.y, 0f);
         blockObj.transform.localRotation = Quaternion.identity;
+        blockObj.transform.localScale = Vector3.one;
 
         b0._detached = false;
         b0.isCore = false;
@@ -1112,6 +1113,7 @@ public class AsteroidGrid : AsteroidBase
         if (Application.isPlaying)
         {
             transform.DOKill();
+            transform.localScale = Vector3.one;
             transform.DOPunchScale(Vector3.one * 0.08f, 0.2f);
         }
 
@@ -1254,6 +1256,7 @@ public class AsteroidGrid : AsteroidBase
         GameObject newBox = Instantiate(blockPrefab, worldPos, transform.rotation, transform);
         newBox.transform.localPosition = localPos;
         newBox.transform.name = $"b_{coord.x}_{coord.y}";
+        newBox.transform.localScale = Vector3.one;
 
         Rigidbody childRb = newBox.GetComponent<Rigidbody>();
         if (childRb != null)
@@ -1274,6 +1277,7 @@ public class AsteroidGrid : AsteroidBase
             b0._detached = false;
             b0.isCore = false;
             b0.SetHits(hits);
+            b0._level = Mathf.Max(1, _block_hits);
             BindBlockEvents(b0);
         }
 

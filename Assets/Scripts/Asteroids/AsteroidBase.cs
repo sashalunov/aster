@@ -22,7 +22,23 @@ public class AsteroidBase : MonoBehaviour
     [Header("Block & Core Stats")]
     public int _block_hits = 1;
     public int _shell_hits = 2;
-    public int _core_hits = 3;
+    [SerializeField] private int _fallbackCoreHits = 3;
+
+    /// <summary>
+    /// Core hit points / mass. Authoritative state resides on coreBlock; delegates directly to coreBlock.
+    /// </summary>
+    public int _core_hits
+    {
+        get => coreBlock != null ? Mathf.RoundToInt(coreBlock.Hits) : _fallbackCoreHits;
+        set
+        {
+            _fallbackCoreHits = value;
+            if (coreBlock != null)
+            {
+                coreBlock.SetHits(value);
+            }
+        }
+    }
     public int _core_shell = 0;
 
     [Header("Core Visual Overrides (Optional)")]
@@ -218,6 +234,7 @@ public class AsteroidBase : MonoBehaviour
 
         coreObj.transform.localPosition = localPos;
         coreObj.transform.localRotation = Quaternion.identity;
+        coreObj.transform.localScale = Vector3.one;
         coreObj.name = "core_block";
         coreObj.tag = "core";
 
@@ -303,7 +320,6 @@ public class AsteroidBase : MonoBehaviour
         {
             SetSleeping(false);
         }
-        _core_hits = (int)core._hits;
         UpdateMass();
     }
 
@@ -355,7 +371,7 @@ public class AsteroidBase : MonoBehaviour
             {
                 rb.isKinematic = false;
                 rb.WakeUp();
-                if (savedLinearVelocity.sqrMagnitude > 0.0001f || savedAngularVelocity.sqrMagnitude > 0.0001f)
+                if (savedLinearVelocity.sqrMagnitude > 0.001f || savedAngularVelocity.sqrMagnitude > 0.001f)
                 {
                     rb.linearVelocity = savedLinearVelocity;
                     rb.angularVelocity = savedAngularVelocity;
@@ -616,7 +632,6 @@ public class AsteroidBase : MonoBehaviour
             }
             else
             {
-                _core_hits = (int)coreBlock._hits;
                 UpdateMass();
             }
             return (int)remaining;
@@ -624,30 +639,20 @@ public class AsteroidBase : MonoBehaviour
 
         // Fallback for legacy asteroids without an attached coreBlock
         float b1_dmg = (b1 != null) ? b1.Damage : 1f;
-        var newhits = _core_hits - b1_dmg;
-        var newhitdamage = Mathf.Max(0f, b1_dmg - _core_hits);
-        var damage = b1_dmg >= _core_hits ? _core_hits : (int)b1_dmg;
+        var newhits = _fallbackCoreHits - b1_dmg;
+        var newhitdamage = Mathf.Max(0f, b1_dmg - _fallbackCoreHits);
+        var damage = b1_dmg >= _fallbackCoreHits ? _fallbackCoreHits : (int)b1_dmg;
 
         if (damage > 0 && newhits > 0)
         {
-            if (b1 != null && b1._player != null)
-            {
-                b1._player.AddXP(damage, transform);
-                 var bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
-            if (bonus != null)
-            {
-                bonus.GetComponentInChildren<TextMeshPro>()?.SetText("+" + damage.ToString());
-            }
-            }
             UpdateMass();
-          
         }
-        if (newhits < 1)
+        if (newhits <= 0.0001f)
         {
             core_destruct(b1);
         }
 
-        _core_hits = (int)newhits;
+        _fallbackCoreHits = (int)newhits;
         UpdateMats();
         UpdateText();
 
@@ -665,19 +670,35 @@ public class AsteroidBase : MonoBehaviour
         UnbindCoreBlockEvents();
 
         int reward = DetachChildrenOnDestruction();
-        int totalXp = reward + _core_hits;
         player p = (b1 != null && b1._player != null) ? b1._player : null;
-        if (p != null)
+        if (p == null && b1 != null && b1.Owner != null)
         {
-            p.AddXP(totalXp, transform);
+            p = b1.Owner.GetComponent<player>() ?? b1.Owner.GetComponentInParent<player>();
         }
 
-        GameObject bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
-        if (bonus != null)
+        // If coreBlock was not already killed through HandleDestruction, calculate and award XP
+        int totalXp = 0;
+        if (coreBlock != null && !coreBlock.IsDead)
         {
-            TextMeshPro tmp = bonus.GetComponentInChildren<TextMeshPro>();
-            if (tmp != null) tmp.SetText("+" + totalXp.ToString());
-            bonus.transform.localScale = new Vector3(1.5f, 1.5f, 1.1f);
+            int coreXp = Mathf.Max(1, Mathf.RoundToInt(coreBlock.InitialHits * coreBlock.Level));
+            totalXp = reward + coreXp;
+            if (p != null)
+            {
+                p.AddXP(totalXp, transform);
+            }
+
+            GameObject bonus = PrefabManager.Instantiate(PrefabId.CoreHitFx, transform.position, Quaternion.identity);
+            if (bonus != null)
+            {
+                TextMeshPro tmp = bonus.GetComponentInChildren<TextMeshPro>();
+                if (tmp != null) tmp.SetText("+" + totalXp.ToString() + " XP");
+                bonus.transform.localScale = new Vector3(1.5f, 1.5f, 1.1f);
+            }
+        }
+        else
+        {
+            int coreXp = coreBlock != null ? Mathf.Max(1, Mathf.RoundToInt(coreBlock.InitialHits * coreBlock.Level)) : 1;
+            totalXp = reward + coreXp;
         }
 
         if (PowerupManager.Instance != null)
@@ -691,7 +712,7 @@ public class AsteroidBase : MonoBehaviour
             {
                 GameObject shbonus = Instantiate(shieldFx, transform.position, Quaternion.identity) as GameObject;
                 StandardPowerup pu = shbonus != null ? shbonus.GetComponent<StandardPowerup>() : null;
-                if (pu != null) pu.Type = StandardPowerup.StandardType.ShieldUp;
+                if (pu != null) pu.Type = StandardPowerup.StandardType.XpUp;
             }
         }
 
@@ -715,7 +736,7 @@ public class AsteroidBase : MonoBehaviour
     /// <summary>
     /// Detaches perimeter blocks on destruction, converting them to physical debris and calculating reward.
     /// </summary>
-    protected virtual int DetachChildrenOnDestruction()
+    public virtual int DetachChildrenOnDestruction()
     {
         int reward = 0;
         List<Transform> childrenToDetach = new List<Transform>();

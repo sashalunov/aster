@@ -375,6 +375,7 @@ public class BlockSpawner : MonoBehaviour
 
         Vector3 spawnPosition = CalculateRandomSpawnPosition();
         GameObject newBlock = Instantiate(blockPrefab, spawnPosition, Quaternion.identity, spawnContainer);
+        newBlock.transform.localScale = Vector3.one;
 
         // Configure block attributes
         BlockBase b0 = newBlock.GetComponent<BlockBase>();
@@ -382,6 +383,7 @@ public class BlockSpawner : MonoBehaviour
         {
             b0._detached = true;
             b0.SetHits(UnityEngine.Random.Range(minHits, maxHits + 1));
+            b0._level = Mathf.Max(1, b0._level);
         }
 
         // Ensure Rigidbody exists immediately (block0.prefab has no Rigidbody by default)
