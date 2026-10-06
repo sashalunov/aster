@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "com.coplaydev.unity-mcp": {
-      "version": "file:com.coplaydev.unity-mcp",
+      "version": "file:/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity",
       "depth": 0,
-      "source": "embedded",
+      "source": "local",
       "dependencies": {
         "com.unity.modules.animation": "1.0.0",
         "com.unity.modules.imageconversion": "1.0.0",
@@ -17,7 +17,7 @@
       }
     },
     "com.unity.ai.navigation": {
-      "version": "2.0.14",
+      "version": "2.0.15",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -32,7 +32,7 @@
       "dependencies": {}
     },
     "com.unity.ide.visualstudio": {
-      "version": "2.0.26",
+      "version": "2.0.28",
       "depth": 0,
       "source": "registry",
       "dependencies": {
@@ -58,13 +58,6 @@
     "com.unity.nuget.newtonsoft-json": {
       "version": "3.2.2",
       "depth": 1,
-      "source": "registry",
-      "dependencies": {},
-      "url": "https://packages.unity.com"
-    },
-    "com.unity.performance.profile-analyzer": {
-      "version": "1.4.0",
-      "depth": 0,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"

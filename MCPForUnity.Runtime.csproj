@@ -36,7 +36,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <UnityProjectGenerator>Package</UnityProjectGenerator>
-    <UnityProjectGeneratorVersion>2.0.26</UnityProjectGeneratorVersion>
+    <UnityProjectGeneratorVersion>2.0.28</UnityProjectGeneratorVersion>
     <UnityProjectGeneratorStyle>SDK</UnityProjectGeneratorStyle>
     <UnityProjectType>Game:1</UnityProjectType>
     <UnityBuildTarget>StandaloneLinux64:24</UnityBuildTarget>
@@ -53,17 +53,35 @@
     <Analyzer Include="/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/BCLExtensions/TargetingPacks/netstandard2.1/analyzers/dotnet/roslyn4.0/cs/System.Text.Json.SourceGeneration.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/ScreenshotUtility.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityAssembliesCompat.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityCompatShims.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/AssemblyInfo.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityFindObjectsCompat.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityObjectIdCompat.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Helpers/UnityPhysicsCompat.cs" />
-    <Compile Include="Packages/com.coplaydev.unity-mcp/Runtime/Serialization/UnityTypeConverters.cs" />
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Helpers/ScreenshotUtility.cs">
+      <Link>Runtime/Helpers/ScreenshotUtility.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Helpers/UnityAssembliesCompat.cs">
+      <Link>Runtime/Helpers/UnityAssembliesCompat.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Helpers/UnityCompatShims.cs">
+      <Link>Runtime/Helpers/UnityCompatShims.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/AssemblyInfo.cs">
+      <Link>Runtime/AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Helpers/UnityFindObjectsCompat.cs">
+      <Link>Runtime/Helpers/UnityFindObjectsCompat.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Helpers/UnityObjectIdCompat.cs">
+      <Link>Runtime/Helpers/UnityObjectIdCompat.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Helpers/UnityPhysicsCompat.cs">
+      <Link>Runtime/Helpers/UnityPhysicsCompat.cs</Link>
+    </Compile>
+    <Compile Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/Serialization/UnityTypeConverters.cs">
+      <Link>Runtime/Serialization/UnityTypeConverters.cs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Packages/com.coplaydev.unity-mcp/Runtime/MCPForUnity.Runtime.asmdef" />
+    <None Include="/home/JIyHb/Downloads/unity-mcp-10.3.0/unity-mcp-10.3.0/MCPForUnity/Runtime/MCPForUnity.Runtime.asmdef">
+      <Link>Runtime/MCPForUnity.Runtime.asmdef</Link>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
