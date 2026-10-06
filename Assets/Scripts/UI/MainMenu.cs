@@ -25,6 +25,10 @@ public class MainMenu : MonoBehaviour
     [Header("Player Reference")]
     public player _player;
 
+    [Header("Spawn Reference")]
+    [Tooltip("Optional reference to player spawn point.")]
+    public SpawnPoint spawnPoint;
+
     [Header("Buttons")]
     public UnityEngine.UI.Button startButton;
     public UnityEngine.UI.Button resumeButton;
@@ -251,6 +255,14 @@ public class MainMenu : MonoBehaviour
         }
     }
 
+    public void ResolveSpawnPoint()
+    {
+        if (spawnPoint == null)
+        {
+            spawnPoint = SpawnPoint.Instance != null ? SpawnPoint.Instance : FindAnyObjectByType<SpawnPoint>();
+        }
+    }
+
     public void HandleInput()
     {
         // Don't intercept menu shortcut keys while actively typing in the name input field
@@ -359,20 +371,26 @@ public class MainMenu : MonoBehaviour
         if (_menu_ != null) _menu_.SetActive(false);
         if (_menuRe_ != null) _menuRe_.SetActive(false);
 
+        // Respawn player at SpawnPoint
+        ResolvePlayer();
+        ResolveSpawnPoint();
+
+        if (spawnPoint != null)
+        {
+            spawnPoint.RespawnPlayer(_player);
+        }
+        else if (_player != null)
+        {
+            _player.Respawn(Vector3.zero, Quaternion.identity);
+        }
+
         ApplyPauseState(false);
 
-        
-
-         if (WaveManager.Instance != null)
-         {
-             WaveManager.Instance.StartRun();
-         }
-    
-          // Play block impact/collision sound
-            if (AudioManager.HasInstance)
-            {
-                AudioManager.Instance.PlayBGM();
-            }
+        // Play block impact/collision sound or background music
+        if (AudioManager.HasInstance)
+        {
+            AudioManager.Instance.PlayBGM();
+        }
 
         OnGameStarted?.Invoke();
     }

@@ -27,6 +27,7 @@ public class player : MonoBehaviour
     public event System.Action<float, float> OnHealthChanged;
     public event System.Action<int> OnUpgradePointsChanged;
     public event System.Action OnDeath;
+    public event System.Action OnRespawn;
 
     [Header("Upgrade Points")]
     [SerializeField] private int _upgradePoints = 0;
@@ -113,6 +114,60 @@ public class player : MonoBehaviour
         }
 
         OnDeath?.Invoke();
+    }
+
+    /// <summary>
+    /// Respawns the player ship at the specified world position and rotation,
+    /// restoring health, shields, physics, and gameplay capability.
+    /// </summary>
+    public void Respawn(Vector3 position, Quaternion rotation)
+    {
+        transform.position = position;
+        transform.rotation = rotation;
+
+        isDead = false;
+        _can_play = true;
+
+        health_value = health_max_value;
+        shield_value = shield_max_value;
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            col.enabled = true;
+        }
+
+        if (_ship_hull != null)
+        {
+            _ship_hull.gameObject.SetActive(true);
+        }
+
+        if (ps_thruster != null)
+        {
+            ps_thruster.Stop();
+            ps_thruster.Clear();
+        }
+
+        if (cross1_marker != null)
+        {
+            cross1_marker.transform.position = position;
+            cross1_marker.SetActive(true);
+        }
+
+        PlayerMetaProgression.ApplyTo(this);
+
+        UpdateShieldHUD();
+        UpdateHealthHUD();
+        UpdateWeaponHUD();
+
+        OnRespawn?.Invoke();
     }
 
     public ulong _xp_value => Progression != null ? Progression.CurrentXP : 0;
