@@ -307,7 +307,8 @@ public abstract class BlockBase : MonoBehaviour
                         StandardPowerup pup = rndbonus.GetComponent<StandardPowerup>();
                         if (pup != null)
                         {
-                            pup.Type = wasCore ? StandardPowerup.StandardType.ShieldUp : (StandardPowerup.StandardType)UnityEngine.Random.Range(0, 4);
+                            StandardPowerup.StandardType[] fallbackTypes = { StandardPowerup.StandardType.XpUp, StandardPowerup.StandardType.ShieldUp, StandardPowerup.StandardType.UpgradePoint, StandardPowerup.StandardType.AmmoRefill };
+                            pup.Type = wasCore ? StandardPowerup.StandardType.ShieldUp : fallbackTypes[UnityEngine.Random.Range(0, fallbackTypes.Length)];
                         }
                     }
                 }

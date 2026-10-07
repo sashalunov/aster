@@ -414,6 +414,12 @@ public class WaveManager : MonoBehaviour
         currentWaveIndex++;
         CurrentWaveConfig = GetWaveDefinition(currentWaveIndex);
         SetState(WaveState.Countdown);
+
+         if (AudioManager.HasInstance)
+            {
+               AudioManager.Instance.PlayWaveStart();
+           }
+    
     }
 
     /// <summary>
@@ -542,7 +548,7 @@ public class WaveManager : MonoBehaviour
 
         remainingThreatBudget = CurrentWaveConfig.threatBudget;
         waveTimer = CurrentWaveConfig.duration;
-
+        
         OnWaveStarted?.Invoke(currentWaveIndex, CurrentWaveConfig);
         OnThreatsChanged?.Invoke(ActiveThreatCount, remainingThreatBudget);
     }

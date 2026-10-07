@@ -61,6 +61,9 @@ public class AudioManager : MonoBehaviour
     [Tooltip("Default background music to start playing automatically.")]
     [SerializeField] private AudioClip defaultMusic;
 
+  [Header("Default Audio Clips")]
+     [Tooltip("Sound played at wave start (e.g. phase_intro.ogg).")]
+     [SerializeField] private AudioClip waveStartClip;
 
     [Tooltip("Ship explosion sound (e.g. ship_explode.ogg).")]
     [SerializeField] private AudioClip shipExplosionClip;
@@ -79,6 +82,9 @@ public class AudioManager : MonoBehaviour
 
     [Tooltip("Default looping engine clip for ships (e.g. sfx_engine1.ogg).")]
     [SerializeField] private AudioClip defaultEngineClip;
+
+    [Tooltip("Default powerup / pickup sound (e.g. levelup_or_powerup.ogg or pup.wav).")]
+    [SerializeField] private AudioClip powerupClip;
 
     [Header("3D Spatial Audio Settings")]
     [Tooltip("Number of 3D AudioSources pre-allocated in pool.")]
@@ -644,6 +650,32 @@ public void PlayBGM()
         if (shieldBreakClip != null)
         {
             Play3D(shieldBreakClip, position, volume, defaultMinDistance, defaultMaxDistance, 0.04f);
+        }
+    }
+    public void PlayWaveStart(AudioClip customClip = null, float volume = 1f)
+ {
+         AudioClip clip = customClip != null ? customClip : waveStartClip;
+            if (clip != null)
+            {
+               Play2D(clip, volume);
+          }
+    }
+
+    public AudioClip PowerupClip
+    {
+        get => powerupClip;
+        set => powerupClip = value;
+    }
+
+    /// <summary>
+    /// Plays a powerup pickup sound effect. Uses customClip if provided, or falls back to default powerupClip.
+    /// </summary>
+    public void PlayPowerup(AudioClip customClip = null, float volume = 1f)
+    {
+        AudioClip clip = customClip != null ? customClip : powerupClip;
+        if (clip != null)
+        {
+            Play2D(clip, volume, 0.03f);
         }
     }
 

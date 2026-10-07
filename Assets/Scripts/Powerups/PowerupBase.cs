@@ -61,6 +61,11 @@ public abstract class PowerupBase : MonoBehaviour
     public Color ThemeColor => themeColor;
     public float Lifetime => lifetime;
     public bool IsCollected => _isCollected;
+    public AudioClip PickupSound
+    {
+        get => pickupSound;
+        set => pickupSound = value;
+    }
 
     // Internal state
     protected bool _isCollected = false;
@@ -210,7 +215,12 @@ public abstract class PowerupBase : MonoBehaviour
             Instantiate(pickupFxPrefab, transform.position, Quaternion.identity);
         }
 
-        if (pickupSound != null && targetPlayer != null)
+        // Play pickup audio via AudioManager with fallback to player AudioSource
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayPowerup(pickupSound);
+        }
+        else if (pickupSound != null && targetPlayer != null)
         {
             AudioSource audio = targetPlayer.GetComponent<AudioSource>();
             if (audio != null)

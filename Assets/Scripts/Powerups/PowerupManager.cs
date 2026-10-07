@@ -200,31 +200,39 @@ public class PowerupManager : MonoBehaviour
     // Safe Stat Application Helpers (Enforces Boundaries & Clamps)
     // =========================================================================
 
-    public bool ApplySpeedUp(player p, float hzIncrease = 1f)
+    public bool ApplyXP(player p, int amount = 50)
     {
         if (p == null) return false;
-
-        p._fire_hz = Mathf.Clamp(p._fire_hz + hzIncrease, 1f, MAX_FIRE_HZ);
-        p._fire_rate = 1f / p._fire_hz;
-        p.UpdateWeaponHUD();
+        p.AddXP(amount);
         return true;
     }
 
-    public bool ApplyPowerUp(player p, float forceIncrease = 1f)
+    public bool ApplyAmmoFlak(player p, int amount = -1)
     {
         if (p == null) return false;
 
-        p._bullet_force = Mathf.Clamp(p._bullet_force + forceIncrease, 1f, MAX_BULLET_FORCE);
-        p.UpdateWeaponHUD();
-        return true;
-    }
+        bool hasFlak = false;
+        List<Gun> guns = p.GetEquippedGuns();
+        for (int i = 0; i < guns.Count; i++)
+        {
+            if (guns[i] != null && guns[i].Data != null && guns[i].Data.gunId == GunFlak.DEFAULT_GUN_ID)
+            {
+                hasFlak = true;
+                if (amount < 0)
+                    guns[i].RefillAmmo();
+                else
+                    guns[i].AddAmmo(amount);
+            }
+        }
 
-    public bool ApplyDamageUp(player p, float damageIncrease = 1f)
-    {
-        if (p == null) return false;
+        if (!hasFlak)
+        {
+            if (!ApplyGun(p, "gunFlak"))
+            {
+                p.RefillAllWeaponsAmmo(amount);
+            }
+        }
 
-        p._bullet_dmg = Mathf.Clamp(p._bullet_dmg + damageIncrease, 1f, MAX_BULLET_DMG);
-        p.UpdateWeaponHUD();
         return true;
     }
 
@@ -500,6 +508,7 @@ public class PowerupManager : MonoBehaviour
             case StandardPowerup.StandardType.ShieldUp:
                 return PrefabManager.Get(PrefabId.PowerupShield) ?? PrefabManager.Get("pwpShieldUp");
             case StandardPowerup.StandardType.AmmoRefill:
+            case StandardPowerup.StandardType.AmmoFlak:
                 return PrefabManager.Get(PrefabId.PowerupAmmo);
             case StandardPowerup.StandardType.UpgradePoint:
                 return PrefabManager.Get(PrefabId.PowerupUpgradePoint);
@@ -584,8 +593,8 @@ public class PowerupManager : MonoBehaviour
         {
             StandardPowerup.StandardType.UpgradePoint,
             StandardPowerup.StandardType.AmmoRefill,
-            StandardPowerup.StandardType.SpeedUp,
-            StandardPowerup.StandardType.DamageUp,
+            StandardPowerup.StandardType.XpUp,
+            StandardPowerup.StandardType.AmmoFlak,
             StandardPowerup.StandardType.ShieldUp
         };
         StandardPowerup.StandardType selected = pool[UnityEngine.Random.Range(0, pool.Length)];
@@ -617,8 +626,15 @@ public class PowerupManager : MonoBehaviour
                 {
                     tmp.color = tint.Value;
                 }
+
+                ParticleSystem ps = fx.GetComponentInChildren<ParticleSystem>();
+                if (ps != null)
+                {
+                    var main = ps.main;
+                    main.startColor = tint ?? Color.white;
+                }
             }
-            fx.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
+            //fx.transform.localScale = new Vector3(1.6f, 1.6f, 1.2f);
         }
     }
 }

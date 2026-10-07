@@ -386,7 +386,7 @@ public class MainMenu : MonoBehaviour
 
         ApplyPauseState(false);
 
-        // Play block impact/collision sound or background music
+        // Play  background music
         if (AudioManager.HasInstance)
         {
             AudioManager.Instance.PlayBGM();

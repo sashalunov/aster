@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -9,9 +10,6 @@ public class StandardPowerup : PowerupBase
     public enum StandardType
     {
         XpUp,
-        SpeedUp,
-        PowerUp,
-        DamageUp,
         ShieldUp,
         ExtraSocket,
         ScrapSalvage,
@@ -19,11 +17,12 @@ public class StandardPowerup : PowerupBase
         GunPlasma,
         GunFlak,
         AmmoRefill,
+        AmmoFlak,
         UpgradePoint
     }
 
     [Header("Standard Powerup Configuration")]
-    [SerializeField] private StandardType type = StandardType.SpeedUp;
+    [SerializeField] private StandardType type = StandardType.UpgradePoint;
     [SerializeField] private float potency = 1f;
 
     public StandardType Type
@@ -53,20 +52,10 @@ public class StandardPowerup : PowerupBase
     {
         switch (type)
         {
-            case StandardType.SpeedUp:
-                powerupId = "speed_up";
-                displayName = "SPEED UP!";
-                themeColor = new Color(1f, 0.9f, 0.2f); // Yellow
-                break;
-            case StandardType.PowerUp:
-                powerupId = "power_up";
-                displayName = "POWER UP!";
-                themeColor = new Color(0.9f, 0.3f, 1f); // Magenta / Purple
-                break;
-            case StandardType.DamageUp:
-                powerupId = "damage_up";
-                displayName = "DAMAGE UP!";
-                themeColor = new Color(1f, 0.25f, 0.25f); // Red
+            case StandardType.XpUp:
+                powerupId = "xp_up";
+                displayName = "+XP!";
+                themeColor = new Color(0.2f, 1f, 0.4f); // Emerald / bright green
                 break;
             case StandardType.ShieldUp:
                 powerupId = "shield_up";
@@ -103,6 +92,11 @@ public class StandardPowerup : PowerupBase
                 displayName = "AMMO REFILL!";
                 themeColor = new Color(0.3f, 1f, 0.5f); // Bright Green
                 break;
+            case StandardType.AmmoFlak:
+                powerupId = "ammo_flak";
+                displayName = "FLAK AMMO!";
+                themeColor = new Color(1f, 0.55f, 0.15f); // Orange / Amber
+                break;
             case StandardType.UpgradePoint:
                 powerupId = "upgrade_point";
                 displayName = "UPGRADE POINT!";
@@ -119,12 +113,8 @@ public class StandardPowerup : PowerupBase
         {
             switch (type)
             {
-                case StandardType.SpeedUp:
-                    return PowerupManager.Instance.ApplySpeedUp(targetPlayer, potency);
-                case StandardType.PowerUp:
-                    return PowerupManager.Instance.ApplyPowerUp(targetPlayer, potency);
-                case StandardType.DamageUp:
-                    return PowerupManager.Instance.ApplyDamageUp(targetPlayer, potency);
+                case StandardType.XpUp:
+                    return PowerupManager.Instance.ApplyXP(targetPlayer, Mathf.Max(1, Mathf.RoundToInt(potency )));
                 case StandardType.ShieldUp:
                     return PowerupManager.Instance.ApplyShield(targetPlayer, potency);
                 case StandardType.ExtraSocket:
@@ -140,6 +130,8 @@ public class StandardPowerup : PowerupBase
                     return PowerupManager.Instance.ApplyGun(targetPlayer, "gunFlak");
                 case StandardType.AmmoRefill:
                     return PowerupManager.Instance.ApplyAmmoRefill(targetPlayer);
+                case StandardType.AmmoFlak:
+                    return PowerupManager.Instance.ApplyAmmoFlak(targetPlayer, Mathf.RoundToInt(potency * 20f));
                 case StandardType.UpgradePoint:
                     return PowerupManager.Instance.ApplyUpgradePoint(targetPlayer, Mathf.Max(1, Mathf.RoundToInt(potency)));
             }
@@ -149,18 +141,8 @@ public class StandardPowerup : PowerupBase
             // Fallback direct application if manager not initialized
             switch (type)
             {
-                case StandardType.SpeedUp:
-                    targetPlayer._fire_hz = Mathf.Min(targetPlayer._fire_hz + potency, 12f);
-                    targetPlayer._fire_rate = 1f / targetPlayer._fire_hz;
-                    targetPlayer.UpdateWeaponHUD();
-                    return true;
-                case StandardType.PowerUp:
-                    targetPlayer._bullet_force = Mathf.Min(targetPlayer._bullet_force + potency, 20f);
-                    targetPlayer.UpdateWeaponHUD();
-                    return true;
-                case StandardType.DamageUp:
-                    targetPlayer._bullet_dmg = Mathf.Min(targetPlayer._bullet_dmg + potency, 25f);
-                    targetPlayer.UpdateWeaponHUD();
+                case StandardType.XpUp:
+                    targetPlayer.AddXP(Mathf.Max(1, Mathf.RoundToInt(potency * 50f)));
                     return true;
                 case StandardType.ShieldUp:
                     targetPlayer.shield_value = Mathf.Min(targetPlayer.shield_value + potency, targetPlayer.shield_max_value * 1.5f);
@@ -180,6 +162,22 @@ public class StandardPowerup : PowerupBase
                     return targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunFlak));
                 case StandardType.AmmoRefill:
                     targetPlayer.RefillAllWeaponsAmmo();
+                    return true;
+                case StandardType.AmmoFlak:
+                    bool hasFlak = false;
+                    List<Gun> flakGuns = targetPlayer.GetEquippedGuns();
+                    for (int i = 0; i < flakGuns.Count; i++)
+                    {
+                        if (flakGuns[i] != null && flakGuns[i].Data != null && flakGuns[i].Data.gunId == GunFlak.DEFAULT_GUN_ID)
+                        {
+                            hasFlak = true;
+                            flakGuns[i].RefillAmmo();
+                        }
+                    }
+                    if (!hasFlak)
+                    {
+                        targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunFlak));
+                    }
                     return true;
                 case StandardType.UpgradePoint:
                     targetPlayer.AddUpgradePoints(Mathf.Max(1, Mathf.RoundToInt(potency)));
