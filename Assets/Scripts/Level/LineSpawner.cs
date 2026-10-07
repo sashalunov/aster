@@ -135,6 +135,25 @@ public class LineSpawner : MonoBehaviour
     [Tooltip("Angular damping applied to the Rigidbody of spawned objects.")]
     public float entityAngularDamping = 0.5f;
 
+    [Header("Clearance & Overlap Detection")]
+    [Tooltip("Whether to verify that the candidate spawn location is clear of existing blocks and solid obstacles before spawning.")]
+    public bool checkOverlapBeforeSpawn = true;
+
+    [Tooltip("Radius around the candidate spawn position checked for collisions when spawning a block.")]
+    [Min(0.1f)]
+    public float blockClearanceRadius = 1.0f;
+
+    [Tooltip("Radius around the candidate spawn position checked for collisions when spawning an asteroid.")]
+    [Min(0.1f)]
+    public float asteroidClearanceRadius = 2.0f;
+
+    [Tooltip("Maximum retry attempts to find an unblocked position along the line before aborting the spawn attempt.")]
+    [Range(1, 30)]
+    public int maxSpawnPlacementAttempts = 10;
+
+    [Tooltip("LayerMask of solid obstacles tested during spawn clearance checks.")]
+    public LayerMask spawnObstacleMask = ~0;
+
     [Header("Wave Manager Integration")]
     [Tooltip("Optional explicit reference to WaveManager. Auto-resolves if null.")]
     [SerializeField] private WaveManager _waveManager;
@@ -332,13 +351,60 @@ public class LineSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// Checks if a candidate position is free of solid colliders (blocks, asteroids, terrain, vessels).
+    /// Ignores triggers (such as sensor zones or trigger zones).
+    /// </summary>
+    public virtual bool IsPositionClear(Vector3 position, float radius)
+    {
+        if (!checkOverlapBeforeSpawn) return true;
+
+        Collider[] hits = Physics.OverlapSphere(position, radius, spawnObstacleMask, QueryTriggerInteraction.Ignore);
+        if (hits == null || hits.Length == 0) return true;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider col = hits[i];
+            if (col == null || col.isTrigger) continue;
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Attempts to find a clear, non-overlapping spawn position along the line segment.
+    /// Returns true if a clear position was found, or false if all attempts were obstructed.
+    /// </summary>
+    public virtual bool TryGetClearSpawnPosition(float clearanceRadius, out Vector3 clearPosition)
+    {
+        int attempts = Mathf.Max(1, maxSpawnPlacementAttempts);
+        for (int attempt = 0; attempt < attempts; attempt++)
+        {
+            Vector3 candidate = CalculateRandomSpawnPosition();
+            if (IsPositionClear(candidate, clearanceRadius))
+            {
+                clearPosition = candidate;
+                return true;
+            }
+        }
+
+        clearPosition = Vector3.zero;
+        return false;
+    }
+
+    /// <summary>
     /// Spawns a single block at a random point along the line and applies the configured initial impulse.
     /// </summary>
     public virtual GameObject SpawnSingleBlock()
     {
         if (IsBlockAtCapacity) return null;
 
-        Vector3 spawnPos = CalculateRandomSpawnPosition();
+        if (!TryGetClearSpawnPosition(blockClearanceRadius, out Vector3 spawnPos))
+        {
+            // Candidate line segments obstructed; defer spawn to avoid overlapping other blocks
+            return null;
+        }
+
         return SpawnBlockAt(spawnPos);
     }
 
@@ -405,7 +471,12 @@ public class LineSpawner : MonoBehaviour
     {
         if (IsAsteroidAtCapacity) return null;
 
-        Vector3 spawnPos = CalculateRandomSpawnPosition();
+        if (!TryGetClearSpawnPosition(asteroidClearanceRadius, out Vector3 spawnPos))
+        {
+            // Candidate line segments obstructed; defer spawn to avoid overlapping other entities
+            return null;
+        }
+
         return SpawnAsteroidAt(spawnPos);
     }
 

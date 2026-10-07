@@ -2,84 +2,77 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// A universal targeting and auto-aim controller.
+/// Drives an attached Gun component, rotating towards and engaging targets based on the selected faction.
+/// Can be configured as hostile (targeting Player) or friendly (targeting Asteroids and Blocks).
+/// </summary>
 public class TurretAI : MonoBehaviour
 {
-    [Header("Detection")]
-    [Tooltip("Maximum distance to detect and engage the player")]
+    public enum TargetFaction
+    {
+        Player,
+        AsteroidsAndBlocks,
+        Enemies
+    }
+
+    [Header("Faction & Targeting")]
+    [Tooltip("What type of entities this turret should search for and attack.")]
+    public TargetFaction targetFaction = TargetFaction.Player;
+
+    [Tooltip("Maximum distance to detect and engage targets.")]
     public float detectionRange = 18f;
 
-    [Tooltip("Target transform to aim and shoot at. If unassigned, automatically finds player in scene.")]
+    [Tooltip("Explicit target transform. If null, automatically acquires targets within detection range.")]
     public Transform target;
 
-    [Tooltip("Whether line of sight is required before shooting")]
+    [Tooltip("Whether line of sight is required before shooting.")]
     public bool requireLineOfSight = false;
 
-    [Tooltip("Layer mask representing obstacles that block line of sight")]
+    [Tooltip("Layer mask representing obstacles that block line of sight.")]
     public LayerMask obstacleMask;
 
-    [Header("Aiming")]
-    [Tooltip("The rotating part of the turret (turret0)")]
+    [Header("Aiming Dynamics")]
+    [Tooltip("The rotating sub-transform of the turret (turret0). If unassigned, auto-locates or uses the Gun's turret point.")]
     public Transform turretPart;
 
-    [Tooltip("Restrict aiming and bullet movement to the 2D XY plane. When false, turret aims and shoots freely in full 3D space.")]
-    public bool restrictToXYPlane = false;
+    [Tooltip("Restrict aiming and rotation to the 2D XY plane.")]
+    public bool restrictToXYPlane = true;
 
-    [Tooltip("Speed in degrees per second at which the turret rotates towards target")]
+    [Tooltip("Speed in degrees per second at which the turret rotates towards the target.")]
     public float rotationSpeed = 150f;
 
-    [Tooltip("Maximum angle difference (in degrees) to consider the turret aligned with target to fire")]
+    [Tooltip("Maximum angle difference (in degrees) to consider the turret aligned enough to fire.")]
     public float aimTolerance = 12f;
 
-    [Tooltip("Smoothly rotate towards target instead of snapping immediately")]
+    [Tooltip("Smoothly rotate towards the target instead of snapping immediately.")]
     public bool smoothAim = true;
 
-    [Tooltip("Return to default idle rotation when no player is detected in range")]
+    [Tooltip("Return to default idle rotation when no targets are in range.")]
     public bool returnToDefaultWhenIdle = true;
 
-    [Tooltip("Visual aim cone reference (optional)")]
+    [Tooltip("Visual aim cone reference (optional).")]
     public Transform aimCone;
 
-    [Header("Shooting")]
-    [Tooltip("Muzzle transform where bullets are spawned")]
-    public Transform muzzlePoint;
+    [Header("Weapon Integration")]
+    [Tooltip("The Gun component this controller drives. If unassigned, automatically finds one on this GameObject or children.")]
+    public Gun mountedGun;
 
-    [Tooltip("Bullet prefab to spawn (defaults to bullet1)")]
-    public GameObject bulletPrefab;
-
-    [Tooltip("Muzzle flash FX prefab")]
-    public GameObject muzzleFlashPrefab;
-
-    [Tooltip("Number of shots per second")]
-    public float fireRate = 1.2f;
-
-    [Tooltip("Impulse force applied to the bullet")]
-    public float fireForce = 1.2f;
-
-    [Tooltip("Damage dealt to player per bullet hit")]
-    public float bulletDamage = 1;
-
-    [Tooltip("Lifetime of bullets in seconds before auto-destroy")]
-    public float bulletLifetime = 5f;
-
-    [Header("Effects & Audio")]
-    public Animator animator;
-    public AudioSource audioSource;
-    public AudioClip fireSound;
-    public string fireAnimationName = "urret_fire";
-
-    
     private Quaternion defaultLocalRotation;
-    private float fireTimer = 0f;
-    private Collider[] myColliders;
 
     private void Awake()
     {
         AutoConfigureReferences();
+
         if (turretPart != null)
         {
             defaultLocalRotation = turretPart.localRotation;
         }
-        myColliders = GetComponentsInChildren<Collider>();
+
+        if (mountedGun != null)
+        {
+            mountedGun.SetOwner(gameObject);
+        }
     }
 
     private void Reset()
@@ -89,24 +82,20 @@ public class TurretAI : MonoBehaviour
 
     public void AutoConfigureReferences()
     {
-        if (turretPart == null)
+        if (mountedGun == null)
         {
-            turretPart = transform.Find("hull/turret0");
-            if (turretPart == null)
-            {
-                turretPart = transform.Find("turret0");
-            }
+            mountedGun = GetComponent<Gun>() ?? GetComponentInChildren<Gun>();
         }
 
-        if (muzzlePoint == null)
+        if (turretPart == null)
         {
-            if (turretPart != null)
+            if (mountedGun != null && mountedGun.TurretPoint != mountedGun.transform)
             {
-                muzzlePoint = turretPart.Find("gun0/ps_muzzle");
+                turretPart = mountedGun.TurretPoint;
             }
-            if (muzzlePoint == null)
+            else
             {
-                muzzlePoint = transform.Find("hull/turret0/gun0/ps_muzzle");
+                turretPart = transform.Find("hull/turret0") ?? transform.Find("turret0");
             }
         }
 
@@ -120,33 +109,6 @@ public class TurretAI : MonoBehaviour
             {
                 aimCone = transform.Find("hull/turret0/Cone");
             }
-        }
-
-        if (animator == null)
-        {
-            if (turretPart != null)
-            {
-                animator = turretPart.GetComponent<Animator>();
-            }
-            if (animator == null)
-            {
-                animator = GetComponentInChildren<Animator>();
-            }
-        }
-
-        if (audioSource == null)
-        {
-            audioSource = GetComponent<AudioSource>();
-        }
-
-        if (bulletPrefab == null)
-        {
-            bulletPrefab = PrefabManager.Get(PrefabId.BulletEnemy);
-        }
-
-        if (muzzleFlashPrefab == null)
-        {
-            muzzleFlashPrefab = PrefabManager.Get(PrefabId.MuzzleFlashFx);
         }
     }
 
@@ -163,18 +125,19 @@ public class TurretAI : MonoBehaviour
         {
             Vector3 myPos = turretPart != null ? turretPart.position : transform.position;
             targetDirection = target.position - myPos;
+
             if (restrictToXYPlane)
             {
                 targetDirection.z = 0f;
             }
+
             float distance = targetDirection.magnitude;
 
             if (distance <= detectionRange)
             {
                 if (requireLineOfSight)
                 {
-                    RaycastHit hit;
-                    if (Physics.Raycast(myPos, targetDirection.normalized, out hit, distance, obstacleMask))
+                    if (Physics.Raycast(myPos, targetDirection.normalized, out RaycastHit hit, distance, obstacleMask))
                     {
                         if (hit.transform == target || hit.transform.IsChildOf(target))
                         {
@@ -191,8 +154,14 @@ public class TurretAI : MonoBehaviour
                     inRange = true;
                 }
             }
+            else
+            {
+                // Lost target because it went out of range
+                target = null;
+            }
         }
 
+        // Aiming logic
         if (inRange && turretPart != null && targetDirection.sqrMagnitude > 0.0001f)
         {
             Quaternion targetRotation = CalculateAimRotation(targetDirection, restrictToXYPlane);
@@ -206,6 +175,7 @@ public class TurretAI : MonoBehaviour
                 turretPart.rotation = targetRotation;
             }
 
+            // In Asteroids, transform.up is the forward/firing vector of the turret
             float angleDiff = Vector3.Angle(turretPart.up, targetDirection.normalized);
             isAimed = angleDiff <= aimTolerance;
         }
@@ -214,23 +184,17 @@ public class TurretAI : MonoBehaviour
             turretPart.localRotation = Quaternion.RotateTowards(turretPart.localRotation, defaultLocalRotation, (rotationSpeed * 0.5f) * Time.deltaTime);
         }
 
-        // Shooting logic
-        fireTimer += Time.deltaTime;
-        if (inRange && isAimed)
+        // Shooting logic delegated to the Gun component
+        if (inRange && isAimed && mountedGun != null)
         {
-            float fireInterval = fireRate > 0f ? (1f / fireRate) : 1f;
-            if (fireTimer >= fireInterval)
-            {
-                fireTimer = 0f;
-                Shoot();
-            }
+            mountedGun.TryFire();
         }
     }
 
     /// <summary>
-    /// Calculates the target rotation for the turret so its up vector aims along the target direction.
+    /// Calculates the target rotation for the turret so its up vector points along the target direction.
     /// </summary>
-    public static Quaternion CalculateAimRotation(Vector3 direction, bool restrictTo2D = false)
+    public static Quaternion CalculateAimRotation(Vector3 direction, bool restrictTo2D = true)
     {
         if (direction.sqrMagnitude < 0.0001f)
         {
@@ -246,92 +210,41 @@ public class TurretAI : MonoBehaviour
         return Quaternion.FromToRotation(Vector3.up, direction.normalized);
     }
 
-    public void Shoot()
+    /// <summary>
+    /// Acquires a new valid target if one isn't currently assigned or within range.
+    /// </summary>
+    private void EnsureTarget()
     {
-        Vector3 spawnPos = muzzlePoint != null ? muzzlePoint.position : (turretPart != null ? turretPart.position : transform.position);
-      
-        Quaternion spawnRot = turretPart != null ? turretPart.rotation : transform.rotation;
-
-        // Play recoil animation
-        if (animator != null && !string.IsNullOrEmpty(fireAnimationName))
+        // If current target is destroyed or inactive, clear it
+        if (target != null && (!target.gameObject.activeInHierarchy))
         {
-            animator.Play(fireAnimationName, 0, 0f);
+            target = null;
         }
 
-        // Play fire sound
-        if (audioSource != null && fireSound != null)
+        if (target != null) return;
+
+        Vector3 myPos = turretPart != null ? turretPart.position : transform.position;
+
+        switch (targetFaction)
         {
-            audioSource.PlayOneShot(fireSound);
-        }
+            case TargetFaction.Player:
+                FindPlayerTarget();
+                break;
 
-        // Spawn muzzle flash FX
-        if (muzzleFlashPrefab != null && muzzlePoint != null)
-        {
-            GameObject flash = Instantiate(muzzleFlashPrefab, muzzlePoint.position, muzzlePoint.rotation, muzzlePoint);
-            if (Application.isPlaying)
-            {
-                Destroy(flash, 0.5f);
-            }
-            else
-            {
-                DestroyImmediate(flash);
-            }
-        }
+            case TargetFaction.AsteroidsAndBlocks:
+                FindAsteroidOrBlockTarget(myPos);
+                break;
 
-        // Spawn bullet
-        if (bulletPrefab != null)
-        {
-            GameObject bulletObj = Instantiate(bulletPrefab, spawnPos, spawnRot);
-
-            // Ignore collision with turret's own colliders
-            Collider bulletCol = bulletObj.GetComponent<Collider>();
-            if (bulletCol != null && myColliders != null)
-            {
-                for (int i = 0; i < myColliders.Length; i++)
-                {
-                    if (myColliders[i] != null)
-                    {
-                        Physics.IgnoreCollision(bulletCol, myColliders[i]);
-                    }
-                }
-            }
-
-            // Configure bullet damage and shooter reference
-            ProjectileBase b1 = bulletObj.GetComponent<ProjectileBase>();
-            if (b1 != null)
-            {
-                b1.Damage = bulletDamage;
-                b1.Owner = gameObject; // AI bullet, not fired by player
-            }
-
-            // Apply forward impulse
-            Rigidbody rb = bulletObj.GetComponent<Rigidbody>();
-            if (rb != null)
-            {
-                if (!restrictToXYPlane)
-                {
-                    // Unfreeze Z position constraint so bullet can move freely along Z in 3D
-                    rb.constraints &= ~RigidbodyConstraints.FreezePositionZ;
-                }
-
-                rb.linearVelocity = Vector3.zero;
-                rb.AddForce(bulletObj.transform.up * fireForce, ForceMode.Impulse);
-            }
-
-            // Auto destroy after lifetime
-            if (bulletLifetime > 0f && Application.isPlaying)
-            {
-                Destroy(bulletObj, bulletLifetime);
-            }
+            case TargetFaction.Enemies:
+                FindEnemyTarget(myPos);
+                break;
         }
     }
 
-    private void EnsureTarget()
+    private void FindPlayerTarget()
     {
-        if (target != null) return;
-
         player p = Object.FindAnyObjectByType<player>();
-        if (p != null)
+        if (p != null && !p.isDead)
         {
             target = p.transform;
             return;
@@ -341,14 +254,75 @@ public class TurretAI : MonoBehaviour
         if (playerObj != null)
         {
             target = playerObj.transform;
-            return;
+        }
+    }
+
+    private void FindAsteroidOrBlockTarget(Vector3 myPos)
+    {
+        Collider[] hits = Physics.OverlapSphere(myPos, detectionRange);
+        float closestDist = float.MaxValue;
+        Transform bestTarget = null;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider col = hits[i];
+            if (col == null || col.isTrigger) continue;
+
+            bool isAsteroidTarget = false;
+
+            if (col.CompareTag("core") || col.CompareTag("block"))
+            {
+                isAsteroidTarget = true;
+            }
+            else if (col.GetComponentInParent<BlockBase>() != null || col.GetComponentInParent<AsteroidBase>() != null)
+            {
+                isAsteroidTarget = true;
+            }
+
+            if (isAsteroidTarget)
+            {
+                Vector3 diff = col.transform.position - myPos;
+                if (restrictToXYPlane) diff.z = 0f;
+                float d = diff.sqrMagnitude;
+
+                if (d < closestDist)
+                {
+                    closestDist = d;
+                    bestTarget = col.transform;
+                }
+            }
         }
 
-        GameObject shipObj = GameObject.Find("Player_ship");
-        if (shipObj != null)
+        target = bestTarget;
+    }
+
+    private void FindEnemyTarget(Vector3 myPos)
+    {
+        TurretAI[] allTurrets = Object.FindObjectsByType<TurretAI>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        float closestDist = float.MaxValue;
+        Transform bestTarget = null;
+
+        for (int i = 0; i < allTurrets.Length; i++)
         {
-            target = shipObj.transform;
+            TurretAI other = allTurrets[i];
+            if (other == null || other == this) continue;
+
+            // Target hostiles that target the player
+            if (other.targetFaction == TargetFaction.Player)
+            {
+                Vector3 diff = other.transform.position - myPos;
+                if (restrictToXYPlane) diff.z = 0f;
+                float d = diff.sqrMagnitude;
+
+                if (d < closestDist)
+                {
+                    closestDist = d;
+                    bestTarget = other.transform;
+                }
+            }
         }
+
+        target = bestTarget;
     }
 
     private void OnDrawGizmosSelected()
@@ -356,7 +330,7 @@ public class TurretAI : MonoBehaviour
         Vector3 center = turretPart != null ? turretPart.position : transform.position;
 
         // Draw detection range
-        Gizmos.color = Color.red;
+        Gizmos.color = targetFaction == TargetFaction.Player ? Color.red : Color.green;
         Gizmos.DrawWireSphere(center, detectionRange);
 
         // Draw aim direction
@@ -376,7 +350,7 @@ public class TurretAI : MonoBehaviour
             }
             if (toTarget.magnitude <= detectionRange)
             {
-                Gizmos.color = Color.green;
+                Gizmos.color = Color.yellow;
                 Gizmos.DrawLine(center, target.position);
             }
         }
