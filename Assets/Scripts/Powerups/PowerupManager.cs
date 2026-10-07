@@ -200,9 +200,16 @@ public class PowerupManager : MonoBehaviour
     // Safe Stat Application Helpers (Enforces Boundaries & Clamps)
     // =========================================================================
 
-    public bool ApplyXP(player p, int amount = 50)
+    public bool ApplyXP(player p, int amount = -1)
     {
         if (p == null) return false;
+        if (amount <= 0)
+        {
+            int wave = WaveManager.Instance != null && WaveManager.Instance.CurrentWaveIndex > 0
+                ? WaveManager.Instance.CurrentWaveIndex
+                : 1;
+            amount = 50 * wave;
+        }
         p.AddXP(amount);
         return true;
     }
@@ -445,13 +452,21 @@ public class PowerupManager : MonoBehaviour
     /// </summary>
     public PowerupBase SpawnDropEntry(GameObject prefab, StandardPowerup.StandardType powerupType, Vector3 position)
     {
+        int currentWave = WaveManager.Instance != null && WaveManager.Instance.CurrentWaveIndex > 0
+            ? WaveManager.Instance.CurrentWaveIndex
+            : 1;
+
         if (prefab != null)
         {
             GameObject instance = Instantiate(prefab, position, Quaternion.identity);
             StandardPowerup customSp = instance.GetComponentInChildren<StandardPowerup>();
-            if (customSp != null && prefab == PrefabManager.Get(PrefabId.PowerupDefault))
+            if (customSp != null)
             {
-                customSp.Type = powerupType;
+                customSp.WaveNumber = currentWave;
+                if (prefab == PrefabManager.Get(PrefabId.PowerupDefault))
+                {
+                    customSp.Type = powerupType;
+                }
             }
 
             PowerupBase pu = instance.GetComponentInChildren<PowerupBase>();
@@ -483,6 +498,7 @@ public class PowerupManager : MonoBehaviour
         StandardPowerup sp = spawnedObj.GetComponentInChildren<StandardPowerup>();
         if (sp != null)
         {
+            sp.WaveNumber = currentWave;
             sp.Type = powerupType;
         }
 
@@ -527,6 +543,12 @@ public class PowerupManager : MonoBehaviour
         if (prefab == null) return null;
 
         GameObject instance = Instantiate(prefab, position, Quaternion.identity);
+        StandardPowerup sp = instance.GetComponentInChildren<StandardPowerup>();
+        if (sp != null && WaveManager.Instance != null && WaveManager.Instance.CurrentWaveIndex > 0)
+        {
+            sp.WaveNumber = WaveManager.Instance.CurrentWaveIndex;
+        }
+
         PowerupBase pu = instance.GetComponentInChildren<PowerupBase>();
         if (pu != null)
         {

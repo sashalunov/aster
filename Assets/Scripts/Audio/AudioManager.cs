@@ -668,7 +668,20 @@ public void PlayBGM()
     }
 
     /// <summary>
-    /// Plays a powerup pickup sound effect. Uses customClip if provided, or falls back to default powerupClip.
+    /// Plays a powerup pickup sound effect as a spatial 3D sound at the given world position.
+    /// Uses customClip if provided, or falls back to default powerupClip.
+    /// </summary>
+    public void PlayPowerup(Vector3 position, AudioClip customClip = null, float volume = 1f)
+    {
+        AudioClip clip = customClip != null ? customClip : powerupClip;
+        if (clip != null)
+        {
+            Play3D(clip, position, volume, defaultMinDistance, defaultMaxDistance, 0.03f);
+        }
+    }
+
+    /// <summary>
+    /// Plays a powerup pickup sound effect in 2D space. Uses customClip if provided, or falls back to default powerupClip.
     /// </summary>
     public void PlayPowerup(AudioClip customClip = null, float volume = 1f)
     {

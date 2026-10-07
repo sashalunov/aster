@@ -182,6 +182,38 @@ public class PlayerHUD : MonoBehaviour
             if (s != null) waveStatusSubtitleText = s.GetComponent<TMP_Text>();
         }
 
+        Transform weaponStats = transform.Find("HUD/weapon_stats");
+        if (weaponStats == null) weaponStats = transform.Find("weapon_stats");
+        if (weaponStats == null)
+        {
+            GameObject wsGo = GameObject.Find("weapon_stats");
+            if (wsGo != null) weaponStats = wsGo.transform;
+        }
+
+        if (weaponStats != null)
+        {
+            if (upgradePointsText == null)
+            {
+                Transform t = weaponStats.Find("upgrade_points");
+                if (t != null) upgradePointsText = t.GetComponent<TMP_Text>();
+            }
+            if (wpnPowerText == null)
+            {
+                Transform t = weaponStats.Find("gun_force");
+                if (t != null) wpnPowerText = t.GetComponent<TMP_Text>();
+            }
+            if (wpnRateText == null)
+            {
+                Transform t = weaponStats.Find("gun_rate");
+                if (t != null) wpnRateText = t.GetComponent<TMP_Text>();
+            }
+            if (wpnDamageText == null)
+            {
+                Transform t = weaponStats.Find("gun_damage");
+                if (t != null) wpnDamageText = t.GetComponent<TMP_Text>();
+            }
+        }
+
         if (_waveManager == null)
         {
             _waveManager = WaveManager.Instance;
@@ -478,8 +510,8 @@ public class PlayerHUD : MonoBehaviour
     {
         if (upgradePointsText != null)
         {
-            upgradePointsText.SetText("PTS: " + points.ToString());
-            upgradePointsText.gameObject.SetActive(points > 0);
+            upgradePointsText.SetText("Points: " + points.ToString());
+            upgradePointsText.gameObject.SetActive(true);
         }
     }
 

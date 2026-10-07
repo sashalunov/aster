@@ -215,17 +215,28 @@ public abstract class PowerupBase : MonoBehaviour
             Instantiate(pickupFxPrefab, transform.position, Quaternion.identity);
         }
 
-        // Play pickup audio via AudioManager with fallback to player AudioSource
+        // Play pickup audio via AudioManager with fallback to player AudioSource or PlayClipAtPoint
         if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlayPowerup(pickupSound);
+            AudioManager.Instance.PlayPowerup(transform.position, pickupSound, 0.5f);
         }
-        else if (pickupSound != null && targetPlayer != null)
+        else if (pickupSound != null)
         {
-            AudioSource audio = targetPlayer.GetComponent<AudioSource>();
-            if (audio != null)
+            if (targetPlayer != null)
             {
-                audio.PlayOneShot(pickupSound);
+                AudioSource audio = targetPlayer.GetComponent<AudioSource>();
+                if (audio != null)
+                {
+                    audio.PlayOneShot(pickupSound);
+                }
+                else
+                {
+                    AudioSource.PlayClipAtPoint(pickupSound, transform.position);
+                }
+            }
+            else
+            {
+                AudioSource.PlayClipAtPoint(pickupSound, transform.position);
             }
         }
 

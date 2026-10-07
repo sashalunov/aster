@@ -635,7 +635,20 @@ public class player : MonoBehaviour
 
     public void UpdateWeaponHUD()
     {
-        OnWeaponStatsChanged?.Invoke(_bullet_force, _fire_rate, _bullet_dmg);
+        float force = _bullet_force;
+        float rateHz = _fire_hz;
+        float dmg = _bullet_dmg;
+
+        List<Gun> guns = GetEquippedGuns(false);
+        if (guns.Count > 0 && guns[0] != null)
+        {
+            force = guns[0].EffectiveForce;
+            rateHz = guns[0].EffectiveFireRate;
+            dmg = guns[0].EffectiveDamage;
+        }
+
+        float fireRateInterval = rateHz > 0f ? (1f / rateHz) : 0f;
+        OnWeaponStatsChanged?.Invoke(force, fireRateInterval, dmg);
     }
 
     public void UpdateShieldHUD()
