@@ -52,12 +52,25 @@ public class player : MonoBehaviour
 
     public bool isDead = false;
     public bool IsDead => isDead;
+    public bool isInvulnerable = false;
 
     public float health_value = 10.0f;
     public float health_max_value = 10.0f;
 
     public float shield_value = 10.0f;
     public float shield_max_value = 10.0f;
+
+    public void AddHealth(float amount)
+    {
+        health_value = Mathf.Clamp(health_value + amount, 0f, health_max_value);
+        UpdateHealthHUD();
+    }
+
+    public void AddShield(float amount)
+    {
+        shield_value = Mathf.Clamp(shield_value + amount, 0f, shield_max_value);
+        UpdateShieldHUD();
+    }
     private PlayerProgression _progression;
     public PlayerProgression Progression
     {
@@ -214,6 +227,10 @@ public class player : MonoBehaviour
         {
             Progression = gameObject.AddComponent<PlayerProgression>();
         }
+        if (GetComponent<DebugCheats>() == null)
+        {
+            gameObject.AddComponent<DebugCheats>();
+        }
         cross1_marker = Instantiate(PrefabManager.Get(PrefabId.Cross1Marker)) as GameObject;
         
     }
@@ -321,22 +338,6 @@ public class player : MonoBehaviour
 
         if (Input.GetKey("space"))
         {   
-        }
-
-        if (_upgradePoints > 0)
-        {
-            if (Input.GetKeyDown(KeyCode.Alpha1))
-            {
-                UpgradeDamageWithPoints(1);
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha2))
-            {
-                UpgradeForceWithPoints(1);
-            }
-            else if (Input.GetKeyDown(KeyCode.Alpha3))
-            {
-                UpgradeFireRateWithPoints(1);
-            }
         }
 
         if (Input.GetKey("left"))
@@ -545,7 +546,7 @@ public class player : MonoBehaviour
 
     public void TakeDamage(float dmg, Vector3 direction = default, Vector3 contactPoint = default, float bounceImpulse = 0f)
     {
-        if (isDead) return;
+        if (isDead || isInvulnerable) return;
 
         float shieldDmg = 0f;
         float hullDmg = 0f;
@@ -1002,14 +1003,24 @@ public class player : MonoBehaviour
         List<GunSocket> sockets = GetSockets(true);
         if (socketIndex >= 0 && socketIndex < sockets.Count)
         {
-            return sockets[socketIndex].AttachGun(gunPrefab, gameObject);
+            bool attached = sockets[socketIndex].AttachGun(gunPrefab, gameObject);
+            if (attached && sockets[socketIndex].MountedGun != null)
+            {
+                SyncGunWithPlayerUpgrades(sockets[socketIndex].MountedGun);
+            }
+            return attached;
         }
 
         for (int i = 0; i < sockets.Count; i++)
         {
             if (sockets[i] != null && !sockets[i].HasGun)
             {
-                return sockets[i].AttachGun(gunPrefab, gameObject);
+                bool attached = sockets[i].AttachGun(gunPrefab, gameObject);
+                if (attached && sockets[i].MountedGun != null)
+                {
+                    SyncGunWithPlayerUpgrades(sockets[i].MountedGun);
+                }
+                return attached;
             }
         }
 
@@ -1026,14 +1037,18 @@ public class player : MonoBehaviour
         List<GunSocket> sockets = GetSockets(true);
         if (socketIndex >= 0 && socketIndex < sockets.Count)
         {
-            return sockets[socketIndex].AttachGunInstance(gunInstance, gameObject);
+            bool attached = sockets[socketIndex].AttachGunInstance(gunInstance, gameObject);
+            if (attached) SyncGunWithPlayerUpgrades(gunInstance);
+            return attached;
         }
 
         for (int i = 0; i < sockets.Count; i++)
         {
             if (sockets[i] != null && !sockets[i].HasGun)
             {
-                return sockets[i].AttachGunInstance(gunInstance, gameObject);
+                bool attached = sockets[i].AttachGunInstance(gunInstance, gameObject);
+                if (attached) SyncGunWithPlayerUpgrades(gunInstance);
+                return attached;
             }
         }
 
@@ -1118,6 +1133,10 @@ public class player : MonoBehaviour
             if (newSocket != null)
             {
                 bool mounted = newSocket.AttachGun(gunPrefab, gameObject);
+                if (mounted && newSocket.MountedGun != null)
+                {
+                    SyncGunWithPlayerUpgrades(newSocket.MountedGun);
+                }
                 UpdateWeaponHUD();
                 return mounted;
             }
@@ -1127,9 +1146,37 @@ public class player : MonoBehaviour
         Transform container = _guns_container != null ? _guns_container : transform.Find("gun_container") ?? transform;
         Gun newGunInstance = Instantiate(gunPrefab, container.position, container.rotation, container);
         newGunInstance.SetOwner(gameObject);
+        SyncGunWithPlayerUpgrades(newGunInstance);
         _guns.Add(newGunInstance);
         UpdateWeaponHUD();
         return true;
+    }
+
+    /// <summary>
+    /// Synchronizes a gun instance with the player's accumulated upgrade bonuses.
+    /// </summary>
+    public void SyncGunWithPlayerUpgrades(Gun g)
+    {
+        if (g == null) return;
+        float dmgDelta = Mathf.Max(0f, _bullet_dmg - 1.0f);
+        float forceDelta = Mathf.Max(0f, _bullet_force - 1.0f);
+        float rateDelta = Mathf.Max(0f, _fire_hz - 1.0f);
+        if (dmgDelta > 0f || forceDelta > 0f || rateDelta > 0f)
+        {
+            g.UpgradeStats(dmgDelta, rateDelta, forceDelta);
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes all equipped guns with the player's accumulated upgrade bonuses.
+    /// </summary>
+    public void SyncAllEquippedGunsWithPlayerUpgrades()
+    {
+        List<Gun> guns = GetEquippedGuns();
+        for (int i = 0; i < guns.Count; i++)
+        {
+            SyncGunWithPlayerUpgrades(guns[i]);
+        }
     }
 
     #endregion

@@ -42,7 +42,7 @@ public enum PrefabId
     PowerupShield = 41,
     PowerupAmmo = 42,
     PowerupUpgradePoint = 43,
-    PowerupBulletSpeed = 44,
+
     PowerupXP = 45,
     PowerupGunKinetic = 46,
     PowerupGunPlasma = 47,

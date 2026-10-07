@@ -1,48 +1,53 @@
 using UnityEngine;
-// Flak Cannon weapon component.
-public class GunFlak : Gun
+
+/// <summary>
+/// Kinetic Cannon weapon component.
+/// Fires high-velocity, high-impact solid projectiles using bulletKinetic.
+/// Inherits from modern universal Gun class.
+/// </summary>
+public class GunDouble : Gun
 {
-    public const string DEFAULT_GUN_ID = "gun_flak";
-    public const string DEFAULT_DISPLAY_NAME = "Flak Cannon";
+    public const string DEFAULT_GUN_ID = "gun_double";
+    public const string DEFAULT_DISPLAY_NAME = "Double Gun";
 
     protected virtual void Reset()
     {
-        EnsureFlakData();
+        EnsureDoubleData();
     }
 
     private void OnValidate()
     {
-        EnsureFlakData();
+        EnsureDoubleData();
     }
 
     protected override void Awake()
     {
-        EnsureFlakData();
+        EnsureDoubleData();
         base.Awake();
     }
 
     /// <summary>
-    /// Ensures valid GunData configured for Flak Cannon archetype.
+    /// Ensures valid GunData configured for Double Gun archetype.
     /// </summary>
-    public void EnsureFlakData()
+    public void EnsureDoubleData()
     {
         if (Data == null)
         {
-            Data = CreateFlakGunData();
+            Data = CreateDoubleGunData();
         }
     }
 
     /// <summary>
-    /// Factory method to create a standard Flak GunData asset in memory.
+    /// Factory method to create a standard Kinetic GunData asset in memory.
     /// </summary>
-    public static GunData CreateFlakGunData(GameObject bulletPrefab = null)
+    public static GunData CreateDoubleGunData(GameObject bulletPrefab = null)
     {
         GunData data = ScriptableObject.CreateInstance<GunData>();
         data.gunId = DEFAULT_GUN_ID;
         data.displayName = DEFAULT_DISPLAY_NAME;
-        data.fireForce = 5.0f;
+        data.fireForce = 1.0f;
         data.fireRate = 1.0f;
-        data.spreadAngle = 15.0f;
+        data.spreadAngle = 1.0f;
         data.projectilesPerShot = 1;
         data.burstCount = 1;
         data.ammo_quantity = -1;

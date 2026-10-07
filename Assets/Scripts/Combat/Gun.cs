@@ -34,7 +34,7 @@ public class Gun : MonoBehaviour
     [Header("Runtime Stat Modifiers / Upgrades")]
     [SerializeField] private float damageBonus = 0f;
     [SerializeField] private float fireRateBonus = 0f;
-    [SerializeField] private float bulletForceBonus = 0f;
+    [SerializeField] private float fireForceBonus = 0f;
     [SerializeField] private float spreadReduction = 0f;
     [SerializeField] private int bonusProjectilesPerShot = 0;
     [SerializeField] private int bonusBurstCount = 0;
@@ -76,11 +76,25 @@ public class Gun : MonoBehaviour
 
     public float DamageBonus => damageBonus;
     public float FireRateBonus => fireRateBonus;
-    public float ForceBonus => bulletForceBonus;
+    public float ForceBonus => fireForceBonus;
     public int BonusBurstCount => bonusBurstCount;
 
+    public float BaseDamage
+    {
+        get
+        {
+            if (gunData != null && gunData.bulletPrefab != null)
+            {
+                ProjectileBase p = gunData.bulletPrefab.GetComponent<ProjectileBase>();
+                if (p != null) return p.Damage;
+            }
+            return 1f;
+        }
+    }
+
+    public float EffectiveDamage => Mathf.Max(0.1f, BaseDamage + damageBonus);
     public float EffectiveFireRate => Mathf.Max(0.1f, (gunData != null ? gunData.fireRate : 1f) + fireRateBonus);
-    public float EffectiveForce => Mathf.Max(0.1f, (gunData != null ? gunData.fireForce : 1f) + bulletForceBonus);
+    public float EffectiveForce => Mathf.Max(0.1f, (gunData != null ? gunData.fireForce : 1f) + fireForceBonus);
     public float EffectiveSpread => Mathf.Max(0f, (gunData != null ? gunData.spreadAngle : 0f) - spreadReduction);
     public int EffectiveProjectilesPerShot => Mathf.Max(1, (gunData != null ? gunData.projectilesPerShot : 1) + bonusProjectilesPerShot);
     public int EffectiveBurstCount => Mathf.Max(1, (gunData != null ? gunData.burstCount : 1) + bonusBurstCount);
@@ -108,7 +122,7 @@ public class Gun : MonoBehaviour
 
     public void UpgradeForce(float delta)
     {
-        bulletForceBonus += delta;
+        fireForceBonus += delta;
         OnStatsUpgraded?.Invoke(this);
     }
 
@@ -145,7 +159,7 @@ public class Gun : MonoBehaviour
     {
         damageBonus += dmgDelta;
         fireRateBonus += rateDelta;
-        bulletForceBonus += forceDelta;
+        fireForceBonus += forceDelta;
         bonusBurstCount += burstDelta;
         OnStatsUpgraded?.Invoke(this);
     }
@@ -153,7 +167,7 @@ public class Gun : MonoBehaviour
     private float _nextFireTime = 0f;
     private Coroutine _burstRoutine;
 
-    private void Awake()
+    protected virtual void Awake()
     {
         AutoResolveComponents();
         InitializeAmmo();
@@ -279,7 +293,8 @@ public class Gun : MonoBehaviour
             return false;
         }
 
-        float interval = gunData.fireRate > 0f ? (1f / gunData.fireRate) : 0.2f;
+        float rate = EffectiveFireRate;
+        float interval = rate > 0f ? (1f / rate) : 0.2f;
         _nextFireTime = Time.time + interval;
 
         if (_burstRoutine != null)
@@ -287,7 +302,7 @@ public class Gun : MonoBehaviour
             StopCoroutine(_burstRoutine);
         }
 
-        if (gunData.burstCount > 1 && gameObject.activeInHierarchy)
+        if (EffectiveBurstCount > 1 && gameObject.activeInHierarchy)
         {
             _burstRoutine = StartCoroutine(ExecuteBurstFireRoutine());
         }
@@ -391,6 +406,10 @@ public class Gun : MonoBehaviour
         if (proj != null)
         {
             proj.Initialize(Owner);
+            if (damageBonus != 0f)
+            {
+                proj.Damage = Mathf.Max(0.1f, proj.Damage + damageBonus);
+            }
         }
 
         // Ignore collisions with owner vessel

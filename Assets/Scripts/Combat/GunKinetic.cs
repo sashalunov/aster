@@ -20,10 +20,10 @@ public class GunKinetic : Gun
         EnsureKineticData();
     }
 
-    private void Awake()
+    protected override void Awake()
     {
         EnsureKineticData();
-        AutoResolveComponents();
+        base.Awake();
     }
 
     /// <summary>

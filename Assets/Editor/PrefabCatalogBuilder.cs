@@ -57,7 +57,6 @@ public static class PrefabCatalogBuilder
             { PrefabId.PowerupShield, "pwpShieldUp" },
             { PrefabId.PowerupAmmo, "pwpAmmo" },
             { PrefabId.PowerupUpgradePoint, "pwpUpgradePoint" },
-            { PrefabId.PowerupBulletSpeed, "pup_bullet_speed1" },
             { PrefabId.PowerupXP, "pwpXP" },
             { PrefabId.PowerupGunKinetic, "pwpGunKinetic" },
             { PrefabId.PowerupGunPlasma, "pwpGunPlasma" },

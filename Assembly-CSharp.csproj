@@ -66,6 +66,7 @@
      <Compile Include="Assets/Scripts/Asteroids/BlockAsteroid.cs" />
      <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
      <Compile Include="Assets/Scripts/Combat/Gun.cs" />
+     <Compile Include="Assets/Scripts/Combat/GunDouble.cs" />
      <Compile Include="Assets/Scripts/Level/WaveDefinition.cs" />
      <Compile Include="Assets/Scripts/Enemies/TurretAI.cs" />
      <Compile Include="Assets/Scripts/Combat/GunFlak.cs" />
@@ -73,6 +74,7 @@
      <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleEPOOutline.cs" />
      <Compile Include="Assets/Scripts/Level/TriggerZone.cs" />
      <Compile Include="Assets/Scripts/Catalog/PrefabCatalog.cs" />
+     <Compile Include="Assets/Scripts/Player/DebugCheats.cs" />
      <Compile Include="Assets/Scripts/Combat/HitBlast.cs" />
      <Compile Include="Assets/Scripts/Player/PlayerShield.cs" />
      <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenTextMeshPro.cs" />

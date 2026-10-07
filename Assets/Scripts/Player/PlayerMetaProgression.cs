@@ -162,6 +162,7 @@ public static class PlayerMetaProgression
 
         p._bullet_dmg = 1.0f + (weaponLvl * 0.5f);
         p._bullet_force = 1.0f + (weaponLvl * 0.5f);
+        p.SyncAllEquippedGunsWithPlayerUpgrades();
 
         p.UpdateHealthHUD();
         p.UpdateShieldHUD();

@@ -20,10 +20,10 @@ public class GunPlasma : Gun
         EnsurePlasmaData();
     }
 
-    private void Awake()
+    protected override void Awake()
     {
         EnsurePlasmaData();
-        AutoResolveComponents();
+        base.Awake();
     }
 
     /// <summary>
