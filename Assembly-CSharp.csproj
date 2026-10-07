@@ -67,6 +67,7 @@
      <Compile Include="Assets/Scripts/Level/WaveManager.cs" />
      <Compile Include="Assets/Scripts/Combat/Gun.cs" />
      <Compile Include="Assets/Scripts/Combat/GunDouble.cs" />
+     <Compile Include="Assets/Scripts/Level/GravityZone.cs" />
      <Compile Include="Assets/Scripts/Level/WaveDefinition.cs" />
      <Compile Include="Assets/Scripts/Enemies/TurretAI.cs" />
      <Compile Include="Assets/Scripts/Combat/GunFlak.cs" />
@@ -89,6 +90,7 @@
      <Compile Include="Assets/Scripts/Combat/ProjectileBase.cs" />
      <Compile Include="Assets/Scripts/Catalog/PrefabId.cs" />
      <Compile Include="Assets/Scripts/Level/scroller.cs" />
+     <Compile Include="Assets/Scripts/Level/LineSpawner.cs" />
      <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleAudio.cs" />
      <Compile Include="Assets/Scripts/Asteroids/BlockBase.cs" />
      <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleSprite.cs" />
