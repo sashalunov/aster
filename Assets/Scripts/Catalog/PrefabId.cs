@@ -40,18 +40,20 @@ public enum PrefabId
     // Powerups & Drops
     PowerupDefault = 40,
     PowerupShield = 41,
-    PowerupAmmo = 42,
+    PowerupXP = 42,
     PowerupUpgradePoint = 43,
-
-    PowerupXP = 45,
-    PowerupGunKinetic = 46,
-    PowerupGunPlasma = 47,
+    PowerupAmmoExplosive = 44,
+    PowerupAmmoKinetic = 45,
+    PowerupAmmoFlak = 46,
+    PowerupGunKinetic = 47,
+    PowerupGunPlasma = 48,
+    PowerupGunFlak = 49,
 
     // Enemies
-    LightTankA = 50,
-    LightTankB = 51,
-    TurretGun0 = 52,
+    LightTankA = 150,
+    LightTankB = 151,
+    TurretGun0 = 152,
 
     // Spawners & Level
-    AsteroidFieldSpawner = 60
+    AsteroidFieldSpawner = 360
 }

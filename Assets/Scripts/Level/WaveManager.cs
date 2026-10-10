@@ -734,7 +734,7 @@ public class WaveManager : MonoBehaviour
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 60f),
-                    new WaveDropEntry(StandardPowerup.StandardType.AmmoRefill, 40f)
+                    
                 },
                 xpThresholdDrops: new List<WaveXPDropEntry>
                 {
@@ -755,7 +755,7 @@ public class WaveManager : MonoBehaviour
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 50f),
-                    new WaveDropEntry(StandardPowerup.StandardType.AmmoRefill, 30f),
+                   
                     new WaveDropEntry(StandardPowerup.StandardType.GunKinetic, 20f)
                 },
                 xpThresholdDrops: new List<WaveXPDropEntry>
@@ -779,7 +779,7 @@ public class WaveManager : MonoBehaviour
                 dropTable: new List<WaveDropEntry>
                 {
                     new WaveDropEntry(StandardPowerup.StandardType.UpgradePoint, 40f),
-                    new WaveDropEntry(StandardPowerup.StandardType.AmmoRefill, 25f),
+                   
                     new WaveDropEntry(StandardPowerup.StandardType.GunKinetic, 20f),
                     new WaveDropEntry(StandardPowerup.StandardType.GunPlasma, 15f)
                 },

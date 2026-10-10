@@ -103,8 +103,8 @@
      <Compile Include="Assets/Scripts/Audio/ShipEngineAudio.cs" />
      <Compile Include="Assets/Scripts/Player/PlayerCameraController.cs" />
      <Compile Include="Assets/Scripts/Audio/AudioManager.cs" />
-     <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
      <Compile Include="Assets/Scripts/Level/SpawnPoint.cs" />
+     <Compile Include="Assets/Scripts/Player/PlayerMetaProgression.cs" />
      <Compile Include="Assets/Scripts/Powerups/StandardPowerup.cs" />
      <Compile Include="Assets/Scripts/Asteroids/BlockAsteroidCore.cs" />
      <Compile Include="Assets/Scripts/Combat/GunSocket.cs" />

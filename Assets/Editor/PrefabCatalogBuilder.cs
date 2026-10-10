@@ -53,13 +53,21 @@ public static class PrefabCatalogBuilder
             { PrefabId.ThrusterFlameFx, "thrusterflame" },
             { PrefabId.ShowUpgradeFx, "show_upgrade" },
             { PrefabId.ShieldUpgradeFx, "shield_upgrade" },
+
             { PrefabId.PowerupDefault, "powerup" },
             { PrefabId.PowerupShield, "pwpShieldUp" },
-            { PrefabId.PowerupAmmo, "pwpAmmo" },
-            { PrefabId.PowerupUpgradePoint, "pwpUpgradePoint" },
             { PrefabId.PowerupXP, "pwpXP" },
+            { PrefabId.PowerupUpgradePoint, "pwpUpgradePoint" },
+
+            { PrefabId.PowerupAmmoExplosive, "pwpAmmoExplosive" },
+            { PrefabId.PowerupAmmoKinetic, "pwpAmmoKinetic" },
+            { PrefabId.PowerupAmmoFlak, "pwpAmmoFlak" },
+
             { PrefabId.PowerupGunKinetic, "pwpGunKinetic" },
             { PrefabId.PowerupGunPlasma, "pwpGunPlasma" },
+            { PrefabId.PowerupGunFlak, "pwpGunFlak" },
+
+
             { PrefabId.LightTankA, "lightTank_a" },
             { PrefabId.LightTankB, "lightTank_b" },
             { PrefabId.TurretGun0, "AI_gun0" },

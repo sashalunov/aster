@@ -18,8 +18,9 @@ public class StandardPowerup : PowerupBase
         GunKinetic,
         GunPlasma,
         GunFlak,
-        AmmoRefill,
         AmmoFlak,
+        AmmoKinetic,
+        AmmoKineticExplosive,
         UpgradePoint
     }
 
@@ -159,10 +160,15 @@ public class StandardPowerup : PowerupBase
                 displayName = "FLAK CANNON!";
                 themeColor = new Color(0.2f, 0.8f, 1f); // Electric Blue / Cyan
                 break;
-            case StandardType.AmmoRefill:
-                powerupId = "ammo_refill";
-                displayName = "AMMO REFILL!";
+            case StandardType.AmmoKinetic:
+                powerupId = "ammo_kinetic";
+                displayName = "AMMO!";
                 themeColor = new Color(0.3f, 1f, 0.5f); // Bright Green
+                break;    
+            case StandardType.AmmoKineticExplosive:
+                powerupId = "ammo_kinetic_explosive";
+                displayName = "XPLOSIVE AMMO!";
+                themeColor = new Color(0.9f, 0.3f, 0.0f); // Bright Green
                 break;
             case StandardType.AmmoFlak:
                 powerupId = "ammo_flak";
@@ -191,7 +197,8 @@ public class StandardPowerup : PowerupBase
             case StandardType.GunKinetic: return "KINETIC!";
             case StandardType.GunPlasma: return "PLASMA!";
             case StandardType.GunFlak: return "FLAK!";
-            case StandardType.AmmoRefill: return "AMMO REFILL!";
+            case StandardType.AmmoKinetic: return "AMMO!";
+            case StandardType.AmmoKineticExplosive: return "XPLOSIVE AMMO!";
             case StandardType.AmmoFlak: return "FLAK AMMO!";
             case StandardType.UpgradePoint: return "UPGRADE POINT!";
             default: return !string.IsNullOrEmpty(displayName) ? displayName : "POWER UP!";
@@ -314,8 +321,12 @@ public class StandardPowerup : PowerupBase
                     return PowerupManager.Instance.ApplyGun(targetPlayer, "gunPlasma");
                 case StandardType.GunFlak:
                     return PowerupManager.Instance.ApplyGun(targetPlayer, "gunFlak");
-                case StandardType.AmmoRefill:
-                    return PowerupManager.Instance.ApplyAmmoRefill(targetPlayer);
+
+                case StandardType.AmmoKinetic:
+                    return PowerupManager.Instance.ApplyAmmoKinetic(targetPlayer, Mathf.RoundToInt(potency * 20f));
+                case StandardType.AmmoKineticExplosive:
+                    return PowerupManager.Instance.ApplyAmmoKineticExplosive(targetPlayer, Mathf.RoundToInt(potency * 20f));
+
                 case StandardType.AmmoFlak:
                     return PowerupManager.Instance.ApplyAmmoFlak(targetPlayer, Mathf.RoundToInt(potency * 20f));
                 case StandardType.UpgradePoint:
@@ -346,7 +357,10 @@ public class StandardPowerup : PowerupBase
                     return targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunPlasma));
                 case StandardType.GunFlak:
                     return targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunFlak));
-                case StandardType.AmmoRefill:
+                case StandardType.AmmoKinetic:
+                    targetPlayer.RefillAllWeaponsAmmo();
+                    return true;
+                case StandardType.AmmoKineticExplosive:
                     targetPlayer.RefillAllWeaponsAmmo();
                     return true;
                 case StandardType.AmmoFlak:

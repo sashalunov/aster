@@ -281,13 +281,18 @@ public class PowerupManager : MonoBehaviour
         return p.UpgradeGuns(gunId, dmgBonus, rateBonus, forceBonus, burstBonus) > 0;
     }
 
-    public bool ApplyAmmoRefill(player p, int amount = -1)
+    public bool ApplyAmmoKinetic(player p, int amount = -1)
     {
         if (p == null) return false;
         p.RefillAllWeaponsAmmo(amount);
         return true;
     }
-
+    public bool ApplyAmmoKineticExplosive(player p, int amount = -1)
+    {
+        if (p == null) return false;
+        p.RefillAllWeaponsAmmo(amount);
+        return true;
+    }
     public bool ApplyUpgradePoint(player p, int amount = 1)
     {
         if (p == null) return false;
@@ -523,9 +528,12 @@ public class PowerupManager : MonoBehaviour
                 return PrefabManager.Get(PrefabId.PowerupGunPlasma);
             case StandardPowerup.StandardType.ShieldUp:
                 return PrefabManager.Get(PrefabId.PowerupShield) ?? PrefabManager.Get("pwpShieldUp");
-            case StandardPowerup.StandardType.AmmoRefill:
+            case StandardPowerup.StandardType.AmmoKinetic:
+                return PrefabManager.Get(PrefabId.PowerupAmmoKinetic);
+            case StandardPowerup.StandardType.AmmoKineticExplosive:
+                return PrefabManager.Get(PrefabId.PowerupAmmoExplosive);
             case StandardPowerup.StandardType.AmmoFlak:
-                return PrefabManager.Get(PrefabId.PowerupAmmo);
+                return PrefabManager.Get(PrefabId.PowerupAmmoFlak);
             case StandardPowerup.StandardType.UpgradePoint:
                 return PrefabManager.Get(PrefabId.PowerupUpgradePoint);
             case StandardPowerup.StandardType.XpUp:
@@ -614,9 +622,9 @@ public class PowerupManager : MonoBehaviour
         StandardPowerup.StandardType[] pool = new StandardPowerup.StandardType[]
         {
             StandardPowerup.StandardType.UpgradePoint,
-            StandardPowerup.StandardType.AmmoRefill,
+
             StandardPowerup.StandardType.XpUp,
-            StandardPowerup.StandardType.AmmoFlak,
+
             StandardPowerup.StandardType.ShieldUp
         };
         StandardPowerup.StandardType selected = pool[UnityEngine.Random.Range(0, pool.Length)];
