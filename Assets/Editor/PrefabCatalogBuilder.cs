@@ -42,7 +42,7 @@ public static class PrefabCatalogBuilder
             { PrefabId.GunFlak, "gunFlak" },
             { PrefabId.BulletKinetic, "bulletKinetic" },
             { PrefabId.BulletPlasma, "bulletPlasma" },
-            { PrefabId.BulletEnemy, "bulletAI" },
+  
             { PrefabId.BlockHitFx, "show_blockhit" },
             { PrefabId.CoreHitFx, "show_corehit" },
             { PrefabId.BlockDestroyFx, "blockdestroy" },
