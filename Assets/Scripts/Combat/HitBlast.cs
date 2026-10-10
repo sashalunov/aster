@@ -33,6 +33,14 @@ public class HitBlast : HitBase
 
     private void ApplyAreaDamage(ProjectileBase parent)
     {
+        var lightSource = GetComponentInChildren<Light>();
+        if (lightSource != null)
+        {
+            lightSource.enabled = true;
+            lightSource.intensity = blastDamage * 2f;
+            lightSource.range = blastRadius * 2f;
+        }
+
         Collider[] hits = Physics.OverlapSphere(transform.position, blastRadius);
         foreach (Collider col in hits)
         {
