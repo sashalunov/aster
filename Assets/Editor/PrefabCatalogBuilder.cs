@@ -37,10 +37,13 @@ public static class PrefabCatalogBuilder
             { PrefabId.AsteroidBase, "AsteroidBase" },
             { PrefabId.BlockAsteroid, "BlockAsteroid" },
             { PrefabId.BlockAsteroidCore, "BlockAsteroidCore" },
+
             { PrefabId.GunKinetic, "gunKinetic" },
             { PrefabId.GunPlasma, "gunPlasma" },
             { PrefabId.GunFlak, "gunFlak" },
+
             { PrefabId.BulletKinetic, "bulletKinetic" },
+            { PrefabId.bulletKineticExplosive, "bulletKineticExplosive" },
             { PrefabId.BulletPlasma, "bulletPlasma" },
   
             { PrefabId.BlockHitFx, "show_blockhit" },

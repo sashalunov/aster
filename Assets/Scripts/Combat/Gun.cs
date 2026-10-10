@@ -31,6 +31,10 @@ public class Gun : MonoBehaviour
     [Tooltip("Current ammunition count. -1 indicates infinite ammunition.")]
     [SerializeField] private int currentAmmo = -1;
 
+    [Tooltip("If true, the gun will use overrideBulletPrefab and track finite ammo until depleted.")]
+    [SerializeField] private bool hasOverrideAmmo = false;
+    [SerializeField] private GameObject overrideBulletPrefab;
+
     [Header("Runtime Stat Modifiers / Upgrades")]
     [SerializeField] private float damageBonus = 0f;
     [SerializeField] private float fireRateBonus = 0f;
@@ -60,6 +64,18 @@ public class Gun : MonoBehaviour
     public Rigidbody OwnerRigidbody { get; private set; }
     public Collider[] OwnerColliders { get; private set; }
 
+    public GameObject OverrideBulletPrefab
+    {
+        get => overrideBulletPrefab;
+        set => overrideBulletPrefab = value;
+    }
+
+    public bool HasOverrideAmmo
+    {
+        get => hasOverrideAmmo;
+        set => hasOverrideAmmo = value;
+    }
+
     public int CurrentAmmo
     {
         get => currentAmmo;
@@ -71,7 +87,7 @@ public class Gun : MonoBehaviour
     }
 
     public int MaxAmmo => EffectiveMaxAmmo;
-    public bool IsInfiniteAmmo => gunData == null || gunData.ammo_quantity < 0;
+    public bool IsInfiniteAmmo => !hasOverrideAmmo && (gunData == null || gunData.ammo_quantity < 0);
     public bool HasAmmo => IsInfiniteAmmo || currentAmmo > 0;
 
     public float DamageBonus => damageBonus;
@@ -333,7 +349,7 @@ public class Gun : MonoBehaviour
 
     private void FireSingleShot()
     {
-        if (gunData == null || gunData.bulletPrefab == null) return;
+        if (gunData == null || (gunData.bulletPrefab == null && overrideBulletPrefab == null)) return;
 
         Transform muzzle = MuzzlePoint;
         Transform turret = TurretPoint;
@@ -364,6 +380,15 @@ public class Gun : MonoBehaviour
         if (!IsInfiniteAmmo)
         {
             currentAmmo--;
+            if (hasOverrideAmmo && currentAmmo <= 0)
+            {
+                hasOverrideAmmo = false;
+                overrideBulletPrefab = null;
+                if (gunData != null)
+                {
+                    currentAmmo = gunData.ammo_quantity;
+                }
+            }
             OnAmmoChanged?.Invoke(currentAmmo, MaxAmmo);
         }
         OnFired?.Invoke(this);
@@ -398,7 +423,10 @@ public class Gun : MonoBehaviour
 
     private void SpawnProjectile(Vector3 position, Quaternion rotation)
     {
-        GameObject bulletObj = Instantiate(gunData.bulletPrefab, position, rotation);
+        GameObject prefabToSpawn = (hasOverrideAmmo && overrideBulletPrefab != null) ? overrideBulletPrefab : (gunData != null ? gunData.bulletPrefab : null);
+        if (prefabToSpawn == null) return;
+
+        GameObject bulletObj = Instantiate(prefabToSpawn, position, rotation);
         if (bulletObj == null) return;
 
         // Initialize ProjectileBase

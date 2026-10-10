@@ -39,10 +39,10 @@ public abstract class BlockBase : MonoBehaviour
     public event Action<BlockBase, Transform, ProjectileBase> OnDestroyed;
 
     /// <summary>
-    /// Fast epsilon threshold for float-based zero health checks.
-    /// Optimized for high-throughput evaluation across thousands of blocks.
+    /// Epsilon threshold for float-based zero health checks.
+    /// Blocks with remaining hits/health less than 0.1f are destroyed.
     /// </summary>
-    public const float HEALTH_EPSILON = 0.0001f;
+    public const float HEALTH_EPSILON = 0.1f;
 
     protected virtual void Start()
     {

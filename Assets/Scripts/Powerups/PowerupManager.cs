@@ -290,7 +290,40 @@ public class PowerupManager : MonoBehaviour
     public bool ApplyAmmoKineticExplosive(player p, int amount = -1)
     {
         if (p == null) return false;
-        p.RefillAllWeaponsAmmo(amount);
+
+        int ammoToGive = amount > 0 ? amount : 20;
+        bool hasKinetic = false;
+        List<Gun> guns = p.GetEquippedGuns();
+        for (int i = 0; i < guns.Count; i++)
+        {
+            if (guns[i] != null && guns[i].Data != null && guns[i].Data.gunId == GunKinetic.DEFAULT_GUN_ID)
+            {
+                hasKinetic = true;
+                guns[i].OverrideBulletPrefab = PrefabManager.Get(PrefabId.bulletKineticExplosive);
+                guns[i].HasOverrideAmmo = true;
+                guns[i].CurrentAmmo = ammoToGive;
+            }
+        }
+
+        if (!hasKinetic)
+        {
+            // If the player doesn't have a Kinetic Cannon yet, grant them one!
+            if (p.AddGun(PrefabManager.Get<Gun>(PrefabId.GunKinetic)))
+            {
+                guns = p.GetEquippedGuns();
+                for (int i = 0; i < guns.Count; i++)
+                {
+                    if (guns[i] != null && guns[i].Data != null && guns[i].Data.gunId == GunKinetic.DEFAULT_GUN_ID)
+                    {
+                        guns[i].OverrideBulletPrefab = PrefabManager.Get(PrefabId.bulletKineticExplosive);
+                        guns[i].HasOverrideAmmo = true;
+                        guns[i].CurrentAmmo = ammoToGive;
+                        break;
+                    }
+                }
+            }
+        }
+
         return true;
     }
     public bool ApplyUpgradePoint(player p, int amount = 1)

@@ -361,7 +361,36 @@ public class StandardPowerup : PowerupBase
                     targetPlayer.RefillAllWeaponsAmmo();
                     return true;
                 case StandardType.AmmoKineticExplosive:
-                    targetPlayer.RefillAllWeaponsAmmo();
+                    int ammoCount = Mathf.RoundToInt(potency * 20f);
+                    bool hasKinetic = false;
+                    List<Gun> kinGuns = targetPlayer.GetEquippedGuns();
+                    for (int i = 0; i < kinGuns.Count; i++)
+                    {
+                        if (kinGuns[i] != null && kinGuns[i].Data != null && kinGuns[i].Data.gunId == GunKinetic.DEFAULT_GUN_ID)
+                        {
+                            hasKinetic = true;
+                            kinGuns[i].OverrideBulletPrefab = PrefabManager.Get(PrefabId.bulletKineticExplosive);
+                            kinGuns[i].HasOverrideAmmo = true;
+                            kinGuns[i].CurrentAmmo = ammoCount;
+                        }
+                    }
+                    if (!hasKinetic)
+                    {
+                        if (targetPlayer.AddGun(PrefabManager.Get<Gun>(PrefabId.GunKinetic)))
+                        {
+                            kinGuns = targetPlayer.GetEquippedGuns();
+                            for (int i = 0; i < kinGuns.Count; i++)
+                            {
+                                if (kinGuns[i] != null && kinGuns[i].Data != null && kinGuns[i].Data.gunId == GunKinetic.DEFAULT_GUN_ID)
+                                {
+                                    kinGuns[i].OverrideBulletPrefab = PrefabManager.Get(PrefabId.bulletKineticExplosive);
+                                    kinGuns[i].HasOverrideAmmo = true;
+                                    kinGuns[i].CurrentAmmo = ammoCount;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     return true;
                 case StandardType.AmmoFlak:
                     bool hasFlak = false;
