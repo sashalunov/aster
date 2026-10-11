@@ -33,14 +33,6 @@ public class LineSpawner : MonoBehaviour
     [Tooltip("If true, impulseDirection is transformed by this GameObject's local rotation.")]
     public bool useLocalDirection = false;
 
-    [Tooltip("Magnitude of the initial launch impulse force.")]
-    [Min(0f)]
-    public float impulseForce = 5f;
-
-    [Tooltip("Random variance added or subtracted from impulseForce.")]
-    [Min(0f)]
-    public float impulseForceVariance = 1f;
-
     [Tooltip("Random angular dispersion cone in degrees (+/- half on the XY plane).")]
     [Range(0f, 180f)]
     public float spreadAngle = 15f;
@@ -51,6 +43,24 @@ public class LineSpawner : MonoBehaviour
 
     [Tooltip("Physics force mode used when applying launch impulse.")]
     public ForceMode impulseMode = ForceMode.Impulse;
+
+    [Header("Block Impulse Settings")]
+    [Tooltip("Magnitude of the initial launch impulse force applied to spawned blocks.")]
+    [Min(0f)]
+    public float blockImpulseForce = 5f;
+
+    [Tooltip("Random variance added or subtracted from blockImpulseForce.")]
+    [Min(0f)]
+    public float blockImpulseVariance = 1f;
+
+    [Header("Asteroid Impulse Settings")]
+    [Tooltip("Magnitude of the initial launch impulse force applied to spawned asteroids.")]
+    [Min(0f)]
+    public float asteroidImpulseForce = 15f;
+
+    [Tooltip("Random variance added or subtracted from asteroidImpulseForce.")]
+    [Min(0f)]
+    public float asteroidImpulseVariance = 2f;
 
     [Header("Prefabs & Hierarchy")]
     [Tooltip("Block prefab instantiated. Defaults to PrefabId.Block0 from PrefabManager.")]
@@ -125,15 +135,34 @@ public class LineSpawner : MonoBehaviour
     [Tooltip("Maximum extra blocks generated if generateAsteroidCluster is enabled.")]
     public int maxClusterBlocks = 4;
 
+    [Header("Asteroid Shell Configuration")]
+    [Tooltip("Whether spawned asteroids generate a protective shell of blocks around their core.")]
+    public bool spawnAsteroidShell = false;
+
+    [Tooltip("Thickness or layer count of the protective shell around the core (0 = 4-block diamond/cross shell, 1 = 8-block full ring, >1 = additional concentric layers).")]
+    [Range(0, 5)]
+    public int shellThickness = 1;
+
+    [Tooltip("Minimum hit points assigned to shell blocks.")]
+    [Min(1)]
+    public int minShellHits = 2;
+
+    [Tooltip("Maximum hit points assigned to shell blocks.")]
+    [Min(1)]
+    public int maxShellHits = 2;
+
+    [Tooltip("Optional custom prefab used for shell blocks. If unassigned, defaults to blockPrefab.")]
+    public GameObject shellBlockPrefab;
+
     [Header("General Spawner Control")]
     [Tooltip("Whether the spawner is actively running.")]
     public bool isSpawning = true;
 
     [Tooltip("Linear damping applied to the Rigidbody of spawned objects.")]
-    public float entityLinearDamping = 0.2f;
+    public float entityLinearDamping = 0.0f;
 
     [Tooltip("Angular damping applied to the Rigidbody of spawned objects.")]
-    public float entityAngularDamping = 0.5f;
+    public float entityAngularDamping = 0.05f;
 
     [Header("Clearance & Overlap Detection")]
     [Tooltip("Whether to verify that the candidate spawn location is clear of existing blocks and solid obstacles before spawning.")]
@@ -164,9 +193,13 @@ public class LineSpawner : MonoBehaviour
     [Tooltip("If true, only spawns when WaveManager is actively in Combat state.")]
     public bool spawnDuringCombatOnly = false;
 
+    [Tooltip("If true, adapts block hit points, asteroid core hits, and shell configuration from active WaveDefinition.")]
+    public bool adaptWaveDifficulty = false;
+
     // Events
     public event Action<GameObject> OnBlockSpawned;
     public event Action<GameObject> OnAsteroidSpawned;
+    public event Action<GameObject, List<GameObject>> OnAsteroidShellGenerated;
     public event Action<int> OnActiveCountChanged;
 
     // Active object tracking
@@ -186,6 +219,52 @@ public class LineSpawner : MonoBehaviour
     public bool IsBlockAtCapacity => activeBlocks.Count >= maxBlocks;
     public bool IsAsteroidAtCapacity => activeAsteroids.Count >= maxAsteroids;
 
+    public bool generateAsteroidShell
+    {
+        get => spawnAsteroidShell;
+        set => spawnAsteroidShell = value;
+    }
+
+    public bool spawnShell
+    {
+        get => spawnAsteroidShell;
+        set => spawnAsteroidShell = value;
+    }
+
+    public int asteroidShellThickness
+    {
+        get => shellThickness;
+        set => shellThickness = value;
+    }
+
+    public int shellHits
+    {
+        get => maxShellHits;
+        set
+        {
+            minShellHits = value;
+            maxShellHits = value;
+        }
+    }
+
+    public int asteroidShellHits
+    {
+        get => maxShellHits;
+        set
+        {
+            minShellHits = value;
+            maxShellHits = value;
+        }
+    }
+
+    public GameObject shellPrefab
+    {
+        get => shellBlockPrefab;
+        set => shellBlockPrefab = value;
+    }
+
+    private WaveManager subscribedWm;
+
     public WaveManager ActiveWaveManager
     {
         get
@@ -196,7 +275,15 @@ public class LineSpawner : MonoBehaviour
             }
             return _waveManager;
         }
-        set => _waveManager = value;
+        set
+        {
+            if (_waveManager != value)
+            {
+                UnsubscribeWaveManager();
+                _waveManager = value;
+                EnsureWaveManagerSubscribed();
+            }
+        }
     }
 
     protected virtual void Awake()
@@ -207,8 +294,72 @@ public class LineSpawner : MonoBehaviour
         }
     }
 
+    protected virtual void OnEnable()
+    {
+        EnsureWaveManagerSubscribed();
+    }
+
+    protected virtual void OnDisable()
+    {
+        UnsubscribeWaveManager();
+    }
+
+    protected virtual void OnDestroy()
+    {
+        UnsubscribeWaveManager();
+    }
+
+    public void EnsureWaveManagerSubscribed()
+    {
+        WaveManager current = syncWithWaveManager ? ActiveWaveManager : null;
+        if (subscribedWm != current)
+        {
+            UnsubscribeWaveManager();
+            subscribedWm = current;
+            SubscribeWaveManager();
+        }
+    }
+
+    private void SubscribeWaveManager()
+    {
+        if (subscribedWm != null)
+        {
+            subscribedWm.OnWaveStarted -= HandleWaveStarted;
+            subscribedWm.OnWaveStarted += HandleWaveStarted;
+
+            if (subscribedWm.CurrentWaveConfig != null)
+            {
+                HandleWaveStarted(subscribedWm.CurrentWaveIndex, subscribedWm.CurrentWaveConfig);
+            }
+        }
+    }
+
+    private void UnsubscribeWaveManager()
+    {
+        if (subscribedWm != null)
+        {
+            subscribedWm.OnWaveStarted -= HandleWaveStarted;
+            subscribedWm = null;
+        }
+    }
+
+    public virtual void HandleWaveStarted(int waveIndex, WaveDefinition config)
+    {
+        if (!syncWithWaveManager || config == null) return;
+
+        if (adaptWaveDifficulty)
+        {
+            minBlockHits = Mathf.Max(1, config.blockLevel);
+            maxBlockHits = Mathf.Max(minBlockHits, config.shellLevel);
+            asteroidCoreHits = Mathf.Max(1, config.minMass);
+            minShellHits = Mathf.Max(1, config.shellLevel);
+            maxShellHits = Mathf.Max(minShellHits, config.shellLevel);
+        }
+    }
+
     protected virtual void Start()
     {
+        EnsureWaveManagerSubscribed();
         ResolvePrefabs();
 
         if (initialBlockCount > 0 && spawnBlocks)
@@ -233,6 +384,7 @@ public class LineSpawner : MonoBehaviour
     protected virtual void Update()
     {
         CleanupDestroyedEntities();
+        EnsureWaveManagerSubscribed();
 
         if (!isSpawning) return;
 
@@ -302,6 +454,11 @@ public class LineSpawner : MonoBehaviour
             {
                 asterPrefab = PrefabManager.Get(PrefabId.AsteroidBase);
             }
+        }
+
+        if (shellBlockPrefab == null)
+        {
+            shellBlockPrefab = blockPrefab;
         }
     }
 
@@ -447,7 +604,7 @@ public class LineSpawner : MonoBehaviour
         rb.mass = b0 != null && b0._hits > 0 ? b0._hits : 1f;
 
         // Apply directional launch impulse
-        ApplyInitialImpulse(rb, customDirection, customForce);
+        ApplyInitialImpulse(rb, customDirection, customForce, blockImpulseForce, blockImpulseVariance);
 
         activeBlocks.Add(newBlock);
 
@@ -465,13 +622,20 @@ public class LineSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// Computes clearance radius required for spawning an asteroid, accounting for shell thickness when enabled.
+    /// </summary>
+    public virtual float GetAsteroidClearanceRadius() =>
+        spawnAsteroidShell ? Mathf.Max(asteroidClearanceRadius, 1.2f + shellThickness) : asteroidClearanceRadius;
+
+    /// <summary>
     /// Spawns a single asteroid at a random point along the line and applies the configured initial impulse.
     /// </summary>
     public virtual GameObject SpawnSingleAsteroid()
     {
         if (IsAsteroidAtCapacity) return null;
 
-        if (!TryGetClearSpawnPosition(asteroidClearanceRadius, out Vector3 spawnPos))
+        float clearance = GetAsteroidClearanceRadius();
+        if (!TryGetClearSpawnPosition(clearance, out Vector3 spawnPos))
         {
             // Candidate line segments obstructed; defer spawn to avoid overlapping other entities
             return null;
@@ -482,8 +646,15 @@ public class LineSpawner : MonoBehaviour
 
     /// <summary>
     /// Spawns an asteroid at an explicit world position and applies the directional impulse.
+    /// Supports optional overrides for impulse direction/force, as well as shell generation parameters.
     /// </summary>
-    public virtual GameObject SpawnAsteroidAt(Vector3 position, Vector3? customDirection = null, float? customForce = null)
+    public virtual GameObject SpawnAsteroidAt(
+        Vector3 position,
+        Vector3? customDirection = null,
+        float? customForce = null,
+        bool? overrideSpawnShell = null,
+        int? overrideShellThickness = null,
+        int? overrideShellHits = null)
     {
         ResolvePrefabs();
 
@@ -507,6 +678,11 @@ public class LineSpawner : MonoBehaviour
             grid = newAsteroid.AddComponent<AsteroidGrid>();
         }
 
+        bool shouldSpawnShell = overrideSpawnShell.HasValue ? overrideSpawnShell.Value : spawnAsteroidShell;
+        int activeThickness = overrideShellThickness.HasValue ? overrideShellThickness.Value : shellThickness;
+        int minHits = overrideShellHits.HasValue ? overrideShellHits.Value : minShellHits;
+        int maxHits = overrideShellHits.HasValue ? overrideShellHits.Value : maxShellHits;
+
         // Configure AsteroidGrid structure
         if (generateAsteroidCluster)
         {
@@ -514,63 +690,22 @@ public class LineSpawner : MonoBehaviour
             GameObject cPrefab = blockPrefab != null ? blockPrefab : PrefabManager.Get(PrefabId.Block0);
             grid._blockPrefab = cPrefab;
             grid.generate_asteroid(coremass: asteroidCoreHits, massmin: minClusterBlocks, massmax: maxClusterBlocks);
+
+            if (shouldSpawnShell)
+            {
+                SpawnAsteroidShell(grid, activeThickness, minHits, maxHits, shellBlockPrefab);
+            }
         }
         else
         {
             grid.targetBlockCount = 0;
 
-            // Ensure authoritative core exists
-            if (grid.coreBlock == null)
-            {
-                Transform coreT = newAsteroid.transform.Find("core_block");
-                if (coreT != null)
-                {
-                    grid.coreBlock = coreT.GetComponent<BlockAsteroidCore>();
-                }
-                if (grid.coreBlock == null)
-                {
-                    grid.EnsureCoreBlock();
-                }
-            }
+            EnsureAsteroidCore(grid, asteroidCoreHits);
+            CleanUpNonCoreChildren(newAsteroid, grid.coreBlock);
 
-            if (grid.coreBlock == null)
+            if (shouldSpawnShell)
             {
-                GameObject cPrefab = blockPrefab != null ? blockPrefab : PrefabManager.Get(PrefabId.Block0);
-                grid._blockPrefab = cPrefab;
-                grid.generate_asteroid(coremass: asteroidCoreHits, massmin: 0, massmax: 0);
-            }
-            else
-            {
-                grid.SetHits(asteroidCoreHits);
-                grid.coreBlock.SetHits(asteroidCoreHits);
-                grid.coreBlock.isCore = true;
-                grid.coreBlock.gameObject.tag = "core";
-            }
-
-            // Remove non-core children for pure single-core asteroid
-            List<GameObject> extraChildren = new List<GameObject>();
-            foreach (Transform child in newAsteroid.transform)
-            {
-                if (child == null) continue;
-                if (grid.coreBlock != null && child.gameObject == grid.coreBlock.gameObject) continue;
-                if (child.name == "core_block" || child.name == "pfx_core" || child.GetComponent<ParticleSystem>() != null) continue;
-
-                if (child.GetComponent<BlockBase>() != null || child.name.StartsWith("b_"))
-                {
-                    extraChildren.Add(child.gameObject);
-                }
-            }
-
-            for (int i = 0; i < extraChildren.Count; i++)
-            {
-#if UNITY_EDITOR
-                if (!Application.isPlaying)
-                    DestroyImmediate(extraChildren[i]);
-                else
-                    Destroy(extraChildren[i]);
-#else
-                Destroy(extraChildren[i]);
-#endif
+                SpawnAsteroidShell(grid, activeThickness, minHits, maxHits, shellBlockPrefab);
             }
 
             grid.SyncGrid();
@@ -591,7 +726,7 @@ public class LineSpawner : MonoBehaviour
         rb.mass = Mathf.Max(1f, rb.mass > 0 ? rb.mass : asteroidCoreHits);
 
         // Apply directional launch impulse
-        ApplyInitialImpulse(rb, customDirection, customForce);
+        ApplyInitialImpulse(rb, customDirection, customForce, asteroidImpulseForce, asteroidImpulseVariance);
 
         activeAsteroids.Add(newAsteroid);
 
@@ -609,18 +744,195 @@ public class LineSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// Computes relative 2D grid coordinates for a concentric shell around the origin (0, 0).
+    /// Thickness 0 returns 4 cardinal/diamond points. Thickness >= 1 returns concentric rings up to thickness.
+    /// </summary>
+    public static List<Vector2Int> GetShellCoordinates(int thickness)
+    {
+        List<Vector2Int> coords = new List<Vector2Int>();
+        if (thickness < 0) return coords;
+
+        if (thickness == 0)
+        {
+            coords.Add(new Vector2Int(0, 1));
+            coords.Add(new Vector2Int(1, 0));
+            coords.Add(new Vector2Int(0, -1));
+            coords.Add(new Vector2Int(-1, 0));
+            return coords;
+        }
+
+        for (int r = 1; r <= thickness; r++)
+        {
+            for (int x = -r; x <= r; x++)
+            {
+                for (int y = -r; y <= r; y++)
+                {
+                    if (Mathf.Max(Mathf.Abs(x), Mathf.Abs(y)) == r)
+                    {
+                        coords.Add(new Vector2Int(x, y));
+                    }
+                }
+            }
+        }
+        return coords;
+    }
+
+    /// <summary>
+    /// Spawns a concentric protective shell around the core of the specified AsteroidGrid.
+    /// </summary>
+    public virtual List<GameObject> SpawnAsteroidShell(
+        AsteroidGrid grid,
+        int thickness,
+        int minHits,
+        int maxHits,
+        GameObject customPrefab = null)
+    {
+        List<GameObject> shellBlocks = new List<GameObject>();
+        if (grid == null) return shellBlocks;
+
+        EnsureAsteroidCore(grid, asteroidCoreHits);
+
+        GameObject pFab = customPrefab != null
+            ? customPrefab
+            : (shellBlockPrefab != null
+                ? shellBlockPrefab
+                : (blockPrefab != null ? blockPrefab : PrefabManager.Get(PrefabId.Block0)));
+        if (pFab == null) return shellBlocks;
+
+        GameObject prevBlockPrefab = grid._blockPrefab;
+        grid._blockPrefab = pFab;
+
+        List<Vector2Int> coords = GetShellCoordinates(thickness);
+        for (int i = 0; i < coords.Count; i++)
+        {
+            Vector2Int coord = coords[i];
+            if (coord == Vector2Int.zero) continue;
+
+            int shellHitPoints = UnityEngine.Random.Range(minHits, maxHits + 1);
+
+            // If a block already exists at this coordinate, update its hit points
+            if (grid.HasBlockAt(coord))
+            {
+                GameObject existingBlock = grid.GetBlockAt(coord);
+                if (existingBlock == null)
+                {
+                    Transform t = grid.transform.Find($"b_{coord.x}_{coord.y}");
+                    if (t != null) existingBlock = t.gameObject;
+                }
+
+                if (existingBlock != null)
+                {
+                    BlockBase b = existingBlock.GetComponent<BlockBase>();
+                    if (b != null && !b.isCore)
+                    {
+                        b.SetHits(shellHitPoints);
+                        shellBlocks.Add(existingBlock);
+                    }
+                }
+                continue;
+            }
+
+            GameObject newShellBlock = grid.SpawnBlockAtCoord(coord, shellHitPoints);
+            if (newShellBlock != null)
+            {
+                shellBlocks.Add(newShellBlock);
+            }
+        }
+
+        grid._blockPrefab = prevBlockPrefab;
+        grid.SyncGrid();
+        grid.UpdateMass();
+
+        OnAsteroidShellGenerated?.Invoke(grid.gameObject, shellBlocks);
+        return shellBlocks;
+    }
+
+    /// <summary>
+    /// Ensures that an authoritative BlockAsteroidCore component exists on the grid at (0, 0) with specified hit points.
+    /// </summary>
+    public virtual void EnsureAsteroidCore(AsteroidGrid grid, int hits)
+    {
+        if (grid == null) return;
+
+        if (grid.coreBlock == null)
+        {
+            Transform coreT = grid.transform.Find("core_block");
+            if (coreT != null)
+            {
+                grid.coreBlock = coreT.GetComponent<BlockAsteroidCore>();
+            }
+            if (grid.coreBlock == null)
+            {
+                grid.EnsureCoreBlock();
+            }
+        }
+
+        if (grid.coreBlock == null)
+        {
+            GameObject cPrefab = blockPrefab != null ? blockPrefab : PrefabManager.Get(PrefabId.Block0);
+            grid._blockPrefab = cPrefab;
+            grid.generate_asteroid(coremass: hits, massmin: 0, massmax: 0);
+        }
+        else
+        {
+            grid.SetHits(hits);
+            grid.coreBlock.SetHits(hits);
+            grid.coreBlock.isCore = true;
+            grid.coreBlock.gameObject.tag = "core";
+        }
+    }
+
+    /// <summary>
+    /// Removes non-core child blocks from an asteroid to ensure a clean base before generating shells.
+    /// </summary>
+    public virtual void CleanUpNonCoreChildren(GameObject asteroidObj, BlockAsteroidCore coreBlock)
+    {
+        if (asteroidObj == null) return;
+
+        List<GameObject> extraChildren = new List<GameObject>();
+        foreach (Transform child in asteroidObj.transform)
+        {
+            if (child == null) continue;
+            if (coreBlock != null && child.gameObject == coreBlock.gameObject) continue;
+            if (child.name == "core_block" || child.name == "pfx_core" || child.GetComponent<ParticleSystem>() != null) continue;
+
+            if (child.GetComponent<BlockBase>() != null || child.name.StartsWith("b_"))
+            {
+                extraChildren.Add(child.gameObject);
+            }
+        }
+
+        for (int i = 0; i < extraChildren.Count; i++)
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                DestroyImmediate(extraChildren[i]);
+            else
+                Destroy(extraChildren[i]);
+#else
+            Destroy(extraChildren[i]);
+#endif
+        }
+    }
+
+    /// <summary>
     /// Applies directional launch impulse and optional torque to a Rigidbody.
     /// </summary>
-    protected virtual void ApplyInitialImpulse(Rigidbody rb, Vector3? customDirection = null, float? customForce = null)
+    protected virtual void ApplyInitialImpulse(
+        Rigidbody rb,
+        Vector3? customDirection = null,
+        float? customForce = null,
+        float defaultForce = 5f,
+        float forceVariance = 0f)
     {
         if (rb == null) return;
 
         Vector3 dir = customDirection.HasValue ? customDirection.Value.normalized : GetCalculatedImpulseDirection();
-        float force = customForce.HasValue ? customForce.Value : impulseForce;
+        float force = customForce.HasValue ? customForce.Value : defaultForce;
 
-        if (!customForce.HasValue && impulseForceVariance > 0f)
+        if (!customForce.HasValue && forceVariance > 0f)
         {
-            force += UnityEngine.Random.Range(-impulseForceVariance, impulseForceVariance);
+            force += UnityEngine.Random.Range(-forceVariance, forceVariance);
             force = Mathf.Max(0.01f, force);
         }
 
@@ -722,7 +1034,8 @@ public class LineSpawner : MonoBehaviour
 
         // Draw impulse direction rays along the line
         Vector3 baseDir = GetBaseImpulseDirection();
-        float rayLength = Mathf.Clamp(impulseForce * 0.4f, 1.5f, 8f);
+        float representativeForce = spawnAsteroids ? asteroidImpulseForce : blockImpulseForce;
+        float rayLength = Mathf.Clamp(representativeForce * 0.4f, 1.5f, 8f);
 
         Gizmos.color = selected ? Color.yellow : new Color(1f, 0.9f, 0.2f, 0.6f);
         int sampleCount = 5;

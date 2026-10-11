@@ -121,6 +121,7 @@ public class AsteroidGrid : AsteroidBase
     // Public Grid Accessors
     public int ActiveBlockCount => gridBlocks.Count;
     public bool HasBlockAt(Vector2Int coord) => gridBlocks.ContainsKey(coord);
+    public GameObject GetBlockAt(Vector2Int coord) => gridBlocks.TryGetValue(coord, out GameObject go) ? go : null;
 
     protected override void Awake()
     {
@@ -269,6 +270,7 @@ public class AsteroidGrid : AsteroidBase
         _core_hits = coremass;
         _block_hits = blocklvl;
         _shell_hits = shlvl;
+        _core_shell = shell;
         if (massmax > _max_blocks)
         {
             _max_blocks = massmax;
@@ -506,8 +508,8 @@ public class AsteroidGrid : AsteroidBase
                 rb.isKinematic = false;
                 rb.useGravity = false;
                 rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
-                rb.linearDamping = 0.5f;
-                rb.angularDamping = 0.5f;
+                rb.linearDamping = 0.0f;
+                rb.angularDamping = 0.05f;
                 rb.mass = b0._hits > 0 ? b0._hits : 1f;
 
                 Vector3 ejectDir = (blockObj.transform.position - transform.position).normalized;
@@ -874,8 +876,8 @@ public class AsteroidGrid : AsteroidBase
             rb.isKinematic = false;
             rb.useGravity = false;
             rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
-            rb.linearDamping = 0.5f;
-            rb.angularDamping = 0.5f;
+            rb.linearDamping = 0.0f;
+            rb.angularDamping = 0.05f;
             rb.mass = b0._hits > 0 ? b0._hits : 1f;
 
             // Give outward ejection impulse relative to asteroid core

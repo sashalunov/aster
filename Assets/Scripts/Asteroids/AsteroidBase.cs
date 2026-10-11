@@ -414,8 +414,8 @@ public class AsteroidBase : MonoBehaviour
         }
         rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
         rb.useGravity = false;
-        rb.linearDamping = 0.5f;
-        rb.angularDamping = 0.5f;
+        rb.linearDamping = 0.0f;
+        rb.angularDamping = 0.15f;
         return rb;
     }
 
@@ -784,8 +784,8 @@ public class AsteroidBase : MonoBehaviour
                 rb.isKinematic = false;
                 rb.useGravity = false;
                 rb.constraints = RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY;
-                rb.linearDamping = 0.5f;
-                rb.angularDamping = 0.5f;
+                rb.linearDamping = 0.0f;
+                rb.angularDamping = 0.15f;
                 rb.mass = b0._hits > 0 ? b0._hits : 1f;
 
                 Vector3 ejectDir = (child.position - transform.position).normalized;

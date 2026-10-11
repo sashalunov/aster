@@ -395,8 +395,8 @@ public abstract class BlockBase : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezePositionZ;
         rb.mass = _hits > 0f ? _hits : 1f;
         rb.useGravity = false;
-        rb.linearDamping = 0.5f;
-        rb.angularDamping = 0.5f;
+        rb.linearDamping = 0.15f;
+        rb.angularDamping = 0.05f;
         _detached = true;
     }
 
