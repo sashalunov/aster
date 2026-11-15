@@ -49,6 +49,8 @@ public class WaveIntermissionPopup : MonoBehaviour
     [SerializeField] private WaveManager _waveManager;
 
     private bool _isSubscribed = false;
+    private bool _isLevelUpMode = false;
+    private TMP_Text _startButtonText;
 
     private void Awake()
     {
@@ -78,11 +80,21 @@ public class WaveIntermissionPopup : MonoBehaviour
 
     private void OnDisable()
     {
+        if (_isLevelUpMode)
+        {
+            _isLevelUpMode = false;
+            Time.timeScale = 1f;
+        }
         Unsubscribe();
     }
 
     private void OnDestroy()
     {
+        if (_isLevelUpMode)
+        {
+            _isLevelUpMode = false;
+            Time.timeScale = 1f;
+        }
         Unsubscribe();
         UnbindButtons();
         if (canvasGroup != null)
@@ -143,6 +155,11 @@ public class WaveIntermissionPopup : MonoBehaviour
             else startButton = panel.GetComponentInChildren<Button>(true);
         }
 
+        if (startButton != null && _startButtonText == null)
+        {
+            _startButtonText = startButton.GetComponentInChildren<TMP_Text>();
+        }
+
         if (damageUpgradeButton == null && panel != null)
         {
             Transform b = panel.transform.Find("Card/UpgradesContainer/Row_Damage/Button");
@@ -198,6 +215,11 @@ public class WaveIntermissionPopup : MonoBehaviour
                 _player.OnUpgradePointsChanged += HandleUpgradePointsChanged;
                 _player.OnWeaponStatsChanged -= HandleWeaponStatsChanged;
                 _player.OnWeaponStatsChanged += HandleWeaponStatsChanged;
+                if (_player.Progression != null)
+                {
+                    _player.Progression.OnPlayerLevelUp -= HandlePlayerLevelUp;
+                    _player.Progression.OnPlayerLevelUp += HandlePlayerLevelUp;
+                }
             }
         }
     }
@@ -272,6 +294,11 @@ public class WaveIntermissionPopup : MonoBehaviour
             _player.OnUpgradePointsChanged += HandleUpgradePointsChanged;
             _player.OnWeaponStatsChanged -= HandleWeaponStatsChanged;
             _player.OnWeaponStatsChanged += HandleWeaponStatsChanged;
+            if (_player.Progression != null)
+            {
+                _player.Progression.OnPlayerLevelUp -= HandlePlayerLevelUp;
+                _player.Progression.OnPlayerLevelUp += HandlePlayerLevelUp;
+            }
         }
 
         _isSubscribed = true;
@@ -291,6 +318,10 @@ public class WaveIntermissionPopup : MonoBehaviour
         {
             _player.OnUpgradePointsChanged -= HandleUpgradePointsChanged;
             _player.OnWeaponStatsChanged -= HandleWeaponStatsChanged;
+            if (_player.Progression != null)
+            {
+                _player.Progression.OnPlayerLevelUp -= HandlePlayerLevelUp;
+            }
         }
 
         _isSubscribed = false;
@@ -312,6 +343,24 @@ public class WaveIntermissionPopup : MonoBehaviour
         }
     }
 
+    private void HandlePlayerLevelUp(int newLevel)
+    {
+        if (_player != null)
+        {
+            //_player.AddUpgradePoints(1);
+        }
+
+        WaveManager wm = _waveManager != null ? _waveManager : WaveManager.Instance;
+        // If already in WaveCleared or Intermission, the normal wave transition popup handles it
+        if (wm != null && (wm.State == WaveManager.WaveState.Intermission || wm.State == WaveManager.WaveState.WaveCleared))
+        {
+            RefreshUpgradeUI();
+            return;
+        }
+
+        ShowLevelUpPopup(newLevel);
+    }
+
     private void HandleUpgradePointsChanged(int points)
     {
         RefreshUpgradeUI();
@@ -324,10 +373,19 @@ public class WaveIntermissionPopup : MonoBehaviour
 
     private void HandleStartButtonClicked()
     {
-        WaveManager wm = _waveManager != null ? _waveManager : WaveManager.Instance;
-        if (wm != null)
+        if (_isLevelUpMode)
         {
-            wm.StartNextWave();
+            _isLevelUpMode = false;
+            Time.timeScale = 1f;
+            ClosePopup();
+        }
+        else
+        {
+            WaveManager wm = _waveManager != null ? _waveManager : WaveManager.Instance;
+            if (wm != null)
+            {
+                wm.StartNextWave();
+            }
         }
     }
 
@@ -405,6 +463,8 @@ public class WaveIntermissionPopup : MonoBehaviour
         BindButtons();
         RefreshUpgradeUI();
 
+        _isLevelUpMode = false;
+
         // 1. Populate Text
         if (titleText != null)
         {
@@ -426,7 +486,62 @@ public class WaveIntermissionPopup : MonoBehaviour
             statsText.SetText($"+{xpReward} XP  ");
         }
 
+        if (_startButtonText != null)
+        {
+            _startButtonText.SetText("NEXT WAVE");
+        }
+
         // 2. Open Panel with Fade Animation
+        panel.SetActive(true);
+        if (canvasGroup != null)
+        {
+            canvasGroup.DOKill();
+            if (fadeInDuration > 0f && Application.isPlaying)
+            {
+                canvasGroup.alpha = 0f;
+                canvasGroup.DOFade(1f, fadeInDuration).SetUpdate(true);
+            }
+            else
+            {
+                canvasGroup.alpha = 1f;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Shows the upgrade popup in Level Up mode mid-combat, pausing time until player resumes.
+    /// </summary>
+    public void ShowLevelUpPopup(int newLevel)
+    {
+        if (panel == null) return;
+
+        ResolveReferences();
+        BindButtons();
+        RefreshUpgradeUI();
+
+        _isLevelUpMode = true;
+        Time.timeScale = 0f;
+
+        if (titleText != null)
+        {
+            titleText.SetText($"LEVEL {newLevel} REACHED!");
+        }
+
+        if (subtitleText != null)
+        {
+            subtitleText.SetText("ALLOCATE SHIP UPGRADE POINTS");
+        }
+
+        if (statsText != null)
+        {
+            statsText.SetText("+1 UPGRADE POINT AWARDED");
+        }
+
+        if (_startButtonText != null)
+        {
+            _startButtonText.SetText("RESUME");
+        }
+
         panel.SetActive(true);
         if (canvasGroup != null)
         {
@@ -445,6 +560,12 @@ public class WaveIntermissionPopup : MonoBehaviour
 
     public void ClosePopup()
     {
+        if (_isLevelUpMode)
+        {
+            _isLevelUpMode = false;
+            Time.timeScale = 1f;
+        }
+
         if (panel == null || !panel.activeSelf) return;
 
         if (canvasGroup != null && fadeOutDuration > 0f && Application.isPlaying)

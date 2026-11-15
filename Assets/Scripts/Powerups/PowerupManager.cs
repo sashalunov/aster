@@ -433,7 +433,19 @@ public class PowerupManager : MonoBehaviour
                 if (xpDrop.oncePerWave && xpDrop.hasDropped) continue;
 
                 ulong xpToCheck = xpDrop.isWaveRelative ? waveEarnedXP : currentXP;
-                if (xpToCheck >= xpDrop.xpThreshold)
+                ulong requiredThreshold = xpDrop.xpThreshold;
+
+                if (xpDrop.targetPlayerLevel > 0 && targetPlayer != null && targetPlayer.Progression != null)
+                {
+                    var thresholds = targetPlayer.Progression.levelUps;
+                    if (thresholds != null && thresholds.Length > 0)
+                    {
+                        int lvlIndex = Mathf.Clamp(xpDrop.targetPlayerLevel - 1, 0, thresholds.Length - 1);
+                        requiredThreshold = thresholds[lvlIndex];
+                    }
+                }
+
+                if (xpToCheck >= requiredThreshold)
                 {
                     xpDrop.hasDropped = true;
                     anyMilestoneTriggered = true;

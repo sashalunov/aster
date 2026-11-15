@@ -48,7 +48,11 @@ public class WaveDropEntry
 [System.Serializable]
 public class WaveXPDropEntry
 {
-    [Tooltip("Player XP required to trigger this guaranteed drop.")]
+    [Tooltip("Target a specific player level up threshold. If set, this automatically overrides the raw xpThreshold.")]
+    [PlayerLevelDropdown]
+    public int targetPlayerLevel = 0;
+
+    [Tooltip("Player XP required to trigger this guaranteed drop (used when Target Player Level is None).")]
     public ulong xpThreshold = 0;
 
     [Tooltip("If true, xpThreshold is evaluated relative to XP gained during this wave instead of total lifetime XP.")]
@@ -69,8 +73,9 @@ public class WaveXPDropEntry
 
     public WaveXPDropEntry() { }
 
-    public WaveXPDropEntry(ulong xpThreshold, StandardPowerup.StandardType type, bool waveRelative = false, GameObject customPrefab = null, bool once = true)
+    public WaveXPDropEntry(ulong xpThreshold, StandardPowerup.StandardType type, bool waveRelative = false, GameObject customPrefab = null, bool once = true, int targetLevel = 0)
     {
+        this.targetPlayerLevel = targetLevel;
         this.xpThreshold = xpThreshold;
         this.powerupType = type;
         this.isWaveRelative = waveRelative;
@@ -83,6 +88,7 @@ public class WaveXPDropEntry
     {
         return new WaveXPDropEntry
         {
+            targetPlayerLevel = this.targetPlayerLevel,
             xpThreshold = this.xpThreshold,
             isWaveRelative = this.isWaveRelative,
             prefab = this.prefab,

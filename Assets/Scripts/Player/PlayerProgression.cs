@@ -19,7 +19,6 @@ public class PlayerProgression : MonoBehaviour
 
     [Header("Progression Thresholds")]
     public ulong[] levelUps = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000, 5000000 };
-    public ulong[] weaponUnlocks = { 5, 50, 150, 500, 1000, 1500, 2000, 5000, 8000, 10000, 15000, 20000, 30000, 50000, 100000 };
     public ulong[] waveGoals = { 10, 100, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000, 5000000 };
 
     public int AddXP(int amount, Transform source = null)

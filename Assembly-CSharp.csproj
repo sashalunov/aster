@@ -70,6 +70,7 @@
      <Compile Include="Assets/Scripts/Combat/ProjectileBase.cs" />
      <Compile Include="Assets/Scripts/Catalog/PrefabId.cs" />
      <Compile Include="Assets/Scripts/Level/scroller.cs" />
+     <Compile Include="Assets/Scripts/Level/PlayerLevelDropdownAttribute.cs" />
      <Compile Include="Assets/ThirdParty/Demigiant/DOTween/Modules/DOTweenModuleAudio.cs" />
      <Compile Include="Assets/Scripts/Asteroids/BlockBase.cs" />
      <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/DOTweenProShortcuts.cs" />
@@ -213,6 +214,9 @@
     </Reference>
     <Reference Include="UnityEngine.GridModule">
         <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.GridModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.HierarchyModule">
+        <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.HierarchyModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.HierarchyCoreModule">
         <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.HierarchyCoreModule.dll</HintPath>

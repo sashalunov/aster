@@ -465,6 +465,7 @@ public class player : MonoBehaviour
     private void HandlePlayerLevelUp(int level)
     {
         print("LVL UP " + level);
+        AddUpgradePoints(1);
         //if (_ps_lvlup != null) _ps_lvlup.Play();
         //if (_clip_lvlup != null) _clip_lvlup.Play();
     }
