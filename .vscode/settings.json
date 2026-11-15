@@ -51,5 +51,6 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "aster.slnx"
+    "dotnet.defaultSolution": "aster.slnx",
+    "dotnet.preferCSharpExtension": true
 }
