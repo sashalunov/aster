@@ -341,11 +341,7 @@ public class player : MonoBehaviour
         }
 
         if (Input.GetKey("left"))
-        {
-            //transform.position = transform.position - new Vector3(speed * Time.deltaTime,0,0);
-            //GetComponent<Rigidbody>().AddForce(new Vector3(-1, 0, 0) * _thrust_force * Time.deltaTime, ForceMode.Impulse);
-
-
+        {        
         }
         if (Input.GetKey("right"))
         {
@@ -362,18 +358,15 @@ public class player : MonoBehaviour
             {
                 campos.z -=2f;
                 zoom_lastTime = Time.time;
-                _player_cam.transform.localPosition = campos;
             }
             if (Input.GetAxis("Mouse ScrollWheel") > 0 ) 
             {
                 campos.z +=2f;
                 zoom_lastTime = Time.time;
-                _player_cam.transform.localPosition = campos;
             }
+            _player_cam.transform.localPosition = new Vector3(campos.x, campos.y, Mathf.Clamp(campos.z, -60f, -20f));
         }
     }
-
-    /// It is recommended that you make only one call to Move or SimpleMove per frame.	
 
     public void HandleTriggerExit(Collider col)
     {
@@ -684,9 +677,7 @@ public class player : MonoBehaviour
         return inChildren != null && inChildren.Length > 0;
     }
 
-    /// <summary>
-    /// Alias for HasSockets. Checks if the player vessel has any weapon sockets.
-    /// </summary>
+
     public bool HasAnySockets(bool includeInactive = true) => HasSockets(includeInactive);
 
     /// <summary>
@@ -740,9 +731,6 @@ public class player : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Alias for HasGuns. Checks if the player vessel has any guns equipped or mounted.
-    /// </summary>
     public bool HasAnyGuns(bool includeInactive = true) => HasGuns(includeInactive);
 
     /// <summary>
