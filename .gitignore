@@ -3,6 +3,7 @@ Logs/
 Temp/
 UserSettings/
 bld1/
+Debug/
 *.csproj
 *.cache
 *.dwlt

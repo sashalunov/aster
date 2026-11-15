@@ -12,16 +12,42 @@ public enum WeaponStatType
     FireRate
 }
 
+[RequireComponent(typeof(PlayerWeapons))]
 public class player : MonoBehaviour
 {
     public Transform _ship_hull;
-    public List<Gun> _guns = new List<Gun>();
-    public List<GunSocket> _sockets = new List<GunSocket>();
-    public Transform _guns_container;
+
+    [Header("Weapons Component")]
+    [SerializeField] private PlayerWeapons _weapons;
+    public PlayerWeapons Weapons
+    {
+        get
+        {
+            if (_weapons == null)
+            {
+                _weapons = GetComponent<PlayerWeapons>();
+                if (_weapons == null)
+                {
+                    _weapons = gameObject.AddComponent<PlayerWeapons>();
+                }
+            }
+            return _weapons;
+        }
+    }
+
+    [Header("Legacy Sockets & Containers (For Prefab Migration)")]
+    [Tooltip("Legacy serialized socket references for automatic migration to PlayerWeapons.")]
+    [HideInInspector] public List<Gun> _guns = new List<Gun>();
+    [HideInInspector] public List<GunSocket> _sockets = new List<GunSocket>();
+    [HideInInspector] public Transform _guns_container;
 
     public Camera _player_cam;
 
-    public event System.Action<float, float, float> OnWeaponStatsChanged;
+    public event System.Action<float, float, float> OnWeaponStatsChanged
+    {
+        add => Weapons.OnWeaponStatsChanged += value;
+        remove => Weapons.OnWeaponStatsChanged -= value;
+    }
     public event System.Action<float, float> OnShieldChanged;
     public event System.Action<float, Vector3> OnShieldHit;
     public event System.Action<float, float> OnHealthChanged;
@@ -198,11 +224,28 @@ public class player : MonoBehaviour
     private float zoom_lastTime = 0;
     private float zoom_lerpTime = 2;
 
-    public float _bullet_dmg = 1.0f;
-    public float _bullet_force = 1.0f;
+    [Header("Combat Attributes (Delegated to PlayerWeapons)")]
+    public float _bullet_dmg
+    {
+        get => Weapons.BulletDamage;
+        set => Weapons.BulletDamage = value;
+    }
+    public float _bullet_force
+    {
+        get => Weapons.BulletForce;
+        set => Weapons.BulletForce = value;
+    }
     public float _thrust_force = 5.3f;
-    public float _fire_hz = 1;
-    public float _fire_rate = 1;
+    public float _fire_hz
+    {
+        get => Weapons.FireHz;
+        set => Weapons.FireHz = value;
+    }
+    public float _fire_rate
+    {
+        get => Weapons.FireRate;
+        set => Weapons.FireRate = value;
+    }
 
     private float fire_time_accum = 1;
   
@@ -222,6 +265,14 @@ public class player : MonoBehaviour
 
     void Awake()
     {
+        if (_weapons == null)
+        {
+            _weapons = GetComponent<PlayerWeapons>();
+            if (_weapons == null)
+            {
+                _weapons = gameObject.AddComponent<PlayerWeapons>();
+            }
+        }
         Progression = GetComponent<PlayerProgression>();
         if (Progression == null)
         {
@@ -626,24 +677,6 @@ public class player : MonoBehaviour
         }
     }
 
-    public void UpdateWeaponHUD()
-    {
-        float force = _bullet_force;
-        float rateHz = _fire_hz;
-        float dmg = _bullet_dmg;
-
-        List<Gun> guns = GetEquippedGuns(false);
-        if (guns.Count > 0 && guns[0] != null)
-        {
-            force = guns[0].EffectiveForce;
-            rateHz = guns[0].EffectiveFireRate;
-            dmg = guns[0].EffectiveDamage;
-        }
-
-        float fireRateInterval = rateHz > 0f ? (1f / rateHz) : 0f;
-        OnWeaponStatsChanged?.Invoke(force, fireRateInterval, dmg);
-    }
-
     public void UpdateShieldHUD()
     {
         OnShieldChanged?.Invoke(shield_value, shield_max_value);
@@ -654,657 +687,79 @@ public class player : MonoBehaviour
         OnHealthChanged?.Invoke(health_value, health_max_value);
     }
 
-    #region Weapons & Sockets Inspection
+    public void UpdateWeaponHUD() => Weapons.UpdateWeaponHUD();
+
+    #region Weapons & Sockets Inspection (Delegated to PlayerWeapons)
 
     /// <summary>
     /// Checks if the player vessel has any weapon sockets (GunSocket components).
-    /// Inspects both the serialized _sockets list and child GameObjects.
     /// </summary>
-    /// <param name="includeInactive">Whether to include inactive GameObjects in the check.</param>
-    /// <returns>True if at least one GunSocket exists.</returns>
-    public bool HasSockets(bool includeInactive = true)
-    {
-        if (_sockets != null)
-        {
-            for (int i = 0; i < _sockets.Count; i++)
-            {
-                if (_sockets[i] != null && (includeInactive || _sockets[i].gameObject.activeInHierarchy))
-                    return true;
-            }
-        }
-
-        GunSocket[] inChildren = GetComponentsInChildren<GunSocket>(includeInactive);
-        return inChildren != null && inChildren.Length > 0;
-    }
-
-
-    public bool HasAnySockets(bool includeInactive = true) => HasSockets(includeInactive);
+    public bool HasSockets(bool includeInactive = true) => Weapons.HasSockets(includeInactive);
+    public bool HasAnySockets(bool includeInactive = true) => Weapons.HasAnySockets(includeInactive);
 
     /// <summary>
     /// Checks if the player has any weapon socket that is currently empty (unoccupied by a mounted gun).
     /// </summary>
-    public bool HasAvailableSocket(bool includeInactive = true)
-    {
-        List<GunSocket> sockets = GetSockets(includeInactive);
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            if (sockets[i] != null && !sockets[i].HasGun)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+    public bool HasAvailableSocket(bool includeInactive = true) => Weapons.HasAvailableSocket(includeInactive);
 
     /// <summary>
     /// Checks if the player has any guns equipped or mounted.
     /// </summary>
-    /// <param name="includeInactive">Whether to include inactive GameObjects in the check.</param>
-    /// <returns>True if at least one gun exists on or under the player.</returns>
-    public bool HasGuns(bool includeInactive = true)
-    {
-        // 1. Check direct _guns list
-        if (_guns != null)
-        {
-            for (int i = 0; i < _guns.Count; i++)
-            {
-                if (_guns[i] != null && (includeInactive || _guns[i].gameObject.activeInHierarchy))
-                    return true;
-            }
-        }
+    public bool HasGuns(bool includeInactive = true) => Weapons.HasGuns(includeInactive);
+    public bool HasAnyGuns(bool includeInactive = true) => Weapons.HasAnyGuns(includeInactive);
 
-        // 2. Check modern guns mounted on sockets
-        List<GunSocket> sockets = GetSockets(includeInactive);
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            if (sockets[i] != null && sockets[i].HasGun)
-            {
-                if (includeInactive || (sockets[i].MountedGun != null && sockets[i].MountedGun.gameObject.activeInHierarchy))
-                    return true;
-            }
-        }
+    public bool HasSocketsAndGuns(bool includeInactive = true) => Weapons.HasSocketsAndGuns(includeInactive);
+    public bool HasAnySocketsAndGuns(bool includeInactive = true) => Weapons.HasAnySocketsAndGuns(includeInactive);
+    public bool HasAnySocketsOrGuns(bool includeInactive = true) => Weapons.HasAnySocketsOrGuns(includeInactive);
 
-        // 3. Check modern Gun components in children
-        Gun[] guns = GetComponentsInChildren<Gun>(includeInactive);
-        if (guns != null && guns.Length > 0) return true;
+    public bool CheckSocketsAndGuns(out bool hasSockets, out bool hasGuns, bool includeInactive = true) =>
+        Weapons.CheckSocketsAndGuns(out hasSockets, out hasGuns, includeInactive);
 
-        return false;
-    }
+    public (bool hasSockets, bool hasGuns) CheckSocketsAndGunsStatus(bool includeInactive = true) =>
+        Weapons.CheckSocketsAndGunsStatus(includeInactive);
 
-    public bool HasAnyGuns(bool includeInactive = true) => HasGuns(includeInactive);
+    public List<GunSocket> GetSockets(bool includeInactive = true) => Weapons.GetSockets(includeInactive);
+    public List<Gun> GetEquippedGuns(bool includeInactive = true) => Weapons.GetEquippedGuns(includeInactive);
+    public List<Component> GetGuns(bool includeInactive = true) => Weapons.GetGuns(includeInactive);
 
-    /// <summary>
-    /// Checks whether the player vessel has BOTH at least one weapon socket and at least one gun.
-    /// </summary>
-    public bool HasSocketsAndGuns(bool includeInactive = true)
-    {
-        return HasSockets(includeInactive) && HasGuns(includeInactive);
-    }
-
-    /// <summary>
-    /// Alias for HasSocketsAndGuns.
-    /// </summary>
-    public bool HasAnySocketsAndGuns(bool includeInactive = true) => HasSocketsAndGuns(includeInactive);
-
-    /// <summary>
-    /// Checks whether the player vessel has either at least one socket OR at least one gun.
-    /// </summary>
-    public bool HasAnySocketsOrGuns(bool includeInactive = true)
-    {
-        return HasSockets(includeInactive) || HasGuns(includeInactive);
-    }
-
-    /// <summary>
-    /// Checks sockets and guns in a single call, returning individual boolean flags via out parameters.
-    /// Returns true only if both sockets and guns are present.
-    /// </summary>
-    public bool CheckSocketsAndGuns(out bool hasSockets, out bool hasGuns, bool includeInactive = true)
-    {
-        hasSockets = HasSockets(includeInactive);
-        hasGuns = HasGuns(includeInactive);
-        return hasSockets && hasGuns;
-    }
-
-    /// <summary>
-    /// Returns a tuple containing boolean flags for (hasSockets, hasGuns).
-    /// </summary>
-    public (bool hasSockets, bool hasGuns) CheckSocketsAndGunsStatus(bool includeInactive = true)
-    {
-        return (HasSockets(includeInactive), HasGuns(includeInactive));
-    }
-
-    /// <summary>
-    /// Gets all unique GunSocket components on this vessel.
-    /// </summary>
-    public List<GunSocket> GetSockets(bool includeInactive = true)
-    {
-        List<GunSocket> result = new List<GunSocket>();
-        HashSet<GunSocket> seen = new HashSet<GunSocket>();
-
-        if (_sockets != null)
-        {
-            for (int i = 0; i < _sockets.Count; i++)
-            {
-                GunSocket s = _sockets[i];
-                if (s != null && (includeInactive || s.gameObject.activeInHierarchy))
-                {
-                    if (seen.Add(s))
-                    {
-                        result.Add(s);
-                    }
-                }
-            }
-        }
-
-        GunSocket[] inChildren = GetComponentsInChildren<GunSocket>(includeInactive);
-        if (inChildren != null)
-        {
-            for (int i = 0; i < inChildren.Length; i++)
-            {
-                GunSocket s = inChildren[i];
-                if (s != null && seen.Add(s))
-                {
-                    result.Add(s);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Gets all distinct Gun components attached or mounted to the player.
-    /// </summary>
-    public List<Gun> GetEquippedGuns(bool includeInactive = true)
-    {
-        List<Gun> result = new List<Gun>();
-        HashSet<Gun> seen = new HashSet<Gun>();
-
-        if (_guns != null)
-        {
-            for (int i = 0; i < _guns.Count; i++)
-            {
-                Gun g = _guns[i];
-                if (g != null && (includeInactive || g.gameObject.activeInHierarchy))
-                {
-                    if (seen.Add(g))
-                    {
-                        result.Add(g);
-                    }
-                }
-            }
-        }
-
-        Gun[] childGuns = GetComponentsInChildren<Gun>(includeInactive);
-        if (childGuns != null)
-        {
-            for (int i = 0; i < childGuns.Length; i++)
-            {
-                Gun g = childGuns[i];
-                if (g != null && seen.Add(g))
-                {
-                    result.Add(g);
-                }
-            }
-        }
-
-        List<GunSocket> sockets = GetSockets(includeInactive);
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            GunSocket s = sockets[i];
-            if (s != null && s.HasGun && s.MountedGun != null)
-            {
-                if (includeInactive || s.MountedGun.gameObject.activeInHierarchy)
-                {
-                    if (seen.Add(s.MountedGun))
-                    {
-                        result.Add(s.MountedGun);
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Legacy compatibility accessor returning equipped Gun components.
-    /// </summary>
-    public List<Component> GetGuns(bool includeInactive = true)
-    {
-        List<Component> result = new List<Component>();
-        List<Gun> equipped = GetEquippedGuns(includeInactive);
-        for (int i = 0; i < equipped.Count; i++)
-        {
-            result.Add(equipped[i]);
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// Total count of unique weapon sockets on the player.
-    /// </summary>
-    public int SocketCount => GetSockets().Count;
-
-    /// <summary>
-    /// Total count of mounted or equipped guns on the player.
-    /// </summary>
-    public int GunCount => GetEquippedGuns().Count;
+    public int SocketCount => Weapons.SocketCount;
+    public int GunCount => Weapons.GunCount;
 
     #endregion
 
-    #region Weapon Control & Socket Management
+    #region Weapon Control & Combat Façade (Delegated to PlayerWeapons)
 
-    /// <summary>
-    /// Aims all equipped weapons (GunSockets and standalone Guns) toward target world position.
-    /// </summary>
-    public void AimWeapons(Vector3 targetWorldPosition)
-    {
-        // 1. Aim mounted guns on GunSockets
-        List<GunSocket> sockets = GetSockets(false);
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            if (sockets[i] != null)
-            {
-                sockets[i].AimMountedGun(targetWorldPosition);
-            }
-        }
+    public void AimWeapons(Vector3 targetWorldPosition) => Weapons.AimWeapons(targetWorldPosition);
+    public bool FireWeapons() => Weapons.FireWeapons();
+    public bool FireSocket(int socketIndex) => Weapons.FireSocket(socketIndex);
 
-        // 2. Aim standalone modern Guns not mounted on a GunSocket
-        Gun[] directGuns = GetComponentsInChildren<Gun>(false);
-        for (int i = 0; i < directGuns.Length; i++)
-        {
-            if (directGuns[i] != null && directGuns[i].GetComponentInParent<GunSocket>() == null)
-            {
-                directGuns[i].AimAt(targetWorldPosition);
-            }
-        }
+    public bool MountGun(Gun gunPrefab, int socketIndex = -1) => Weapons.MountGun(gunPrefab, socketIndex);
+    public bool MountGunInstance(Gun gunInstance, int socketIndex = -1) => Weapons.MountGunInstance(gunInstance, socketIndex);
+    public Gun DetachGun(int socketIndex = 0) => Weapons.DetachGun(socketIndex);
+    public GunSocket AddSocket(string socketId = null, Vector3? localPosition = null) => Weapons.AddSocket(socketId, localPosition);
+    public bool AddGun(Gun gunPrefab = null) => Weapons.AddGun(gunPrefab);
 
-        // 3. Aim standalone guns in _guns
-        if (_guns != null)
-        {
-            for (int i = 0; i < _guns.Count; i++)
-            {
-                if (_guns[i] != null && _guns[i].GetComponentInParent<GunSocket>() == null)
-                {
-                    _guns[i].AimAt(targetWorldPosition);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Triggers weapon fire on all weapon systems (mounted socket guns and standalone guns).
-    /// </summary>
-    /// <returns>True if at least one weapon fired.</returns>
-    public bool FireWeapons()
-    {
-        bool anyFired = false;
-
-        // 1. Fire mounted guns on GunSockets
-        List<GunSocket> sockets = GetSockets(false);
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            if (sockets[i] != null && sockets[i].HasGun)
-            {
-                if (sockets[i].TryFireMountedGun())
-                {
-                    anyFired = true;
-                }
-            }
-        }
-
-        // 2. Fire direct Gun components not attached to a socket
-        Gun[] directGuns = GetComponentsInChildren<Gun>(false);
-        for (int i = 0; i < directGuns.Length; i++)
-        {
-            if (directGuns[i] != null && directGuns[i].GetComponentInParent<GunSocket>() == null)
-            {
-                if (directGuns[i].TryFire())
-                {
-                    anyFired = true;
-                }
-            }
-        }
-
-        // 3. Fire direct guns in _guns
-        if (_guns != null)
-        {
-            for (int i = 0; i < _guns.Count; i++)
-            {
-                if (_guns[i] != null && _guns[i].GetComponentInParent<GunSocket>() == null)
-                {
-                    if (_guns[i].TryFire())
-                    {
-                        anyFired = true;
-                    }
-                }
-            }
-        }
-
-        if (anyFired)
-        {
-            AudioSource audio = GetComponentInChildren<AudioSource>();
-            if (audio != null && !audio.isPlaying)
-            {
-                audio.Play();
-            }
-        }
-
-        return anyFired;
-    }
-
-    /// <summary>
-    /// Mounts a gun prefab to a specified socket index or the first available socket.
-    /// </summary>
-    public bool MountGun(Gun gunPrefab, int socketIndex = -1)
-    {
-        if (gunPrefab == null) return false;
-
-        List<GunSocket> sockets = GetSockets(true);
-        if (socketIndex >= 0 && socketIndex < sockets.Count)
-        {
-            bool attached = sockets[socketIndex].AttachGun(gunPrefab, gameObject);
-            if (attached && sockets[socketIndex].MountedGun != null)
-            {
-                SyncGunWithPlayerUpgrades(sockets[socketIndex].MountedGun);
-            }
-            return attached;
-        }
-
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            if (sockets[i] != null && !sockets[i].HasGun)
-            {
-                bool attached = sockets[i].AttachGun(gunPrefab, gameObject);
-                if (attached && sockets[i].MountedGun != null)
-                {
-                    SyncGunWithPlayerUpgrades(sockets[i].MountedGun);
-                }
-                return attached;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Mounts an existing gun instance to a specified socket index or the first available socket.
-    /// </summary>
-    public bool MountGunInstance(Gun gunInstance, int socketIndex = -1)
-    {
-        if (gunInstance == null) return false;
-
-        List<GunSocket> sockets = GetSockets(true);
-        if (socketIndex >= 0 && socketIndex < sockets.Count)
-        {
-            bool attached = sockets[socketIndex].AttachGunInstance(gunInstance, gameObject);
-            if (attached) SyncGunWithPlayerUpgrades(gunInstance);
-            return attached;
-        }
-
-        for (int i = 0; i < sockets.Count; i++)
-        {
-            if (sockets[i] != null && !sockets[i].HasGun)
-            {
-                bool attached = sockets[i].AttachGunInstance(gunInstance, gameObject);
-                if (attached) SyncGunWithPlayerUpgrades(gunInstance);
-                return attached;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Detaches and returns the mounted gun from a socket.
-    /// </summary>
-    public Gun DetachGun(int socketIndex = 0)
-    {
-        List<GunSocket> sockets = GetSockets(true);
-        if (socketIndex >= 0 && socketIndex < sockets.Count && sockets[socketIndex] != null)
-        {
-            return sockets[socketIndex].DetachGun();
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// Adds a new GunSocket component to the player ship.
-    /// </summary>
-    public GunSocket AddSocket(string socketId = null, Vector3? localPosition = null)
-    {
-        Transform container = _guns_container != null ? _guns_container : transform.Find("hull/gun_sockets");
-        if (container == null && _ship_hull != null)
-        {
-            container = _ship_hull;
-        }
-        if (container == null)
-        {
-            container = transform;
-        }
-
-        int index = SocketCount;
-        string name = string.IsNullOrEmpty(socketId) ? $"socket_{index}" : socketId;
-
-        GameObject socketObj = new GameObject(name);
-        socketObj.transform.SetParent(container);
-        socketObj.transform.localPosition = localPosition ?? new Vector3(0f, 0f, 0f);
-        socketObj.transform.localRotation = Quaternion.identity;
-
-        GunSocket socket = socketObj.AddComponent<GunSocket>();
-        _sockets.Add(socket);
-        return socket;
-    }
-
-    /// <summary>
-    /// Adds a gun to the player, mounting onto an available empty socket or creating a new socket.
-    /// Supports modern Gun prefabs (Kinetic Cannon, Plasma Repeater).
-    /// </summary>
-    public bool AddGun(Gun gunPrefab = null)
-    {
-        if (GunCount >= PowerupManager.MAX_GUNS) return false;
-
-        // 1. If no specific gun is provided, default to Kinetic gun or Plasma gun
-        if (gunPrefab == null)
-        {
-            gunPrefab = PrefabManager.Get<Gun>(PrefabId.GunKinetic);
-            if (gunPrefab == null)
-            {
-                gunPrefab = PrefabManager.Get<Gun>(PrefabId.GunPlasma);
-            }
-        }
-
-        if (gunPrefab == null) return false;
-
-        // 2. Try mounting to an existing empty socket
-        if (HasAvailableSocket())
-        {
-            if (MountGun(gunPrefab))
-            {
-                UpdateWeaponHUD();
-                return true;
-            }
-        }
-
-        // 3. If no empty socket, try creating a new socket up to MAX_GUNS
-        if (SocketCount < PowerupManager.MAX_GUNS)
-        {
-            GunSocket newSocket = AddSocket();
-            if (newSocket != null)
-            {
-                bool mounted = newSocket.AttachGun(gunPrefab, gameObject);
-                if (mounted && newSocket.MountedGun != null)
-                {
-                    SyncGunWithPlayerUpgrades(newSocket.MountedGun);
-                }
-                UpdateWeaponHUD();
-                return mounted;
-            }
-        }
-
-        // 4. Fallback: attach gun directly under guns_container or ship
-        Transform container = _guns_container != null ? _guns_container : transform.Find("gun_container") ?? transform;
-        Gun newGunInstance = Instantiate(gunPrefab, container.position, container.rotation, container);
-        newGunInstance.SetOwner(gameObject);
-        SyncGunWithPlayerUpgrades(newGunInstance);
-        _guns.Add(newGunInstance);
-        UpdateWeaponHUD();
-        return true;
-    }
-
-    /// <summary>
-    /// Synchronizes a gun instance with the player's accumulated upgrade bonuses.
-    /// </summary>
-    public void SyncGunWithPlayerUpgrades(Gun g)
-    {
-        if (g == null) return;
-        float dmgDelta = Mathf.Max(0f, _bullet_dmg - 1.0f);
-        float forceDelta = Mathf.Max(0f, _bullet_force - 1.0f);
-        float rateDelta = Mathf.Max(0f, _fire_hz - 1.0f);
-        if (dmgDelta > 0f || forceDelta > 0f || rateDelta > 0f)
-        {
-            g.UpgradeStats(dmgDelta, rateDelta, forceDelta);
-        }
-    }
-
-    /// <summary>
-    /// Synchronizes all equipped guns with the player's accumulated upgrade bonuses.
-    /// </summary>
-    public void SyncAllEquippedGunsWithPlayerUpgrades()
-    {
-        List<Gun> guns = GetEquippedGuns();
-        for (int i = 0; i < guns.Count; i++)
-        {
-            SyncGunWithPlayerUpgrades(guns[i]);
-        }
-    }
+    public void SyncGunWithPlayerUpgrades(Gun g) => Weapons.SyncGunWithPlayerUpgrades(g);
+    public void SyncAllEquippedGunsWithPlayerUpgrades() => Weapons.SyncAllEquippedGunsWithPlayerUpgrades();
 
     #endregion
 
-    #region Gun Stat Upgrades
+    #region Gun Stat Upgrades Façade (Delegated to PlayerWeapons)
 
-    /// <summary>
-    /// Upgrades all guns matching the gunId (or all guns if gunId is null/empty).
-    /// Returns the number of guns upgraded.
-    /// </summary>
-    public int UpgradeGuns(string gunId, float dmgBonus = 0f, float rateBonus = 0f, float forceBonus = 0f, int burstBonus = 0)
-    {
-        int count = 0;
-        List<Gun> guns = GetEquippedGuns();
-        for (int i = 0; i < guns.Count; i++)
-        {
-            Gun g = guns[i];
-            if (g == null) continue;
-            if (string.IsNullOrEmpty(gunId) || (g.Data != null && g.Data.gunId == gunId))
-            {
-                g.UpgradeStats(dmgBonus, rateBonus, forceBonus, burstBonus);
-                count++;
-            }
-        }
-        UpdateWeaponHUD();
-        return count;
-    }
+    public int UpgradeGuns(string gunId, float dmgBonus = 0f, float rateBonus = 0f, float forceBonus = 0f, int burstBonus = 0) =>
+        Weapons.UpgradeGuns(gunId, dmgBonus, rateBonus, forceBonus, burstBonus);
+    public int UpgradeKineticGuns(float dmgBonus = 1f, float forceBonus = 2f) => Weapons.UpgradeKineticGuns(dmgBonus, forceBonus);
+    public int UpgradePlasmaGuns(float dmgBonus = 0.5f, float rateBonus = 0.5f, int burstBonus = 0) => Weapons.UpgradePlasmaGuns(dmgBonus, rateBonus, burstBonus);
+    public void RefillAllWeaponsAmmo(int amount = -1) => Weapons.RefillAllWeaponsAmmo(amount);
 
-    /// <summary>
-    /// Specifically upgrades Kinetic guns equipped on the player.
-    /// </summary>
-    public int UpgradeKineticGuns(float dmgBonus = 1f, float forceBonus = 2f)
-    {
-        return UpgradeGuns(GunKinetic.DEFAULT_GUN_ID, dmgBonus, 0f, forceBonus, 0);
-    }
-
-    /// <summary>
-    /// Specifically upgrades Plasma guns equipped on the player.
-    /// </summary>
-    public int UpgradePlasmaGuns(float dmgBonus = 0.5f, float rateBonus = 0.5f, int burstBonus = 0)
-    {
-        return UpgradeGuns(GunPlasma.DEFAULT_GUN_ID, dmgBonus, rateBonus, 0f, burstBonus);
-    }
-
-    /// <summary>
-    /// Refills ammunition on all finite-ammo guns equipped on the player.
-    /// </summary>
-    public void RefillAllWeaponsAmmo(int amount = -1)
-    {
-        List<Gun> guns = GetEquippedGuns();
-        for (int i = 0; i < guns.Count; i++)
-        {
-            if (guns[i] == null) continue;
-            if (amount < 0)
-            {
-                guns[i].RefillAmmo();
-            }
-            else
-            {
-                guns[i].AddAmmo(amount);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Spends collected upgrade points on a weapon stat (Damage, Force, or FireRate).
-    /// Enhances both base ship weapon attributes and currently equipped Gun instances.
-    /// </summary>
-    public bool SpendUpgradePoints(WeaponStatType stat, int pointsCost = 1, string gunId = null)
-    {
-        if (pointsCost <= 0 || !HasUpgradePoints(pointsCost)) return false;
-
-        _upgradePoints -= pointsCost;
-        OnUpgradePointsChanged?.Invoke(_upgradePoints);
-
-        switch (stat)
-        {
-            case WeaponStatType.Damage:
-                _bullet_dmg = Mathf.Clamp(_bullet_dmg + 1f * pointsCost, 1f, PowerupManager.MAX_BULLET_DMG);
-                UpgradeGuns(gunId, dmgBonus: 1f * pointsCost);
-                if (PowerupManager.Instance != null)
-                {
-                    PowerupManager.Instance.SpawnFloatingFeedback("+DMG UPGRADE!", transform.position, new Color(1f, 0.3f, 0.3f));
-                }
-                break;
-
-            case WeaponStatType.Force:
-                _bullet_force = Mathf.Clamp(_bullet_force + 1f * pointsCost, 1f, PowerupManager.MAX_BULLET_FORCE);
-                UpgradeGuns(gunId, forceBonus: 2f * pointsCost);
-                if (PowerupManager.Instance != null)
-                {
-                    PowerupManager.Instance.SpawnFloatingFeedback("+FORCE UPGRADE!", transform.position, new Color(0.9f, 0.3f, 1f));
-                }
-                break;
-
-            case WeaponStatType.FireRate:
-                _fire_hz = Mathf.Clamp(_fire_hz + 0.5f * pointsCost, 1f, PowerupManager.MAX_FIRE_HZ);
-                _fire_rate = 1f / _fire_hz;
-                UpgradeGuns(gunId, rateBonus: 0.5f * pointsCost);
-                if (PowerupManager.Instance != null)
-                {
-                    PowerupManager.Instance.SpawnFloatingFeedback("+RATE UPGRADE!", transform.position, new Color(1f, 0.9f, 0.2f));
-                }
-                break;
-        }
-
-        UpdateWeaponHUD();
-        return true;
-    }
-
-    /// <summary>
-    /// Spends upgrade points to boost weapon damage.
-    /// </summary>
+    public bool SpendUpgradePoints(WeaponStatType stat, int pointsCost = 1, string gunId = null) =>
+        Weapons.SpendUpgradePoints(stat, pointsCost, gunId);
     public bool UpgradeDamageWithPoints(int pointsCost = 1, string gunId = null) =>
-        SpendUpgradePoints(WeaponStatType.Damage, pointsCost, gunId);
-
-    /// <summary>
-    /// Spends upgrade points to boost projectile impulse force.
-    /// </summary>
+        Weapons.UpgradeDamageWithPoints(pointsCost, gunId);
     public bool UpgradeForceWithPoints(int pointsCost = 1, string gunId = null) =>
-        SpendUpgradePoints(WeaponStatType.Force, pointsCost, gunId);
-
-    /// <summary>
-    /// Spends upgrade points to boost weapon fire rate.
-    /// </summary>
+        Weapons.UpgradeForceWithPoints(pointsCost, gunId);
     public bool UpgradeFireRateWithPoints(int pointsCost = 1, string gunId = null) =>
-        SpendUpgradePoints(WeaponStatType.FireRate, pointsCost, gunId);
+        Weapons.UpgradeFireRateWithPoints(pointsCost, gunId);
 
     #endregion
 }

@@ -50,6 +50,7 @@
   <ItemGroup>
      <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenAnimationInspector.cs" />
      <Compile Include="Assets/ThirdParty/Demigiant/DOTweenPro/Editor/DOTweenPreviewManager.cs" />
+     <Compile Include="Assets/Editor/Tests/WeaponSystemTests.cs" />
      <Compile Include="Assets/Editor/Tests/SpawnPointAndWaveTriggerTests.cs" />
      <Compile Include="Assets/Editor/PrefabCatalogBuilder.cs" />
      <Compile Include="Assets/Editor/Tests/LineSpawnerTests.cs" />
@@ -978,6 +979,14 @@
     <ProjectReference Include="Assembly-CSharp.csproj">
       <Project>{fdaeec84-feb8-4358-194e-eb660e33df04}</Project>
       <Name>Assembly-CSharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="UnityEditor.TestRunner.csproj">
+      <Project>{a55bb1bd-6445-bd6a-55aa-4efca5045f50}</Project>
+      <Name>UnityEditor.TestRunner</Name>
+    </ProjectReference>
+    <ProjectReference Include="UnityEngine.TestRunner.csproj">
+      <Project>{30dbf901-3dbd-dcaf-80b7-8fa866fe615b}</Project>
+      <Name>UnityEngine.TestRunner</Name>
     </ProjectReference>
     <ProjectReference Include="Unity.InferenceEngine.ONNX.Editor.csproj">
       <Project>{945ec8c0-f06a-a76a-efc6-879c06bf966d}</Project>
