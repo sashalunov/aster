@@ -468,7 +468,7 @@ public class WaveIntermissionPopup : MonoBehaviour
         // 1. Populate Text
         if (titleText != null)
         {
-            titleText.SetText($"WAVE {waveNumber} INTERMISSION");
+            titleText.SetText($"WAVE {waveNumber} DONE!");
         }
 
         if (subtitleText != null)
@@ -524,7 +524,7 @@ public class WaveIntermissionPopup : MonoBehaviour
 
         if (titleText != null)
         {
-            titleText.SetText($"LEVEL {newLevel} REACHED!");
+            titleText.SetText($"LEVEL {newLevel + 1} REACHED!");
         }
 
         if (subtitleText != null)

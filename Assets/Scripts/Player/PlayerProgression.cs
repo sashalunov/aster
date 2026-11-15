@@ -50,6 +50,48 @@ public class PlayerProgression : MonoBehaviour
         return 0;
     }
 
+    /// <summary>
+    /// Returns the target XP milestone for the next player level.
+    /// </summary>
+    public ulong GetNextPlayerLevelXP()
+    {
+        if (levelUps != null && playerLevel < levelUps.Length)
+        {
+            return levelUps[playerLevel];
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Returns the XP milestone of the previous player level (or 0 for level 0).
+    /// </summary>
+    public ulong GetPreviousPlayerLevelXP()
+    {
+        if (levelUps != null && playerLevel > 0 && playerLevel <= levelUps.Length)
+        {
+            return levelUps[playerLevel - 1];
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Returns a 0..1 normalized progress towards the next player level based on XP earned within the current level.
+    /// </summary>
+    public float GetPlayerLevelProgress()
+    {
+        if (levelUps == null || levelUps.Length == 0) return 0f;
+        if (playerLevel >= levelUps.Length) return 1f;
+
+        ulong prevXP = playerLevel > 0 ? levelUps[playerLevel - 1] : 0;
+        ulong targetXP = levelUps[playerLevel];
+
+        if (targetXP <= prevXP) return 1f;
+        if (currentXP <= prevXP) return 0f;
+
+        float progress = (float)(currentXP - prevXP) / (float)(targetXP - prevXP);
+        return Mathf.Clamp01(progress);
+    }
+
     private void CheckPlayerLevelUp()
     {
         if (levelUps != null && playerLevel < levelUps.Length)

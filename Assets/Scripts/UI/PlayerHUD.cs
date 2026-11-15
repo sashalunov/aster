@@ -18,6 +18,10 @@ public class PlayerHUD : MonoBehaviour
     public TMP_Text timerText;
     public Image xpProgress;
     public Image xpProgressFill;
+    [Tooltip("Progress bar fill image for player level (inside progress_till_next_level)")]
+    public Image levelProgressFill;
+    [Tooltip("Text label displaying current player level (inside progress_till_next_level)")]
+    public TMP_Text playerLevelText;
 
     [SerializeField] private DOTweenAnimation shieldBarAnim;
     [SerializeField] private DOTweenAnimation healthBarAnim;
@@ -136,14 +140,52 @@ public class PlayerHUD : MonoBehaviour
                 if (_isSubscribed && _progression != null)
                 {
                     _progression.OnXPChanged -= UpdateXPDisplay;
+                    _progression.OnPlayerLevelUp -= HandlePlayerLevelUp;
                     _progression.OnWaveCompleted -= HandleProgressionWaveCompleted;
                 }
                 _progression = activeProg;
                 if (_isSubscribed && _progression != null)
                 {
                     _progression.OnXPChanged += UpdateXPDisplay;
+                    _progression.OnPlayerLevelUp += HandlePlayerLevelUp;
                     _progression.OnWaveCompleted += HandleProgressionWaveCompleted;
                 }
+            }
+        }
+
+        Transform progressPanel = transform.Find("HUD/ProgressPanel");
+        if (progressPanel == null) progressPanel = transform.Find("ProgressPanel");
+        if (progressPanel != null)
+        {
+            if (xpText == null)
+            {
+                Transform t = progressPanel.Find("xp");
+                if (t != null) xpText = t.GetComponent<TMP_Text>();
+            }
+            if (xpNextText == null)
+            {
+                Transform t = progressPanel.Find("xp_next");
+                if (t != null) xpNextText = t.GetComponent<TMP_Text>();
+            }
+            if (waveText == null)
+            {
+                Transform t = progressPanel.Find("progress_till_next_wave_bg/wave_level");
+                if (t != null) waveText = t.GetComponent<TMP_Text>();
+            }
+            if (xpProgressFill == null)
+            {
+                Transform t = progressPanel.Find("progress_till_next_wave_bg/progress_value");
+                if (t != null) xpProgressFill = t.GetComponent<Image>();
+            }
+            if (levelProgressFill == null)
+            {
+                Transform t = progressPanel.Find("progress_till_next_level/progress_value");
+                if (t != null) levelProgressFill = t.GetComponent<Image>();
+            }
+            if (playerLevelText == null)
+            {
+                Transform t = progressPanel.Find("progress_till_next_level/player_level");
+                if (t != null) playerLevelText = t.GetComponent<TMP_Text>();
             }
         }
 
@@ -306,6 +348,8 @@ public class PlayerHUD : MonoBehaviour
 
     private void HandleWaveStateChanged(WaveManager.WaveState prevState, WaveManager.WaveState newState)
     {
+        UpdateWaveDisplay(GetEffectiveWaveNumber());
+
         if (newState == WaveManager.WaveState.Countdown)
         {
             WaveManager wm = ActiveWaveManager;
@@ -341,6 +385,7 @@ public class PlayerHUD : MonoBehaviour
 
     private void HandleWaveCompleted(int waveNumber, WaveDefinition config)
     {
+        UpdateWaveDisplay(waveNumber);
         ShowWaveClearedStatus(waveNumber, config);
     }
 
@@ -485,6 +530,19 @@ public class PlayerHUD : MonoBehaviour
         }
     }
 
+    public int GetEffectiveWaveNumber()
+    {
+        if (ActiveWaveManager != null)
+        {
+            return Mathf.Max(1, ActiveWaveManager.CurrentWaveIndex);
+        }
+        if (_progression != null)
+        {
+            return Mathf.Max(1, _progression.WaveLevel + 1);
+        }
+        return 1;
+    }
+
     public void RefreshAllDisplays()
     {
         UpdatePlayerNameDisplay(PlayerProfile.PlayerName);
@@ -492,7 +550,8 @@ public class PlayerHUD : MonoBehaviour
         if (_progression != null)
         {
             UpdateXPDisplay(_progression.CurrentXP, _progression.GetNextXPGoal());
-            UpdateWaveDisplay(_progression.WaveLevel);
+            UpdateWaveDisplay(GetEffectiveWaveNumber());
+            UpdatePlayerLevelDisplay(_progression.PlayerLevel);
         }
         if (_player != null)
         {
@@ -527,31 +586,63 @@ public class PlayerHUD : MonoBehaviour
     {
         if (xpText != null) xpText.SetText("XP: " + currentXP);
         if (xpNextText != null) xpNextText.SetText("Next: " + nextGoalXP);
-        if (waveText != null && _progression != null) waveText.SetText("Wave: " + _progression.WaveLevel);
+        UpdateWaveDisplay(GetEffectiveWaveNumber());
 
         if (xpProgressFill != null)
         {
             xpProgressFill.fillAmount = _progression != null && _progression.GetNextXPGoal() > 0 ? Mathf.Clamp01((float)_progression.CurrentXP / (float)_progression.GetNextXPGoal()) : 0f;
             xpProgressFill.gameObject.SetActive(_progression != null && _progression.GetNextXPGoal() > 0);
         }
+
+        UpdatePlayerLevelDisplay(_progression != null ? _progression.PlayerLevel : 0);
+    }
+
+    public void UpdatePlayerLevelDisplay(int level)
+    {
+        if (playerLevelText != null)
+        {
+            // 1-based player level: internal level 0 displays as Level: 1
+            int displayLevel = level + 1;
+            playerLevelText.SetText("Level: " + displayLevel);
+        }
+
+        if (levelProgressFill != null)
+        {
+            float fill = _progression != null ? _progression.GetPlayerLevelProgress() : 0f;
+            levelProgressFill.fillAmount = fill;
+        }
+    }
+
+    private void HandlePlayerLevelUp(int newLevel)
+    {
+        UpdatePlayerLevelDisplay(newLevel);
+        if (_progression != null)
+        {
+            UpdateXPDisplay(_progression.CurrentXP, _progression.GetNextXPGoal());
+        }
     }
 
     private void HandleProgressionWaveCompleted(int completedWaveLevel)
     {
-        UpdateWaveDisplay(completedWaveLevel);
+        int displayWave = completedWaveLevel + 1;
+        UpdateWaveDisplay(displayWave);
 
         WaveManager wm = ActiveWaveManager;
         // If WaveManager has not already entered WaveCleared or Intermission, ensure wave status displays the cleared state
         if (wm == null || (wm.State != WaveManager.WaveState.WaveCleared && wm.State != WaveManager.WaveState.Intermission))
         {
             WaveDefinition config = wm != null ? wm.CurrentWaveConfig : null;
-            ShowWaveClearedStatus(completedWaveLevel, config);
+            ShowWaveClearedStatus(displayWave, config);
         }
     }
 
     public void UpdateWaveDisplay(int wave)
     {
-        if (waveText != null) waveText.SetText("Wave: " + wave);
+        if (waveText != null)
+        {
+            int displayWave = Mathf.Max(1, wave);
+            waveText.SetText("Wave: " + displayWave);
+        }
     }
 
     public void UpdateWeaponDisplay(float power, float rate, float damage)

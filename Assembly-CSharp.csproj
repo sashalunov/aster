@@ -215,9 +215,6 @@
     <Reference Include="UnityEngine.GridModule">
         <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.GridModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.HierarchyModule">
-        <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.HierarchyModule.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.HierarchyCoreModule">
         <HintPath>/home/JIyHb/Unity/Hub/Editor/6000.6.2f1/Editor/Data/Managed/UnityEngine/UnityEngine.HierarchyCoreModule.dll</HintPath>
     </Reference>
