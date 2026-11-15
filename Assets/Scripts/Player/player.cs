@@ -1277,7 +1277,7 @@ public class player : MonoBehaviour
                 break;
 
             case WeaponStatType.Force:
-                _bullet_force = Mathf.Clamp(_bullet_force + 2f * pointsCost, 1f, PowerupManager.MAX_BULLET_FORCE);
+                _bullet_force = Mathf.Clamp(_bullet_force + 1f * pointsCost, 1f, PowerupManager.MAX_BULLET_FORCE);
                 UpgradeGuns(gunId, forceBonus: 2f * pointsCost);
                 if (PowerupManager.Instance != null)
                 {
