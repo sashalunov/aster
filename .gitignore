@@ -4,6 +4,7 @@ Temp/
 UserSettings/
 bld1/
 Debug/
+_Recovery/
 *.csproj
 *.cache
 *.dwlt

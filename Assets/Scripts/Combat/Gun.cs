@@ -471,6 +471,9 @@ public class Gun : MonoBehaviour
         {
             GameObject flash = Instantiate(gunData.muzzleFlashPrefab, muzzle.position, muzzle.rotation);
             flash.transform.SetParent(muzzle);
+            flash.transform.localScale = Vector3.one;
+            flash.transform.localPosition = Vector3.zero;
+            flash.transform.localRotation = Quaternion.identity;
 #if UNITY_EDITOR
             if (Application.isPlaying)
             {
